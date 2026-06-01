@@ -72,7 +72,7 @@ export default function SetupPage() {
 
   const installSnippet = `npm install github:ArthurMospan/buggy-bag-widget`;
 
-  const usageSnippet = `import BuggyBag from 'buggy-bag';
+  const usageSnippet = `import { BuggyBag } from 'buggy-bag';
 
 // Add once to your app's root component
 <BuggyBag
@@ -145,7 +145,23 @@ export default function SetupPage() {
           </div>
         </div>
 
-        {/* Step 3 — test */}
+        {/* Step 3 — activate widget */}
+        <div className="flex gap-[16px]">
+          <div className="w-[28px] h-[28px] bg-[#1f1f1f] text-white rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 mt-[2px]">
+            3
+          </div>
+          <div className="flex-1 flex flex-col gap-[10px]">
+            <div>
+              <p className="text-[14px] font-bold text-[#1f1f1f]">Активуйте віджет у браузері</p>
+              <p className="text-[13px] text-[#9a9a9a] mt-[2px]">
+                Віджет прихований для звичайних користувачів. Щоб він з'явився, відкрийте консоль розробника у браузері (F12), виконайте цю команду та оновіть сторінку.
+              </p>
+            </div>
+            <CodeBlock code={`localStorage.setItem('BUGGY_BAG_ACCESS', 'active');`} />
+          </div>
+        </div>
+
+        {/* Step 4 — test */}
         <div className="flex gap-[16px]">
           <div className="w-[28px] h-[28px] bg-[#f4f4f5] text-[#9a9a9a] rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 mt-[2px]">
             <Terminal size={13} />
