@@ -68,11 +68,9 @@ export default function SetupPage() {
     );
   }
 
-  const apiEndpoint = typeof window !== 'undefined'
-    ? `${window.location.origin}/api/bugs/submit`
-    : '/api/bugs/submit';
+  const apiEndpoint = 'https://buggy-bag.vercel.app/api/bugs/submit';
 
-  const installSnippet = `npm install buggy-bag`;
+  const installSnippet = `npm install github:ArthurMospan/buggy-bag-widget`;
 
   const usageSnippet = `import BuggyBag from 'buggy-bag';
 
