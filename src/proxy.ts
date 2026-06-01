@@ -7,6 +7,7 @@ export async function proxy(req: NextRequest) {
   // Skip auth check for public routes
   if (
     pathname.startsWith('/login') ||
+    pathname.startsWith('/register') ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
     pathname === '/favicon.ico'

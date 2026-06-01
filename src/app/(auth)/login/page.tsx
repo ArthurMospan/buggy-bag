@@ -4,50 +4,37 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import Button from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import Tabs from '@/components/ui/Tabs';
 import { Bug } from 'lucide-react';
-
-const TABS: { id: string; label: string }[] = [
-  { id: 'login',    label: 'Увійти' },
-  { id: 'register', label: 'Реєстрація' },
-];
+import Link from 'next/link';
 
 export default function LoginPage() {
-  const router = useRouter();
-  const supabase = createClient();
-
-  const [tab, setTab]         = useState('login');
-  const [email, setEmail]     = useState('');
+  const router  = useRouter();
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
-      if (tab === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-      }
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
       router.push('/');
       router.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Щось пішло не так');
+      setError(err instanceof Error ? err.message : 'Невірний email або пароль.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-[400px]">
+    <div className="w-full max-w-[400px] flex flex-col gap-[24px]">
       {/* Logo */}
-      <div className="flex items-center justify-center gap-[10px] mb-[32px]">
+      <div className="flex items-center justify-center gap-[10px]">
         <div className="w-[36px] h-[36px] bg-[#1f1f1f] rounded-[10px] flex items-center justify-center">
           <Bug size={18} className="text-white" />
         </div>
@@ -56,10 +43,8 @@ export default function LoginPage() {
 
       {/* Card */}
       <div className="bg-white rounded-[20px] border border-[#e9e9e9] p-[28px] flex flex-col gap-[20px]">
-        {/* Tabs */}
-        <Tabs tabs={TABS} activeTab={tab} onTabChange={setTab} className="w-full" />
+        <h1 className="text-[18px] font-bold text-[#1f1f1f]">Увійти</h1>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-[14px]">
           <div>
             <label className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-wider block mb-[6px]">
@@ -69,7 +54,7 @@ export default function LoginPage() {
               type="email"
               placeholder="you@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               required
               autoComplete="email"
             />
@@ -81,31 +66,31 @@ export default function LoginPage() {
             </label>
             <Input
               type="password"
-              placeholder="Мінімум 6 символів"
+              placeholder="Ваш пароль"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={e => setPassword(e.target.value)}
               required
-              autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
+              autoComplete="current-password"
             />
           </div>
 
-          {/* Error */}
           {error && (
-            <p className="text-[12px] font-semibold text-[#ef4444] bg-[#fef2f2] px-[12px] py-[8px] rounded-[8px]">
+            <p className="text-[12px] font-semibold text-[#ef4444] bg-[#fef2f2] px-[12px] py-[10px] rounded-[10px]">
               {error}
             </p>
           )}
 
-          <Button
-            type="submit"
-            style="primary"
-            size="lg"
-            loading={loading}
-            className="w-full mt-[4px]"
-          >
-            {tab === 'login' ? 'Увійти' : 'Створити акаунт'}
+          <Button type="submit" style="primary" size="lg" loading={loading} className="w-full">
+            {loading ? 'Входимо...' : 'Увійти'}
           </Button>
         </form>
+
+        <p className="text-center text-[13px] text-[#9a9a9a]">
+          Немає акаунту?{' '}
+          <Link href="/register" className="text-[#1f1f1f] font-semibold hover:underline underline-offset-2">
+            Зареєструватися
+          </Link>
+        </p>
       </div>
     </div>
   );
