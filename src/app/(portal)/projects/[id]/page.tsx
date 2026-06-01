@@ -103,7 +103,7 @@ export default function ProjectBugsPage() {
           >
             Інтеграція
           </Button>
-          <PromptGenerator bugs={bugs} />
+          <PromptGenerator bugs={bugs} onStatusChange={handleStatusChange} />
           <Button style="ghost" size="icon-lg" icon={RefreshCw} onClick={fetchData} title="Оновити">
             Оновити
           </Button>
