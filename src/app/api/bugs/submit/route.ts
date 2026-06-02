@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase-server';
-import type { Annotation } from '@/lib/types';
+import type { Annotation, TechContext } from '@/lib/types';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -19,9 +19,11 @@ export async function POST(req: NextRequest) {
       base64_image?: string;
       annotations?: Annotation[];
       description?: string;
+      tech_context?: TechContext;
     };
 
-    const { api_key, base64_image, annotations = [], description } = body;
+    const { api_key, base64_image, annotations = [], description, tech_context } = body;
+    const severity = tech_context?.autoSeverity ?? 'low';
 
     if (!api_key) {
       return NextResponse.json({ error: 'api_key is required' }, { status: 400, headers: CORS });
@@ -73,7 +75,14 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await supabase
       .from('bugs')
-      .insert({ project_id, image_url, json_annotations: annotations, description: description ?? null })
+      .insert({
+          project_id,
+          image_url,
+          json_annotations: annotations,
+          description: description ?? null,
+          severity,
+          tech_context: tech_context ?? null,
+        })
       .select()
       .single();
 

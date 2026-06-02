@@ -1,19 +1,25 @@
 'use client';
-import { Bug, LayoutDashboard, LogOut, Plug } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Bug, LogOut, Plus, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useParams, useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
-import Button from '@/components/ui/Button';
+import type { Project } from '@/lib/types';
 
 interface SidebarProps {
   userEmail?: string;
 }
 
 export default function Sidebar({ userEmail = '' }: SidebarProps) {
-  const pathname = usePathname();
-  const params   = useParams<{ id?: string }>();
-  const router   = useRouter();
-  const projectId = params?.id;
+  const pathname  = usePathname();
+  const router    = useRouter();
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+    fetch('/api/projects')
+      .then(r => r.json())
+      .then(d => setProjects(d.projects ?? []));
+  }, []);
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -22,78 +28,66 @@ export default function Sidebar({ userEmail = '' }: SidebarProps) {
     router.refresh();
   };
 
-  const isActive = (href: string) => pathname === href;
+  const activeProjectId = pathname.match(/\/projects\/([^/]+)/)?.[1];
 
   return (
     <div className="flex flex-col h-full py-[16px] px-[12px]">
 
       {/* Logo */}
-      <div className="flex items-center gap-[10px] px-[10px] py-[8px] mb-[8px]">
+      <div className="flex items-center gap-[10px] px-[10px] py-[8px] mb-[12px]">
         <div className="w-[28px] h-[28px] bg-[#1f1f1f] rounded-[8px] flex items-center justify-center shrink-0">
           <Bug size={14} className="text-white" />
         </div>
         <span className="text-[14px] font-bold text-[#1f1f1f]">BuggyBag</span>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex flex-col gap-[2px] flex-1">
+      {/* Project list */}
+      <p className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-wider px-[10px] mb-[6px]">
+        Проєкти
+      </p>
 
-        {/* Projects root */}
+      <nav className="flex flex-col gap-[2px] flex-1 overflow-y-auto">
+        {projects.map(p => {
+          const isActive = activeProjectId === p.id;
+          return (
+            <Link
+              key={p.id}
+              href={`/projects/${p.id}`}
+              className={`flex items-center gap-[8px] px-[10px] py-[8px] rounded-[10px] text-[13px] font-semibold transition-colors ${
+                isActive
+                  ? 'bg-white text-[#1f1f1f] shadow-sm'
+                  : 'text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-[#ebebeb]'
+              }`}
+            >
+              <FolderOpen size={14} className="shrink-0" />
+              <span className="truncate flex-1">{p.name}</span>
+            </Link>
+          );
+        })}
+
         <Link
-          href="/"
-          className={`flex items-center gap-[10px] px-[12px] py-[9px] rounded-[10px] text-[13px] font-semibold transition-colors ${
-            isActive('/') ? 'bg-white text-[#1f1f1f] shadow-sm' : 'text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-[#ebebeb]'
-          }`}
+          href="/?new=1"
+          className="flex items-center gap-[8px] px-[10px] py-[8px] rounded-[10px] text-[12px] font-semibold text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-[#ebebeb] transition-colors mt-[4px]"
         >
-          <LayoutDashboard size={15} />
-          Проєкти
+          <Plus size={13} />
+          Новий проєкт
         </Link>
-
-        {/* Project sub-nav — only shown when inside a project */}
-        {projectId && (
-          <div className="flex flex-col gap-[2px] mt-[2px] pl-[8px]">
-            <Link
-              href={`/projects/${projectId}`}
-              className={`flex items-center gap-[10px] px-[12px] py-[8px] rounded-[10px] text-[12px] font-semibold transition-colors ${
-                isActive(`/projects/${projectId}`)
-                  ? 'bg-white text-[#1f1f1f] shadow-sm'
-                  : 'text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-[#ebebeb]'
-              }`}
-            >
-              <Bug size={13} />
-              Баги
-            </Link>
-            <Link
-              href={`/projects/${projectId}/setup`}
-              className={`flex items-center gap-[10px] px-[12px] py-[8px] rounded-[10px] text-[12px] font-semibold transition-colors ${
-                isActive(`/projects/${projectId}/setup`)
-                  ? 'bg-white text-[#1f1f1f] shadow-sm'
-                  : 'text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-[#ebebeb]'
-              }`}
-            >
-              <Plug size={13} />
-              Інтеграція
-            </Link>
-          </div>
-        )}
       </nav>
 
       {/* User section */}
       <div className="border-t border-[#e9e9e9] pt-[12px] mt-[12px]">
         {userEmail && (
-          <p className="text-[11px] font-semibold text-[#9a9a9a] px-[12px] mb-[8px] truncate">
+          <p className="text-[11px] font-semibold text-[#9a9a9a] px-[10px] mb-[8px] truncate">
             {userEmail}
           </p>
         )}
-        <Button
-          style="ghost"
-          size="sm"
-          icon={LogOut}
+        <button
           onClick={handleLogout}
-          className="w-full justify-start px-[12px]"
+          className="w-full flex items-center gap-[8px] px-[10px] py-[7px] rounded-[10px] text-[12px] font-semibold text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-[#ebebeb] transition-colors"
         >
+          <LogOut size={13} />
           Вийти
-        </Button>
+        </button>
       </div>
 
     </div>
