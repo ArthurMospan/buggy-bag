@@ -4,6 +4,27 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Handle CORS preflight for /api/bugs/submit (called from any origin by the widget)
+  if (pathname.startsWith('/api/bugs/submit') || pathname.startsWith('/api/ping')) {
+    if (req.method === 'OPTIONS') {
+      return new NextResponse(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Max-Age': '86400',
+        },
+      });
+    }
+
+    const res = NextResponse.next();
+    res.headers.set('Access-Control-Allow-Origin', '*');
+    res.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res;
+  }
+
   // Skip auth check for public routes
   if (
     pathname.startsWith('/login') ||
@@ -46,5 +67,6 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon\\.ico|api|login).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon\\.ico).*)'],
 };
+
