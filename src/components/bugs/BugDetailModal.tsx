@@ -296,29 +296,3 @@ export default function BugDetailModal({ bug, onClose, onStatusChange, onSeverit
     </Dialog>
   );
 }
-bold">{ann.text}</span>
-                </div>
-              ))}
-            </div>
-          </Section>
-        )}
-
-        {/* Status + Severity changer */}
-        <div className="flex items-end gap-[10px] pt-[12px] border-t border-[#f0f0f0]">
-          <div className="flex-1">
-            <div className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[6px]">Статус</div>
-            <Select value={status} onChange={(v: string) => setStatus(v as BugStatus)} options={STATUS_OPTIONS} />
-          </div>
-          <div className="flex-1">
-            <div className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[6px]">Severity</div>
-            <Select value={severity} onChange={(v: string) => setSeverity(v as BugSeverity)} options={SEVERITY_OPTIONS} />
-          </div>
-          <Button style="primary" size="lg" icon={Save} loading={saving} onClick={handleSave} disabled={!hasChanges}>
-            Зберегти
-          </Button>
-        </div>
-
-      </div>
-    </Dialog>
-  );
-}
