@@ -109,4 +109,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, bug: data }, { status: 201, headers: CORS });
+  } catch {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500, headers: CORS });
   }
+}
