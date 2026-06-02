@@ -34,12 +34,12 @@ export default function Sidebar({ userEmail = '' }: SidebarProps) {
     <div className="flex flex-col h-full py-[16px] px-[12px]">
 
       {/* Logo */}
-      <div className="flex items-center gap-[10px] px-[10px] py-[8px] mb-[12px]">
+      <Link href="/" className="flex items-center gap-[10px] px-[10px] py-[8px] mb-[12px] hover:opacity-70 transition-opacity">
         <div className="w-[28px] h-[28px] bg-[#1f1f1f] rounded-[8px] flex items-center justify-center shrink-0">
           <Bug size={14} className="text-white" />
         </div>
         <span className="text-[14px] font-bold text-[#1f1f1f]">BuggyBag</span>
-      </div>
+      </Link>
 
       {/* Project list */}
       <p className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-wider px-[10px] mb-[6px]">
@@ -55,7 +55,7 @@ export default function Sidebar({ userEmail = '' }: SidebarProps) {
               href={`/projects/${p.id}`}
               className={`flex items-center gap-[8px] px-[10px] py-[8px] rounded-[10px] text-[13px] font-semibold transition-colors ${
                 isActive
-                  ? 'bg-white text-[#1f1f1f] shadow-sm'
+                  ? 'bg-[#f0f0f0] text-[#1f1f1f]'
                   : 'text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-[#ebebeb]'
               }`}
             >

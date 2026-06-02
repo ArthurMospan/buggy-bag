@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Bug, BugStatus, Annotation } from '@/lib/types';
+import { Bug, BugStatus, BugSeverity, Annotation } from '@/lib/types';
 import Dialog from '@/components/ui/Dialog';
 import Badge from '@/components/ui/DataDisplay/Badge';
 import { Select } from '@/components/ui/Select';
@@ -80,17 +80,27 @@ function Section({ title, children, defaultOpen = false }: {
 }
 
 // ── Main modal ──────────────────────────────────────────────────────────────
+const SEVERITY_OPTIONS = [
+  { value: 'low',      label: 'Low' },
+  { value: 'medium',   label: 'Medium' },
+  { value: 'high',     label: 'High' },
+  { value: 'critical', label: 'Critical' },
+];
+
 interface BugDetailModalProps {
   bug: Bug | null;
   onClose: () => void;
   onStatusChange: (id: string, status: BugStatus) => Promise<void>;
+  onSeverityChange?: (id: string, severity: BugSeverity) => Promise<void>;
 }
 
-export default function BugDetailModal({ bug, onClose, onStatusChange }: BugDetailModalProps) {
-  const [status, setStatus] = useState<BugStatus>(bug?.status ?? 'open');
+export default function BugDetailModal({ bug, onClose, onStatusChange, onSeverityChange }: BugDetailModalProps) {
+  const [status,   setStatus]   = useState<BugStatus>(bug?.status ?? 'open');
+  const [severity, setSeverity] = useState<BugSeverity>(bug?.severity ?? 'low');
   const [saving, setSaving] = useState(false);
 
   if (bug && status !== bug.status && !saving) setStatus(bug.status);
+  if (bug && severity !== bug.severity && !saving) setSeverity(bug.severity ?? 'low');
   if (!bug) return null;
 
   const cfg = STATUS_CFG[bug.status];
@@ -100,9 +110,14 @@ export default function BugDetailModal({ bug, onClose, onStatusChange }: BugDeta
 
   const handleSave = async () => {
     setSaving(true);
-    await onStatusChange(bug.id, status);
+    const tasks: Promise<void>[] = [];
+    if (status !== bug.status) tasks.push(onStatusChange(bug.id, status));
+    if (severity !== bug.severity && onSeverityChange) tasks.push(onSeverityChange(bug.id, severity));
+    await Promise.all(tasks);
     setSaving(false);
   };
+
+  const hasChanges = status !== bug.status || severity !== (bug.severity ?? 'low');
 
   return (
     <Dialog isOpen={!!bug} onClose={onClose} title="Деталі баг-репорту" size="lg">
@@ -262,13 +277,43 @@ export default function BugDetailModal({ bug, onClose, onStatusChange }: BugDeta
           </Section>
         )}
 
-        {/* Status changer */}
+        {/* Status + Severity changer */}
         <div className="flex items-end gap-[10px] pt-[12px] border-t border-[#f0f0f0]">
           <div className="flex-1">
-            <div className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[6px]">Змінити статус</div>
+            <div className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[6px]">Статус</div>
             <Select value={status} onChange={(v: string) => setStatus(v as BugStatus)} options={STATUS_OPTIONS} />
           </div>
-          <Button style="primary" size="lg" icon={Save} loading={saving} onClick={handleSave} disabled={status === bug.status}>
+          <div className="flex-1">
+            <div className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[6px]">Severity</div>
+            <Select value={severity} onChange={(v: string) => setSeverity(v as BugSeverity)} options={SEVERITY_OPTIONS} />
+          </div>
+          <Button style="primary" size="lg" icon={Save} loading={saving} onClick={handleSave} disabled={!hasChanges}>
+            Зберегти
+          </Button>
+        </div>
+
+      </div>
+    </Dialog>
+  );
+}
+bold">{ann.text}</span>
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* Status + Severity changer */}
+        <div className="flex items-end gap-[10px] pt-[12px] border-t border-[#f0f0f0]">
+          <div className="flex-1">
+            <div className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[6px]">Статус</div>
+            <Select value={status} onChange={(v: string) => setStatus(v as BugStatus)} options={STATUS_OPTIONS} />
+          </div>
+          <div className="flex-1">
+            <div className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[6px]">Severity</div>
+            <Select value={severity} onChange={(v: string) => setSeverity(v as BugSeverity)} options={SEVERITY_OPTIONS} />
+          </div>
+          <Button style="primary" size="lg" icon={Save} loading={saving} onClick={handleSave} disabled={!hasChanges}>
             Зберегти
           </Button>
         </div>

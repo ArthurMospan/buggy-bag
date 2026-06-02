@@ -191,6 +191,60 @@ export default function RootLayout({ children }) {
 
       {/* API Key for reference */}
       <CodeBlock code={project.api_key} label="Ваш API ключ" />
+
+      {/* Uninstall */}
+      <div className="border border-[#e9e9e9] rounded-[14px] p-[16px] flex flex-col gap-[10px]">
+        <div className="text-[12px] font-bold text-[#1f1f1f]">Видалити інтеграцію</div>
+        <p className="text-[11px] text-[#9a9a9a]">
+          Щоб повністю прибрати BuggyBag з проєкту, виконай два кроки:
+        </p>
+        <CodeBlock code={`npm uninstall buggy-bag`} label="1. Видалити пакет" />
+        <p className="text-[11px] text-[#9a9a9a]">
+          2. Прибери <code className="bg-[#f4f4f5] px-[3px] rounded text-[#1f1f1f]">&lt;BuggyBag ... /&gt;</code> з кореневого layout — того ж файлу, куди ти його додавав.
+        </p>
+      </div>
+
+      {/* Security note */}
+      <div className="bg-[#f9f9f9] border border-[#e9e9e9] rounded-[14px] p-[16px] flex flex-col gap-[8px]">
+        <div className="text-[12px] font-bold text-[#1f1f1f]">🔒 Безпека</div>
+        <p className="text-[11px] text-[#9a9a9a] leading-relaxed">
+          <strong className="text-[#1f1f1f]">Віджет прихований за захистом</strong> — звичайні відвідувачі не бачать жучка і не знають про його існування. Активація можлива лише через букмарклет або <code className="bg-white px-[3px] rounded">?bb=on</code>.
+        </p>
+        <p className="text-[11px] text-[#9a9a9a] leading-relaxed">
+          <strong className="text-[#1f1f1f]">API ключ напівпублічний</strong> — він вбудований у клієнтський JS, тому технічно його можна знайти. Але він дозволяє лише <em>надсилати баги</em> в цей проєкт — читати чи видаляти дані через нього неможливо. Сервер обмежує 30 відправок на годину з одного ключа.
+        </p>
+        <p className="text-[11px] text-[#9a9a9a] leading-relaxed">
+          <strong className="text-[#1f1f1f]">Рекомендація</strong> — не використовуй BuggyBag на production-сайтах з публічним трафіком. Він призначений для staging/dev середовищ або внутрішніх інструментів.
+        </p>
+      </div>
+    </div>
+  );
+}
+ll" />
+
+      {/* Uninstall */}
+      <div className="border border-[#e9e9e9] rounded-[14px] p-[16px] flex flex-col gap-[10px]">
+        <div className="text-[12px] font-bold text-[#1f1f1f]">Видалити інтеграцію</div>
+        <p className="text-[11px] text-[#9a9a9a]">Щоб повністю прибрати BuggyBag з проєкту, виконай два кроки:</p>
+        <CodeBlock code="npm uninstall buggy-bag" label="1. Видалити пакет" />
+        <p className="text-[11px] text-[#9a9a9a]">2. Прибери <code className="bg-[#f4f4f5] px-[3px] rounded text-[#1f1f1f]">&lt;BuggyBag ... /&gt;</code> з кореневого layout.</p>
+      </div>
+
+      <div className="bg-[#f9f9f9] border border-[#e9e9e9] rounded-[14px] p-[16px] flex flex-col gap-[8px]">
+        <div className="text-[12px] font-bold text-[#1f1f1f]">🔒 Безпека</div>
+        <p className="text-[11px] text-[#9a9a9a] leading-relaxed"><strong className="text-[#1f1f1f]">Віджет прихований</strong> — звичайні відвідувачі не бачать жучка. Активація лише через букмарклет або <code className="bg-white px-[3px] rounded">?bb=on</code>.</p>
+        <p className="text-[11px] text-[#9a9a9a] leading-relaxed"><strong className="text-[#1f1f1f]">API ключ напівпублічний</strong> — дозволяє лише надсилати баги, не читати дані. Сервер обмежує 30 відправок на годину.</p>
+        <p className="text-[11px] text-[#9a9a9a] leading-relaxed"><strong className="text-[#1f1f1f]">Рекомендація</strong> — використовуй на staging/dev, не на production з публічним трафіком.</p>
+      </div>
+    </div>
+  );
+}
+цей проєкт — читати чи видаляти дані через нього неможливо. Сервер обмежує 30 відправок на годину.
+        </p>
+        <p className="text-[11px] text-[#9a9a9a] leading-relaxed">
+          <strong className="text-[#1f1f1f]">Рекомендація</strong> — використовуй на staging/dev, не на production з публічним трафіком.
+        </p>
+      </div>
     </div>
   );
 }

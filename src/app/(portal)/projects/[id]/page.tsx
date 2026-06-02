@@ -74,11 +74,11 @@ const STATUS_OPTIONS = [
   { value: 'closed',      label: 'Закриті',     dotColor: '#9a9a9a' },
 ];
 
-function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+function StatCard({ label, value }: { label: string; value: number; color?: string }) {
   return (
-    <div className="bg-white border border-[#e9e9e9] rounded-[16px] p-[16px]">
+    <div className="bg-[#f9f9f9] border border-[#e9e9e9] rounded-[14px] p-[16px]">
       <div className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-wider">{label}</div>
-      <div className="text-[28px] font-bold mt-[4px]" style={{ color }}>{value}</div>
+      <div className="text-[28px] font-bold mt-[4px] text-[#1f1f1f]">{value}</div>
     </div>
   );
 }
@@ -126,6 +126,18 @@ export default function ProjectPage() {
     }
   };
 
+  const handleSeverityChange = async (bugId: string, severity: import('@/lib/types').BugSeverity) => {
+    const res = await fetch('/api/bugs', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: bugId, severity }),
+    });
+    if (res.ok) {
+      setBugs(prev => prev.map(b => b.id === bugId ? { ...b, severity } : b));
+      setSelectedBug(prev => prev?.id === bugId ? { ...prev, severity } : prev);
+    }
+  };
+
   const toggleSelect = (bugId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedIds(prev => {
@@ -168,10 +180,10 @@ export default function ProjectPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-[12px]">
-        <StatCard label="Всього"       value={bugs.length} color="#1f1f1f" />
-        <StatCard label="Нові"         value={openCount}   color="#6366f1" />
-        <StatCard label="В роботі"     value={inProgress}  color="#f97316" />
-        <StatCard label="Виправлені"   value={resolved}    color="#10b981" />
+        <StatCard label="Всього"     value={bugs.length} />
+        <StatCard label="Нові"       value={openCount} />
+        <StatCard label="В роботі"   value={inProgress} />
+        <StatCard label="Виправлені" value={resolved} />
       </div>
 
       {/* Selection hint */}
@@ -216,6 +228,7 @@ export default function ProjectPage() {
         bug={selectedBug}
         onClose={() => setSelectedBug(null)}
         onStatusChange={handleStatusChange}
+        onSeverityChange={handleSeverityChange}
       />
 
       {/* Integration dialog */}
@@ -225,4 +238,3 @@ export default function ProjectPage() {
     </div>
   );
 }
-

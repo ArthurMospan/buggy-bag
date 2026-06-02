@@ -1,207 +1,177 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Project } from '@/lib/types';
+import { Project, Bug } from '@/lib/types';
 import Button from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import Dialog from '@/components/ui/Dialog';
-import EmptyState from '@/components/ui/Feedback/EmptyState';
 import LoadingSpinner from '@/components/ui/Feedback/LoadingSpinner';
 import { Plus, FolderOpen, ArrowRight, Trash2, Key } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { uk } from 'date-fns/locale';
 
-// ── Project card ─────────────────────────────────────────────────
-function ProjectCard({ project, onDelete }: { project: Project; onDelete: (id: string) => void }) {
-  const router = useRouter();
+const STATUS_LABEL: Record<string, string> = {
+  open: 'Новий', in_progress: 'В роботі', resolved: 'Виправлено', closed: 'Закрито',
+};
 
+function StatTile({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="bg-white border border-[#e9e9e9] rounded-[16px] p-[20px] flex flex-col gap-[16px] hover:border-[#cfcfcf] hover:ring-4 hover:ring-[#1f1f1f]/5 transition-all duration-200">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-[8px]">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-[15px] font-bold text-[#1f1f1f] truncate">{project.name}</h3>
-          <p className="text-[11px] text-[#9a9a9a] mt-[2px]">
-            {new Date(project.created_at).toLocaleDateString('uk-UA')}
-          </p>
-        </div>
-        <Button
-          style="ghost"
-          color="red"
-          size="icon-sm"
-          icon={Trash2}
-          onClick={(e) => { e.stopPropagation(); onDelete(project.id); }}
-          title="Видалити проєкт"
-        >
-          Видалити
-        </Button>
-      </div>
-
-      {/* API key snippet */}
-      <div className="bg-[#f4f4f5] rounded-[10px] px-[12px] py-[8px] flex items-center gap-[8px]">
-        <Key size={12} className="text-[#9a9a9a] shrink-0" />
-        <code className="text-[11px] font-mono text-[#9a9a9a] truncate flex-1">{project.api_key}</code>
-      </div>
-
-      {/* Actions */}
-      <div className="flex gap-[8px]">
-        <Button
-          style="secondary"
-          size="md"
-          className="flex-1"
-          onClick={() => router.push(`/projects/${project.id}/setup`)}
-        >
-          Інтеграція
-        </Button>
-        <Button
-          style="primary"
-          size="md"
-          icon={ArrowRight}
-          className="flex-1"
-          onClick={() => router.push(`/projects/${project.id}`)}
-        >
-          Баги
-        </Button>
-      </div>
+    <div className="bg-[#f9f9f9] border border-[#e9e9e9] rounded-[14px] px-[20px] py-[16px]">
+      <div className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[4px]">{label}</div>
+      <div className="text-[30px] font-bold text-[#1f1f1f] leading-none">{value}</div>
     </div>
   );
 }
 
-// ── Page ─────────────────────────────────────────────────────────
-export default function ProjectsPage() {
+function ProjectCard({ project, onDelete }: { project: Project; onDelete: (id: string) => void }) {
+  const router = useRouter();
+  return (
+    <div className="bg-[#f9f9f9] border border-[#e9e9e9] rounded-[14px] p-[16px] flex items-center gap-[12px] group hover:border-[#cfcfcf] transition-colors">
+      <div className="flex-1 min-w-0">
+        <div className="text-[13px] font-bold text-[#1f1f1f] truncate">{project.name}</div>
+        <div className="text-[11px] text-[#9a9a9a] mt-[2px] font-mono truncate">{project.api_key.slice(0, 18)}…</div>
+      </div>
+      <button onClick={() => onDelete(project.id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-[6px] rounded-[8px] hover:bg-[#e9e9e9] text-[#9a9a9a] hover:text-[#1f1f1f]">
+        <Trash2 size={13} />
+      </button>
+      <button onClick={() => router.push(`/projects/${project.id}`)}
+        className="flex items-center gap-[6px] px-[12px] py-[6px] bg-[#1f1f1f] text-white text-[12px] font-bold rounded-[8px] hover:bg-[#303030] transition-colors shrink-0">
+        Баги <ArrowRight size={12} />
+      </button>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading]   = useState(true);
+  const [recentBugs, setRecentBugs] = useState<Bug[]>([]);
+  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
-  const [newName, setNewName]   = useState('');
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [newName, setNewName] = useState('');
 
-  const fetchProjects = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/projects');
-      const data = await res.json();
-      setProjects(data.projects ?? []);
-    } finally {
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const [pr, br] = await Promise.all([fetch('/api/projects'), fetch('/api/bugs')]);
+      const pd = await pr.json();
+      const bd = await br.json();
+      setProjects(pd.projects ?? []);
+      setRecentBugs((bd.bugs ?? []).slice(0, 8));
       setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchProjects(); }, []);
+    };
+    load();
+  }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
     setCreating(true);
-    try {
-      const res = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName.trim() }),
-      });
-      const data = await res.json();
-      if (data.project) {
-        setProjects(prev => [data.project, ...prev]);
-        setNewName('');
-        setShowDialog(false);
-      }
-    } finally {
-      setCreating(false);
+    const res = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName.trim() }),
+    });
+    const data = await res.json();
+    if (data.project) {
+      setProjects(prev => [data.project, ...prev]);
+      setNewName('');
+      setShowDialog(false);
     }
+    setCreating(false);
   };
 
   const handleDelete = async (id: string) => {
-    setDeleteId(id);
-    await fetch('/api/projects', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    });
+    await fetch('/api/projects', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
     setProjects(prev => prev.filter(p => p.id !== id));
-    setDeleteId(null);
   };
 
+  const totalOpen     = recentBugs.filter(b => b.status === 'open').length;
+  const totalResolved = recentBugs.filter(b => b.status === 'resolved').length;
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-full py-[80px]">
+      <LoadingSpinner size="lg" />
+    </div>
+  );
+
   return (
-    <div className="p-[24px] flex flex-col gap-[24px]">
+    <div className="p-[24px] flex flex-col gap-[32px] max-w-[900px]">
 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-bold text-[#1f1f1f]">Мої проєкти</h1>
-          <p className="text-[13px] text-[#9a9a9a] mt-[2px]">
-            {projects.length} {projects.length === 1 ? 'проєкт' : 'проєктів'}
-          </p>
+          <h1 className="text-[22px] font-bold text-[#1f1f1f]">Дашборд</h1>
+          <p className="text-[13px] text-[#9a9a9a] mt-[2px]">{projects.length} проєктів</p>
         </div>
         <Button style="primary" size="lg" icon={Plus} onClick={() => setShowDialog(true)}>
           Новий проєкт
         </Button>
       </div>
 
-      {/* Content */}
-      {loading ? (
-        <div className="flex items-center justify-center py-[60px]">
-          <LoadingSpinner size="lg" />
-        </div>
-      ) : projects.length === 0 ? (
-        <EmptyState
-          icon={FolderOpen}
-          title="Проєктів поки немає"
-          description="Створіть перший проєкт, щоб отримати API-ключ для вашого віджета."
-          action="Створити проєкт"
-          onAction={() => setShowDialog(true)}
-        />
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[16px]">
-          {projects.map(project => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              onDelete={handleDelete}
-            />
-          ))}
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-[12px]">
+        <StatTile label="Проєктів"   value={projects.length} />
+        <StatTile label="Відкритих"  value={totalOpen} />
+        <StatTile label="Виправлено" value={totalResolved} />
+      </div>
+
+      {/* Recent bugs */}
+      {recentBugs.length > 0 && (
+        <div>
+          <div className="flex items-center gap-[10px] mb-[12px]">
+            <span className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-wider">Останні баги</span>
+            <div className="flex-1 h-[1px] bg-[#e9e9e9]" />
+          </div>
+          <div className="flex flex-col gap-[2px]">
+            {recentBugs.map(bug => {
+              const proj = projects.find(p => p.id === bug.project_id);
+              return (
+                <div key={bug.id} className="flex items-center gap-[12px] px-[14px] py-[10px] rounded-[10px] hover:bg-[#f9f9f9] transition-colors group">
+                  <div className="w-[6px] h-[6px] rounded-full shrink-0" style={{
+                    background: bug.status === 'open' ? '#1f1f1f' : bug.status === 'resolved' ? '#9a9a9a' : '#cfcfcf'
+                  }} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[13px] font-semibold text-[#1f1f1f] truncate block">
+                      {bug.description || 'Без опису'}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-[#9a9a9a] shrink-0">{proj?.name ?? '—'}</span>
+                  <span className="text-[11px] font-bold text-[#9a9a9a] shrink-0 capitalize">{bug.severity ?? 'low'}</span>
+                  <span className="text-[11px] text-[#cfcfcf] shrink-0">
+                    {formatDistanceToNow(new Date(bug.created_at), { addSuffix: true, locale: uk })}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* Create project dialog */}
-      <Dialog
-        isOpen={showDialog}
-        onClose={() => { setShowDialog(false); setNewName(''); }}
-        title="Новий проєкт"
-        size="sm"
-      >
-        <form onSubmit={handleCreate} className="flex flex-col gap-[16px]">
-          <div>
-            <label className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-wider block mb-[6px]">
-              Назва проєкту *
-            </label>
-            <Input
-              placeholder="Наприклад: My Website"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              autoFocus
-              required
-            />
+      {/* Projects */}
+      <div>
+        <div className="flex items-center gap-[10px] mb-[12px]">
+          <span className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-wider">Проєкти</span>
+          <div className="flex-1 h-[1px] bg-[#e9e9e9]" />
+        </div>
+        {projects.length === 0 ? (
+          <div className="text-[13px] text-[#9a9a9a] py-[24px] text-center">
+            Немає проєктів. Створіть перший!
           </div>
-          <p className="text-[12px] text-[#9a9a9a]">
-            Після створення ви отримаєте унікальний API-ключ для цього проєкту.
-          </p>
+        ) : (
+          <div className="flex flex-col gap-[8px]">
+            {projects.map(p => <ProjectCard key={p.id} project={p} onDelete={handleDelete} />)}
+          </div>
+        )}
+      </div>
+
+      {/* Create dialog */}
+      <Dialog isOpen={showDialog} onClose={() => { setShowDialog(false); setNewName(''); }} title="Новий проєкт" size="sm">
+        <form onSubmit={handleCreate} className="flex flex-col gap-[16px]">
+          <Input placeholder="Назва проєкту" value={newName} onChange={e => setNewName(e.target.value)} autoFocus required />
           <div className="flex gap-[8px]">
-            <Button
-              style="secondary"
-              size="lg"
-              className="flex-1"
-              type="button"
-              onClick={() => { setShowDialog(false); setNewName(''); }}
-            >
-              Скасувати
-            </Button>
-            <Button
-              style="primary"
-              size="lg"
-              className="flex-1"
-              type="submit"
-              loading={creating}
-            >
-              Створити
-            </Button>
+            <Button style="secondary" size="lg" className="flex-1" type="button" onClick={() => setShowDialog(false)}>Скасувати</Button>
+            <Button style="primary" size="lg" className="flex-1" type="submit" loading={creating}>Створити</Button>
           </div>
         </form>
       </Dialog>

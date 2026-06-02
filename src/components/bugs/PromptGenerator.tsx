@@ -153,8 +153,51 @@ const STATUS_LABEL: Record<string, string> = {
   open: 'Новий', in_progress: 'В роботі', resolved: 'Виправлено', closed: 'Закрито',
 };
 
+const TOOL_OPTIONS: { id: TemplateId; label: string; desc: string }[] = [
+  { id: 'antigravity', label: 'Antigravity', desc: 'Агент виправляє баги по черзі' },
+  { id: 'cursor',      label: 'Cursor',      desc: 'AI-редактор з chat-режимом' },
+  { id: 'claude',      label: 'Claude Code', desc: 'Claude у терміналі' },
+  { id: 'generic',     label: 'Інший',       desc: 'Будь-який AI асистент' },
+];
+
+function Onboarding({ onConfirm }: { onConfirm: (template: TemplateId) => void }) {
+  const [choice, setChoice] = useState<TemplateId>('antigravity');
+  return (
+    <div className="flex flex-col gap-[20px] py-[8px]">
+      <div>
+        <p className="text-[13px] font-semibold text-[#1f1f1f] mb-[4px]">Який AI інструмент будеш використовувати?</p>
+        <p className="text-[12px] text-[#9a9a9a]">Промпт адаптується під стиль і можливості кожного.</p>
+      </div>
+      <div className="flex flex-col gap-[8px]">
+        {TOOL_OPTIONS.map(opt => (
+          <button
+            key={opt.id}
+            onClick={() => setChoice(opt.id)}
+            className={`flex items-center gap-[12px] px-[14px] py-[12px] rounded-[12px] border-2 text-left transition-colors ${choice === opt.id ? 'border-[#1f1f1f] bg-[#f9f9f9]' : 'border-[#e9e9e9] hover:border-[#cfcfcf]'}`}
+          >
+            <div className={`w-[16px] h-[16px] rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${choice === opt.id ? 'border-[#1f1f1f]' : 'border-[#d1d5db]'}`}>
+              {choice === opt.id && <div className="w-[8px] h-[8px] rounded-full bg-[#1f1f1f]" />}
+            </div>
+            <div>
+              <div className="text-[13px] font-bold text-[#1f1f1f]">{opt.label}</div>
+              <div className="text-[11px] text-[#9a9a9a]">{opt.desc}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+      <button
+        onClick={() => onConfirm(choice)}
+        className="w-full py-[12px] rounded-[12px] bg-[#1f1f1f] text-white text-[13px] font-bold hover:bg-[#303030] transition-colors"
+      >
+        Далі →
+      </button>
+    </div>
+  );
+}
+
 export default function PromptGenerator({ bugs, selectedIds, onSelectedIdsChange, onStatusChange }: PromptGeneratorProps) {
   const [open, setOpen]         = useState(false);
+  const [onboarded, setOnboarded] = useState(false);
   const [copied, setCopied]     = useState(false);
   const [template, setTemplate] = useState<TemplateId>('antigravity');
   const [markedDone, setMarkedDone] = useState(false);
@@ -182,13 +225,22 @@ export default function PromptGenerator({ bugs, selectedIds, onSelectedIdsChange
     onSelectedIdsChange(next);
   };
 
+  const handleOpen = () => {
+    setMarkedDone(false);
+    setOnboarded(false); // reset onboarding each time
+    setOpen(true);
+  };
+
   return (
     <>
-      <Button style="secondary" size="lg" icon={Sparkles} onClick={() => { setMarkedDone(false); setOpen(true); }}>
+      <Button style="secondary" size="lg" icon={Sparkles} onClick={handleOpen}>
         Промпт {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
       </Button>
 
-      <Dialog isOpen={open} onClose={() => setOpen(false)} title="Генератор промпту" size="xl">
+      <Dialog isOpen={open} onClose={() => setOpen(false)} title={onboarded ? 'Генератор промпту' : 'Налаштування промпту'} size={onboarded ? 'xl' : 'sm'}>
+        {!onboarded ? (
+          <Onboarding onConfirm={(t) => { setTemplate(t); setOnboarded(true); }} />
+        ) : (
         <div className="flex gap-0 h-[560px] -mx-[24px] -mb-[24px] overflow-hidden rounded-b-[20px]">
 
           {/* LEFT — bug list */}
@@ -289,7 +341,9 @@ export default function PromptGenerator({ bugs, selectedIds, onSelectedIdsChange
           </div>
 
         </div>
+        )}
       </Dialog>
     </>
   );
 }
+

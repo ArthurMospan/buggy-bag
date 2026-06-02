@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAuthClient } from '@/lib/supabase-server';
-import type { BugStatus } from '@/lib/types';
+import type { BugStatus, BugSeverity } from '@/lib/types';
 
 export async function GET(req: NextRequest) {
   try {
@@ -41,24 +41,32 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, status } = body as { id: string; status: BugStatus };
+    const { id, status, severity } = body as { id: string; status?: BugStatus; severity?: BugSeverity };
 
-    if (!id || !status) {
-      return NextResponse.json({ error: 'id and status are required' }, { status: 400 });
+    if (!id || (!status && !severity)) {
+      return NextResponse.json({ error: 'id and status or severity are required' }, { status: 400 });
     }
 
-    const validStatuses: BugStatus[] = ['open', 'in_progress', 'resolved', 'closed'];
-    if (!validStatuses.includes(status)) {
-      return NextResponse.json(
-        { error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` },
-        { status: 400 }
-      );
+    const updates: Record<string, string> = {};
+
+    if (status) {
+      const validStatuses: BugStatus[] = ['open', 'in_progress', 'resolved', 'closed'];
+      if (!validStatuses.includes(status))
+        return NextResponse.json({ error: `Invalid status` }, { status: 400 });
+      updates.status = status;
+    }
+
+    if (severity) {
+      const validSeverities: BugSeverity[] = ['low', 'medium', 'high', 'critical'];
+      if (!validSeverities.includes(severity))
+        return NextResponse.json({ error: `Invalid severity` }, { status: 400 });
+      updates.severity = severity;
     }
 
     // RLS on bugs table enforces ownership through the projects relationship
     const { data, error } = await supabase
       .from('bugs')
-      .update({ status })
+      .update(updates)
       .eq('id', id)
       .select()
       .single();

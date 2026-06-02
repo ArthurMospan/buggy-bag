@@ -8,6 +8,20 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
+// Simple in-memory rate limiter: max 30 submissions per api_key per hour
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+function checkRateLimit(key: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + 60 * 60 * 1000 });
+    return true;
+  }
+  if (entry.count >= 30) return false;
+  entry.count++;
+  return true;
+}
+
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS });
 }
@@ -27,6 +41,10 @@ export async function POST(req: NextRequest) {
 
     if (!api_key) {
       return NextResponse.json({ error: 'api_key is required' }, { status: 400, headers: CORS });
+    }
+
+    if (!checkRateLimit(api_key)) {
+      return NextResponse.json({ error: 'Rate limit exceeded (30/hour)' }, { status: 429, headers: CORS });
     }
 
     const supabase = createServiceClient();
@@ -91,7 +109,4 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, bug: data }, { status: 201, headers: CORS });
-  } catch {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500, headers: CORS });
   }
-}
