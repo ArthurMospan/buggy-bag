@@ -35,8 +35,8 @@ export default function Sidebar({ userEmail = '' }: SidebarProps) {
 
       {/* Logo */}
       <Link href="/" className="flex items-center gap-[10px] px-[10px] py-[8px] mb-[12px] hover:opacity-70 transition-opacity">
-        <div className="w-[28px] h-[28px] bg-[#1f1f1f] rounded-[8px] flex items-center justify-center shrink-0">
-          <Bug size={14} className="text-white" />
+        <div className="w-[28px] h-[28px] shrink-0">
+          <img src="/bug-logo.svg" alt="BuggyBag Logo" width={28} height={28} />
         </div>
         <span className="text-[14px] font-bold text-[#1f1f1f]">BuggyBag</span>
       </Link>

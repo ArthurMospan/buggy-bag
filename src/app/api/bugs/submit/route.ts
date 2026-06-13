@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase-server';
-import type { Annotation, TechContext } from '@/lib/types';
+import type { Annotation, TechContext, DrawShape } from '@/lib/types';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -31,12 +31,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json() as {
       api_key: string;
       base64_image?: string;
-      annotations?: Annotation[];
+      shapes?: DrawShape[];
+      annotations?: Record<string, string>;
       description?: string;
       tech_context?: TechContext;
     };
 
-    const { api_key, base64_image, annotations = [], description, tech_context } = body;
+    const { api_key, base64_image, shapes = [], annotations = {}, description, tech_context } = body;
     const severity = tech_context?.autoSeverity ?? 'low';
 
     if (!api_key) {
@@ -47,17 +48,45 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Rate limit exceeded (30/hour)' }, { status: 429, headers: CORS });
     }
 
+    // Parse viewport dimensions for coordinate conversion
+    const viewport = tech_context?.viewport ?? '1280x800';
+    const [vw, vh] = viewport.split('x').map(Number);
+    const screenW = vw || 1280;
+    const screenH = vh || 800;
+
+    // Convert shapes + annotations into Annotation[] with percentage coordinates
+    const json_annotations: Annotation[] = shapes.map((shape, idx) => {
+      let cx = shape.x;
+      let cy = shape.y;
+      if (shape.type === 'rect') {
+        cx = shape.x + (shape.width ?? 0) / 2;
+        cy = shape.y + (shape.height ?? 0) / 2;
+      } else if ((shape.type === 'arrow' || shape.type === 'measure') && shape.points) {
+        cx = (shape.points[0] + shape.points[2]) / 2;
+        cy = (shape.points[1] + shape.points[3]) / 2;
+      }
+      return {
+        x: Math.round((cx / screenW) * 1000) / 10,
+        y: Math.round((cy / screenH) * 1000) / 10,
+        text: annotations[shape.id] ?? '',
+        index: idx + 1,
+      };
+    });
+
     const supabase = createServiceClient();
 
-    // Resolve project from api_key
     const { data: project, error: projectErr } = await supabase
       .from('projects')
-      .select('id')
+      .select('id, is_active')
       .eq('api_key', api_key)
       .single();
 
     if (projectErr || !project) {
       return NextResponse.json({ error: 'Invalid api_key' }, { status: 401, headers: CORS });
+    }
+
+    if (project.is_active === false) {
+      return NextResponse.json({ error: 'Widget is disabled for this project' }, { status: 403, headers: CORS });
     }
 
     const project_id: string = project.id;
@@ -91,25 +120,55 @@ export async function POST(req: NextRequest) {
       image_url = publicUrl;
     }
 
-    const { data, error } = await supabase
+    // Try inserting with json_shapes first (requires migration add_json_shapes.sql)
+    // If column doesn't exist yet, fall back to inserting without it
+    let data, error;
+    ({ data, error } = await supabase
       .from('bugs')
       .insert({
+        project_id,
+        image_url,
+        json_annotations,
+        json_shapes: shapes.length > 0 ? shapes : null,
+        description: description ?? null,
+        severity,
+        tech_context: tech_context ?? null,
+      })
+      .select()
+      .single());
+
+    // If json_shapes column doesn't exist yet, retry without it
+    if (error && error.message?.includes('json_shapes')) {
+      console.warn('[buggy-bag] json_shapes column missing — run migration add_json_shapes.sql. Saving without shapes.');
+      ({ data, error } = await supabase
+        .from('bugs')
+        .insert({
           project_id,
           image_url,
-          json_annotations: annotations,
+          json_annotations,
           description: description ?? null,
           severity,
           tech_context: tech_context ?? null,
         })
-      .select()
-      .single();
+        .select()
+        .single());
+    }
 
     if (error) {
+      console.error('[buggy-bag] DB insert error:', error);
       return NextResponse.json({ error: error.message }, { status: 500, headers: CORS });
     }
 
+    // Log the bug reception in activity_logs
+    supabase.from('activity_logs').insert({
+      project_id,
+      action: 'bug_received',
+      details: { bug_id: data.id, severity: data.severity }
+    }).then();
+
     return NextResponse.json({ success: true, bug: data }, { status: 201, headers: CORS });
-  } catch {
+  } catch (err) {
+    console.error('[buggy-bag] submit error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500, headers: CORS });
   }
 }

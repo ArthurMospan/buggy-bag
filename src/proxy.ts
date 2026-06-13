@@ -31,7 +31,8 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith('/register') ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
-    pathname === '/favicon.ico'
+    pathname === '/favicon.ico' ||
+    pathname === '/buggy-bag-standalone.js'
   ) {
     return NextResponse.next();
   }

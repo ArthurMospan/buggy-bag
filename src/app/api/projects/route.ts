@@ -79,3 +79,45 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+// PATCH — update a project (e.g., toggle is_active)
+export async function PATCH(req: NextRequest) {
+  try {
+    const supabase = await createAuthClient();
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id, is_active } = await req.json() as { id: string; is_active?: boolean };
+    if (!id) return NextResponse.json({ error: 'Project id is required' }, { status: 400 });
+
+    const updateData: { is_active?: boolean } = {};
+    if (typeof is_active === 'boolean') updateData.is_active = is_active;
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+    }
+
+    const { data, error } = await supabase
+      .from('projects')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    if (typeof is_active === 'boolean') {
+      supabase.from('activity_logs').insert({
+        project_id: id,
+        action: is_active ? 'widget_enabled' : 'widget_disabled',
+        details: {}
+      }).then();
+    }
+
+    return NextResponse.json({ project: data });
+  } catch {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
