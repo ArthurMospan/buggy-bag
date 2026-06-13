@@ -90,7 +90,7 @@ function WidgetStatus({ project, onUpdate }: { project: Project, onUpdate: (p: P
 }
 
 function Instructions({ project }: { project: Project }) {
-  const [tab, setTab] = useState<'npm' | 'script'>('npm');
+  const [showNpm, setShowNpm] = useState(false);
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://your-portal.com';
 
   const npmCode = `npm install buggy-bag-widget`;
@@ -122,27 +122,37 @@ export default function RootLayout({ children }) {
 
   return (
     <div className="flex flex-col gap-[20px]">
-      <div className="flex items-center gap-[8px] border-b border-[#e9e9e9] pb-[10px]">
-        <button onClick={() => setTab('npm')} className={`flex items-center gap-[6px] px-[12px] py-[6px] rounded-[8px] text-[13px] font-semibold transition-colors ${tab === 'npm' ? 'bg-[#f4f4f5] text-[#1f1f1f]' : 'text-[#9a9a9a] hover:text-[#1f1f1f]'}`}>
-          <Terminal size={14} /> NPM Package
-        </button>
-        <button onClick={() => setTab('script')} className={`flex items-center gap-[6px] px-[12px] py-[6px] rounded-[8px] text-[13px] font-semibold transition-colors ${tab === 'script' ? 'bg-[#f4f4f5] text-[#1f1f1f]' : 'text-[#9a9a9a] hover:text-[#1f1f1f]'}`}>
-          <Code2 size={14} /> Script Tag
-        </button>
-      </div>
-
       <div className="flex flex-col gap-[16px]">
-        {tab === 'npm' ? (
+        {showNpm ? (
           <>
+            <div className="flex items-center justify-between border-b border-[#e9e9e9] pb-[10px]">
+              <span className="text-[14px] font-bold text-[#1f1f1f] flex items-center gap-[6px]">
+                <Terminal size={16} /> Інструкція для NPM (React / Next.js)
+              </span>
+              <button onClick={() => setShowNpm(false)} className="text-[12px] text-[#9a9a9a] hover:text-[#1f1f1f] underline">
+                Повернутися до універсальної інструкції
+              </button>
+            </div>
             <p className="text-[13px] text-[#1f1f1f]">1. Встановіть пакет у ваш проєкт:</p>
             <CodeBlock code={npmCode} />
-            <p className="text-[13px] text-[#1f1f1f]">2. Додайте компонент у корінь вашого додатку (наприклад, `app/layout.tsx` для Next.js):</p>
+            <p className="text-[13px] text-[#1f1f1f]">2. Додайте компонент у корінь вашого додатку (наприклад, \`app/layout.tsx\` для Next.js):</p>
             <CodeBlock code={reactCode} />
           </>
         ) : (
           <>
+            <div className="flex items-center justify-between border-b border-[#e9e9e9] pb-[10px]">
+              <span className="text-[14px] font-bold text-[#1f1f1f] flex items-center gap-[6px]">
+                <Code2 size={16} /> Універсальна інструкція
+              </span>
+            </div>
             <p className="text-[13px] text-[#1f1f1f]">Вставте цей скрипт у код вашого сайту (працює на будь-якому стеку):</p>
             <CodeBlock code={scriptCode} />
+            <div className="mt-[4px] p-[12px] bg-[#f4f4f5] border border-[#e9e9e9] rounded-[8px] flex items-center justify-between">
+              <span className="text-[13px] text-[#52525b]">Використовуєте React або Next.js?</span>
+              <button onClick={() => setShowNpm(true)} className="text-[13px] font-semibold text-[#1f1f1f] hover:underline">
+                Показати інструкцію для NPM →
+              </button>
+            </div>
           </>
         )}
       </div>
@@ -155,14 +165,35 @@ export default function RootLayout({ children }) {
           <div className="bg-[#f9f9f9] border border-[#e9e9e9] rounded-[12px] p-[12px]">
             <div className="text-[13px] font-semibold text-[#1f1f1f] mb-[4px]">Варіант А: Букмарклет (Рекомендовано)</div>
             <p className="text-[12px] text-[#9a9a9a] mb-[12px]">Перетягніть цю кнопку у панель закладок вашого браузера. Потім просто натисніть її на вашому сайті.</p>
-            <a href={bookmarkletCode} draggable onClick={e => e.preventDefault()} className="inline-flex items-center gap-[8px] px-[14px] py-[8px] bg-[#1f1f1f] text-white text-[12px] font-bold rounded-[8px] cursor-grab hover:bg-[#303030] transition-colors">
-              <Play size={14} /> Активувати BuggyBag
-            </a>
+            <div className="flex items-center gap-[12px] flex-wrap">
+              <a href={bookmarkletCode} className="inline-flex items-center gap-[8px] px-[14px] py-[8px] bg-[#1f1f1f] text-white text-[12px] font-bold rounded-[8px] hover:bg-[#303030] transition-colors cursor-grab" title="Перетягніть на панель закладок">
+                <Play size={14} /> Активувати BuggyBag
+              </a>
+              <span className="text-[11px] text-[#9a9a9a]">(Якщо перетягування не працює, створіть закладку вручну і вставте код нижче як URL)</span>
+            </div>
+            <div className="mt-[12px]">
+              <CodeBlock code={bookmarkletCode} label="Код для закладки" />
+            </div>
           </div>
           <div className="bg-[#f9f9f9] border border-[#e9e9e9] rounded-[12px] p-[12px]">
             <div className="text-[13px] font-semibold text-[#1f1f1f] mb-[4px]">Варіант Б: URL Параметр</div>
             <p className="text-[12px] text-[#9a9a9a]">Додайте <code className="bg-white px-[4px] py-[2px] rounded border border-[#e9e9e9]">?bb=on</code> до адреси вашого сайту та оновіть сторінку.</p>
           </div>
+        </div>
+      </div>
+
+      <div className="mt-[10px]">
+        <div className="text-[14px] font-bold text-[#1f1f1f] mb-[8px]">Як видалити віджет?</div>
+        <div className="bg-[#f9f9f9] border border-[#e9e9e9] rounded-[12px] p-[12px]">
+          {showNpm ? (
+            <p className="text-[13px] text-[#1f1f1f]">
+              Виконайте команду <code className="bg-[#e9e9e9] px-[4px] py-[2px] rounded text-[12px] font-mono">npm uninstall buggy-bag-widget</code> та видаліть компонент <code className="bg-[#e9e9e9] px-[4px] py-[2px] rounded text-[12px] font-mono">&lt;BuggyBag /&gt;</code> з вашого коду.
+            </p>
+          ) : (
+            <p className="text-[13px] text-[#1f1f1f]">
+              Просто видаліть доданий <code className="bg-[#e9e9e9] px-[4px] py-[2px] rounded text-[12px] font-mono">&lt;script&gt;</code> з коду вашого сайту.
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -206,6 +237,51 @@ function ActivityTimeline({ logs }: { logs: ActivityLog[] }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function DeleteProject({ project }: { project: Project }) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!confirm('Ви впевнені, що хочете видалити цей проєкт? Це незворотна дія.')) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: project.id }),
+      });
+      if (res.ok) {
+        window.location.href = '/'; // Redirect to home/projects list
+      } else {
+        alert('Помилка при видаленні проєкту');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Помилка при видаленні проєкту');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <div className="mt-[20px] border-t border-[#e9e9e9] pt-[24px]">
+      <div className="text-[14px] font-bold text-[#ef4444] mb-[8px]">Небезпечна зона</div>
+      <div className="flex items-center justify-between bg-[#fef2f2] border border-[#fca5a5] rounded-[12px] p-[16px]">
+        <div className="flex flex-col">
+          <span className="text-[13px] font-semibold text-[#7f1d1d]">Видалити проєкт</span>
+          <span className="text-[12px] text-[#991b1b]">Усі баги та налаштування будуть видалені назавжди.</span>
+        </div>
+        <button
+          onClick={handleDelete}
+          disabled={isDeleting}
+          className="bg-[#ef4444] hover:bg-[#dc2626] text-white px-[14px] py-[8px] rounded-[8px] text-[13px] font-bold transition-colors disabled:opacity-50"
+        >
+          {isDeleting ? 'Видалення...' : 'Видалити'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -264,6 +340,7 @@ export default function IntegrationPage() {
         <div className="lg:col-span-3 flex flex-col gap-[24px]">
           <h2 className="text-[16px] font-bold text-[#1f1f1f]">Встановлення віджета</h2>
           <Instructions project={project} />
+          <DeleteProject project={project} />
         </div>
 
         <div className="lg:col-span-2 flex flex-col gap-[24px]">
