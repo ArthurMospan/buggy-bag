@@ -38,20 +38,39 @@ export async function GET(req: NextRequest) {
     const project_id = searchParams.get('project_id');
     const status = searchParams.get('status');
 
+    const service = createServiceClient();
+    let allowedProjectIds: string[] = [];
+
     if (project_id) {
       // Verify the user has access to this specific project
       const allowed = await canAccessProject(project_id, user.id);
       if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      allowedProjectIds = [project_id];
+    } else {
+      // Fetch all projects user has access to
+      let { data: projects, error: projErr } = await service
+        .from('projects')
+        .select('id')
+        .or(`user_id.eq.${user.id},members.cs.[{"user_id":"${user.id}"}]`);
+
+      if (projErr && projErr.message.includes('members')) {
+        const fallback = await service.from('projects').select('id').eq('user_id', user.id);
+        projects = fallback.data as any;
+      }
+
+      if (!projects || projects.length === 0) {
+        return NextResponse.json({ bugs: [] });
+      }
+      allowedProjectIds = projects.map(p => p.id);
     }
 
-    const service = createServiceClient();
     let query = service
       .from('bugs')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .in('project_id', allowedProjectIds);
 
-    if (project_id) query = query.eq('project_id', project_id);
-    if (status)     query = query.eq('status', status);
+    if (status) query = query.eq('status', status);
 
     const { data, error } = await query;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
