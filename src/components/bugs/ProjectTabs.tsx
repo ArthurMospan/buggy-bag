@@ -8,15 +8,27 @@ export default function ProjectTabs({ projectId }: { projectId: string }) {
   const isIntegration = pathname.endsWith('/integration');
 
   return (
-    <div className="flex items-center gap-[4px] bg-[#f4f4f5] p-[4px] rounded-[12px] shrink-0">
-      <Link href={`/projects/${projectId}`}
-        className={`flex items-center gap-[6px] px-[14px] py-[8px] rounded-[8px] text-[13px] font-semibold transition-colors ${!isIntegration ? 'bg-white shadow-sm text-[#1f1f1f]' : 'text-[#9a9a9a] hover:text-[#1f1f1f]'}`}>
-        <Bug size={16} />
+    <div className="flex items-center gap-[3px] bg-[#f4f4f5] p-[3px] rounded-[10px] shrink-0">
+      <Link
+        href={`/projects/${projectId}`}
+        className={`flex items-center gap-[6px] px-[13px] py-[6px] rounded-[7px] text-[12px] font-semibold transition-all ${
+          !isIntegration
+            ? 'bg-white text-[#1f1f1f] shadow-sm'
+            : 'text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-white/50'
+        }`}
+      >
+        <Bug size={14} />
         Баги
       </Link>
-      <Link href={`/projects/${projectId}/integration`}
-        className={`flex items-center gap-[6px] px-[14px] py-[8px] rounded-[8px] text-[13px] font-semibold transition-colors ${isIntegration ? 'bg-white shadow-sm text-[#1f1f1f]' : 'text-[#9a9a9a] hover:text-[#1f1f1f]'}`}>
-        <Settings size={16} />
+      <Link
+        href={`/projects/${projectId}/integration`}
+        className={`flex items-center gap-[6px] px-[13px] py-[6px] rounded-[7px] text-[12px] font-semibold transition-all ${
+          isIntegration
+            ? 'bg-white text-[#1f1f1f] shadow-sm'
+            : 'text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-white/50'
+        }`}
+      >
+        <Settings size={14} />
         Налаштування
       </Link>
     </div>

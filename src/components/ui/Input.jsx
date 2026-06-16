@@ -20,12 +20,12 @@ export const Input = forwardRef(({
       <input
         ref={ref}
         className={`
-          h-[36px] w-full bg-[#f4f4f5] border border-transparent rounded-[10px]
+          h-[36px] w-full bg-[#f4f4f5] border border-[#e9e9e9] rounded-[10px]
           text-[13px] text-[#1f1f1f] focus:border-[#1f1f1f] outline-none
-          transition-colors placeholder:text-[#a3a3a3] flex items-center
+          transition-colors placeholder:text-[#9a9a9a] flex items-center
           disabled:opacity-50 disabled:cursor-not-allowed
           ${Icon ? 'pl-[36px]' : 'pl-[12px]'} pr-[12px]
-          ${error ? 'border-red-500 focus:border-red-500 bg-red-50' : ''}
+          ${error ? 'border-red-500/30 focus:border-red-500 bg-[#fff0f0]' : ''}
           ${className}
         `}
         {...props}

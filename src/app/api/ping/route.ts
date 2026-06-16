@@ -13,13 +13,13 @@ export async function OPTIONS() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { api_key } = await req.json();
+    const { api_key, favicon_url, favicon_color } = await req.json();
     if (!api_key) return NextResponse.json({ error: 'api_key required' }, { status: 400, headers: CORS });
 
     const supabase = createServiceClient();
     const { data: project } = await supabase
       .from('projects')
-      .select('id, name, is_active, last_seen_at, connected_domain')
+      .select('id, name, is_active, last_seen_at, connected_domain, favicon_url')
       .eq('api_key', api_key)
       .single();
 
@@ -32,6 +32,15 @@ export async function POST(req: NextRequest) {
     const updates: any = { last_seen_at: new Date().toISOString() };
     if (domain && domain !== project.connected_domain) {
       updates.connected_domain = domain;
+    }
+    // Widget reads its own favicon from the DOM and reports it here — this is
+    // the only reliable path for localhost/private dev domains, since the
+    // portal server can never reach those itself.
+    if (typeof favicon_url === 'string' && favicon_url) {
+      updates.favicon_url = favicon_url.slice(0, 2048);
+    }
+    if (typeof favicon_color === 'string' && favicon_color) {
+      updates.favicon_color = favicon_color.slice(0, 16);
     }
 
     // Update project

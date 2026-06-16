@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAuthClient } from '@/lib/supabase-server';
+import { createAuthClient, createServiceClient } from '@/lib/supabase-server';
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,13 +14,25 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'project_id required' }, { status: 400 });
     }
 
-    // Verify ownership
-    const { data: proj } = await supabase.from('projects').select('id').eq('id', projectId).eq('user_id', user.id).single();
-    if (!proj) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    const service = createServiceClient();
+
+    // Verify ownership OR membership
+    const { data: proj } = await service
+      .from('projects')
+      .select('user_id, members')
+      .eq('id', projectId)
+      .single();
+
+    if (!proj) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+
+    const isOwner = proj.user_id === user.id;
+    const isMember = (proj.members ?? []).some((m: { user_id: string }) => m.user_id === user.id);
+
+    if (!isOwner && !isMember) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await service
       .from('activity_logs')
       .select('*')
       .eq('project_id', projectId)

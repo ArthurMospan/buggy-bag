@@ -1,5 +1,5 @@
 export type BugStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
-export type BugSeverity = 'low' | 'medium' | 'high' | 'critical';
+export type BugSeverity = 'low' | 'medium' | 'high' | 'critical' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | string;
 
 export interface Annotation {
   x: number;        // percentage 0–100 of image width
@@ -63,6 +63,8 @@ export interface PinElementContext {
   inputName?: string;
   placeholder?: string;
   dataSources?: string[];  // data-buggy-source attribute values
+  sourceFile?: string;
+  sourceLine?: number;
   reactComponent?: {
     name: string;
     filePath?: string;     // from fiber._debugSource (dev builds)
@@ -115,6 +117,7 @@ export interface Bug {
   severity: BugSeverity;
   description: string | null;
   tech_context: TechContext | null;
+  github_issue_url: string | null;
   created_at: string;
 }
 
@@ -136,7 +139,24 @@ export interface Project {
   is_active: boolean;
   last_seen_at: string | null;
   connected_domain: string | null;
+  /** Favicon URL reported by the widget itself (client-side DOM read) — works for localhost too */
+  favicon_url: string | null;
+  /** Dominant accent color extracted client-side from the favicon */
+  favicon_color: string | null;
   created_at: string;
+  invite_token: string | null;
+  members: ProjectMember[];
+  github_token: string | null;
+  github_repo: string | null;
+  google_access_token?: string | null;
+  google_refresh_token?: string | null;
+  google_token_expiry?: string | null;
+}
+
+export interface ProjectMember {
+  user_id: string;
+  email: string;
+  joined_at: string;
 }
 
 export interface ActivityLog {

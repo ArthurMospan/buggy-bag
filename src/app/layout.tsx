@@ -22,8 +22,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           src="/buggy-bag-standalone.js"
           strategy="afterInteractive"
           data-api-key="b5864fb9-5fef-469d-9e04-94dc7996904c"
-          data-api-endpoint="http://localhost:3000/api/bugs/submit"
-          data-portal-url="http://localhost:3000"
+          data-api-endpoint={`${process.env.NEXT_PUBLIC_APP_URL}/api/bugs/submit`}
+          data-portal-url={process.env.NEXT_PUBLIC_APP_URL}
         />
       </body>
     </html>

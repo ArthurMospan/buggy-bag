@@ -110,14 +110,13 @@ export async function POST(req: NextRequest) {
         .upload(fileName, bytes, { contentType: mimeType, upsert: false });
 
       if (uploadErr) {
-        return NextResponse.json({ error: uploadErr.message }, { status: 500, headers: CORS });
+        console.error('[buggy-bag] screenshot upload failed, saving bug without image:', uploadErr.message);
+      } else {
+        const { data: { publicUrl } } = supabase.storage
+          .from('bug-screenshots')
+          .getPublicUrl(upload.path);
+        image_url = publicUrl;
       }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('bug-screenshots')
-        .getPublicUrl(upload.path);
-
-      image_url = publicUrl;
     }
 
     // Try inserting with json_shapes first (requires migration add_json_shapes.sql)

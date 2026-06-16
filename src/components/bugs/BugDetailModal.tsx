@@ -1,20 +1,20 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { Bug, BugStatus, BugSeverity, DrawShape, PinElementContext } from '@/lib/types';
+import { Bug, BugStatus, BugSeverity, DrawShape, PinElementContext, Project } from '@/lib/types';
 import Dialog from '@/components/ui/Dialog';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { ChevronDown, ChevronUp, Copy, Check, ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
 
 const STATUS_CFG: { value: BugStatus; label: string; color: string; bg: string }[] = [
-  { value: 'open',        label: 'Новий',      color: '#6366f1', bg: '#eef2ff' },
+  { value: 'open',        label: 'Новий',      color: '#1f1f1f', bg: '#f4f4f5' },
   { value: 'in_progress', label: 'В роботі',   color: '#f97316', bg: '#fff7ed' },
   { value: 'resolved',    label: 'Виправлено', color: '#10b981', bg: '#f0fdf4' },
   { value: 'closed',      label: 'Закрито',    color: '#9a9a9a', bg: '#f4f4f5' },
 ];
 
 const SEVERITY_CFG: { value: BugSeverity; label: string; color: string; bg: string }[] = [
-  { value: 'low',      label: 'Low',      color: '#6b7280', bg: '#f4f4f5' },
+  { value: 'low',      label: 'Low',      color: '#9a9a9a', bg: '#f4f4f5' },
   { value: 'medium',   label: 'Medium',   color: '#f59e0b', bg: '#fffbeb' },
   { value: 'high',     label: 'High',     color: '#f97316', bg: '#fff7ed' },
   { value: 'critical', label: 'Critical', color: '#dc2626', bg: '#fff0f0' },
@@ -27,7 +27,7 @@ function StatusPills({ value, onChange, saving }: { value: BugStatus; onChange: 
         const active = value === s.value;
         return (
           <button key={s.value} onClick={() => !saving && onChange(s.value)} disabled={saving}
-            className="px-[10px] py-[5px] rounded-[8px] text-[12px] font-bold transition-all border"
+            className="px-[10px] py-[5px] rounded-[8px] text-[12px] font-bold transition-all border cursor-pointer"
             style={active ? { background: s.color, color: 'white', borderColor: s.color } : { background: 'transparent', color: '#9a9a9a', borderColor: '#e9e9e9' }}>
             {s.label}
           </button>
@@ -44,7 +44,7 @@ function SeverityPills({ value, onChange, saving }: { value: BugSeverity; onChan
         const active = value === s.value;
         return (
           <button key={s.value} onClick={() => !saving && onChange(s.value)} disabled={saving}
-            className="px-[10px] py-[5px] rounded-[8px] text-[12px] font-bold transition-all border"
+            className="px-[10px] py-[5px] rounded-[8px] text-[12px] font-bold transition-all border cursor-pointer"
             style={active ? { background: s.bg, color: s.color, borderColor: s.color } : { background: 'transparent', color: '#9a9a9a', borderColor: '#e9e9e9' }}>
             {s.label}
           </button>
@@ -76,6 +76,7 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
       <img
         src={src}
         alt="Screenshot fullscreen"
+        crossOrigin="anonymous"
         className="max-w-[95vw] max-h-[95vh] object-contain rounded-[8px] shadow-2xl"
         onClick={e => e.stopPropagation()}
       />
@@ -86,12 +87,12 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
 function Section({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border border-[#e9e9e9] rounded-[12px] overflow-hidden">
-      <button onClick={() => setOpen(v => !v)} className="w-full flex items-center justify-between px-[14px] py-[10px] bg-[#f9f9f9] hover:bg-[#f4f4f5] transition-colors">
+    <div className="bg-[#f4f4f5] rounded-[12px] overflow-hidden">
+      <button onClick={() => setOpen(v => !v)} className="w-full flex items-center justify-between px-[14px] py-[10px] hover:bg-[#ebebeb] transition-colors cursor-pointer rounded-[12px]">
         <span className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-wider">{title}</span>
         {open ? <ChevronUp size={14} className="text-[#9a9a9a]" /> : <ChevronDown size={14} className="text-[#9a9a9a]" />}
       </button>
-      {open && <div className="p-[14px]">{children}</div>}
+      {open && <div className="px-[14px] pb-[14px]">{children}</div>}
     </div>
   );
 }
@@ -121,6 +122,7 @@ function useCopyMarkdown(bug: Bug) {
 
 interface BugDetailModalProps {
   bug: Bug | null;
+  project?: Project | null;
   onClose: () => void;
   onStatusChange: (id: string, status: BugStatus) => Promise<void>;
   onSeverityChange?: (id: string, severity: BugSeverity) => Promise<void>;
@@ -130,7 +132,7 @@ interface BugDetailModalProps {
   hasNext?: boolean;
 }
 
-export default function BugDetailModal({ bug, onClose, onStatusChange, onSeverityChange, onPrev, onNext, hasPrev, hasNext }: BugDetailModalProps) {
+export default function BugDetailModal({ bug, project, onClose, onStatusChange, onSeverityChange, onPrev, onNext, hasPrev, hasNext }: BugDetailModalProps) {
   const [status,   setStatus]   = useState<BugStatus>('open');
   const [severity, setSeverity] = useState<BugSeverity>('low');
   const [saving,   setSaving]   = useState(false);
@@ -179,11 +181,11 @@ export default function BugDetailModal({ bug, onClose, onStatusChange, onSeverit
       {(onPrev || onNext) && (
         <div className="flex items-center gap-[2px] shrink-0">
           <button onClick={onPrev} disabled={!hasPrev} title="Попередній (←)"
-            className="p-[4px] rounded-[6px] text-[#9a9a9a] hover:bg-[#f4f4f5] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+            className="p-[4px] rounded-[6px] text-[#9a9a9a] hover:bg-[#f4f4f5] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
             <ChevronLeft size={16} />
           </button>
           <button onClick={onNext} disabled={!hasNext} title="Наступний (→)"
-            className="p-[4px] rounded-[6px] text-[#9a9a9a] hover:bg-[#f4f4f5] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+            className="p-[4px] rounded-[6px] text-[#9a9a9a] hover:bg-[#f4f4f5] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
             <ChevronRight size={16} />
           </button>
         </div>
@@ -199,7 +201,7 @@ export default function BugDetailModal({ bug, onClose, onStatusChange, onSeverit
       )}
       <div className="flex-1" />
       <button onClick={copy} title="Копіювати як Markdown"
-        className="flex items-center gap-[5px] px-[8px] py-[4px] rounded-[8px] text-[11px] font-bold border transition-all shrink-0"
+        className="flex items-center gap-[5px] px-[8px] py-[4px] rounded-[8px] text-[11px] font-bold border transition-all shrink-0 cursor-pointer"
         style={copied ? { background: '#f0fdf4', color: '#10b981', borderColor: '#10b981' } : { background: 'transparent', color: '#9a9a9a', borderColor: '#e9e9e9' }}>
         {copied ? <Check size={12} /> : <Copy size={12} />}
         {copied ? 'Скопійовано' : 'Markdown'}
@@ -218,7 +220,7 @@ export default function BugDetailModal({ bug, onClose, onStatusChange, onSeverit
         <div className="flex flex-col gap-[16px]">
 
           {/* ── 1. Status / Severity / Meta ─────────────────────────── */}
-          <div className="bg-[#f9f9f9] border border-[#e9e9e9] rounded-[12px] p-[14px] flex flex-col gap-[14px]">
+          <div className="bg-[#f4f4f5] rounded-[12px] p-[14px] flex flex-col gap-[14px]">
             <div>
               <div className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[8px]">Статус</div>
               <StatusPills value={status} onChange={handleStatusChange} saving={saving} />
@@ -232,7 +234,14 @@ export default function BugDetailModal({ bug, onClose, onStatusChange, onSeverit
             <div className="flex items-center justify-between text-[12px]">
               <span className="text-[#9a9a9a]">{format(new Date(bug.created_at), 'dd MMM yyyy, HH:mm', { locale: uk })}</span>
               {tc?.route && (
-                <code className="text-[11px] font-mono text-[#6366f1] bg-[#eef2ff] px-[6px] py-[2px] rounded-[4px]">{tc.route}</code>
+                <div className="flex items-center gap-[8px]">
+                  <code className="text-[11px] font-mono text-[#1f1f1f] bg-[#f4f4f5] px-[6px] py-[2px] rounded-[4px]">{tc.route}</code>
+                  {project?.connected_domain && (
+                    <a href={`${project.connected_domain}${tc.route.startsWith('/') ? '' : '/'}${tc.route}`} target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold text-[#1f1f1f] hover:underline flex items-center gap-[4px]">
+                      Відкрити сторінку
+                    </a>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -243,18 +252,18 @@ export default function BugDetailModal({ bug, onClose, onStatusChange, onSeverit
               <img
                 src={bug.image_url}
                 alt="Screenshot"
+                crossOrigin="anonymous"
                 className="w-full object-contain max-h-[340px] cursor-zoom-in"
                 onClick={() => setLightbox(true)}
               />
               {/* Expand button — appears on hover */}
               <button
                 onClick={() => setLightbox(true)}
-                className="absolute top-[8px] right-[8px] w-[30px] h-[30px] rounded-[8px] bg-black/40 hover:bg-black/60 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-[8px] right-[8px] w-[30px] h-[30px] rounded-[8px] bg-black/40 hover:bg-black/60 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                 title="Повний екран"
               >
                 <Maximize2 size={14} />
               </button>
-              {/* Pins, arrows, rects are baked directly into the screenshot PNG */}
             </div>
           )}
 
@@ -288,7 +297,7 @@ export default function BugDetailModal({ bug, onClose, onStatusChange, onSeverit
                       <div className="ml-[26px] flex flex-col gap-[4px]">
                         {/* CSS Selector */}
                         <div className="flex items-center gap-[6px] flex-wrap">
-                          <code className="text-[11px] font-mono text-[#6366f1] bg-[#eef2ff] px-[6px] py-[1px] rounded-[4px] break-all">
+                          <code className="text-[11px] font-mono text-[#1f1f1f] bg-[#ffffff] px-[6px] py-[1px] rounded-[4px] break-all">
                             {ctx.selector}
                           </code>
                           {ctx.id && (
@@ -300,7 +309,7 @@ export default function BugDetailModal({ bug, onClose, onStatusChange, onSeverit
                         {ctx.reactComponent && (
                           <div className="flex items-center gap-[6px] flex-wrap">
                             <span className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-wider">Component</span>
-                            <code className="text-[11px] font-mono text-[#8b5cf6] bg-[#f5f3ff] px-[5px] py-[1px] rounded-[3px]">
+                            <code className="text-[11px] font-mono text-[#1f1f1f] bg-[#ffffff] px-[5px] py-[1px] rounded-[3px]">
                               {ctx.reactComponent.name}
                             </code>
                             {ctx.reactComponent.filePath && (
@@ -317,7 +326,7 @@ export default function BugDetailModal({ bug, onClose, onStatusChange, onSeverit
                           <div className="flex items-center gap-[6px] flex-wrap">
                             <span className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-wider">Data</span>
                             {ctx.dataSources.map((src, j) => (
-                              <code key={j} className="text-[10px] font-mono text-[#059669] bg-[#ecfdf5] px-[5px] py-[1px] rounded-[3px]">
+                              <code key={j} className="text-[10px] font-mono text-[#1f1f1f] bg-[#ffffff] px-[5px] py-[1px] rounded-[3px]">
                                 {src}
                               </code>
                             ))}
@@ -368,11 +377,11 @@ export default function BugDetailModal({ bug, onClose, onStatusChange, onSeverit
                     {tc.component && (
                       <div>
                         <div className="text-[10px] font-bold text-[#9a9a9a] mb-[3px]">Компонент</div>
-                        <code className="text-[12px] font-mono text-[#6366f1] bg-[#eef2ff] px-[6px] py-[2px] rounded-[4px]">{tc.component.name}</code>
+                        <code className="text-[12px] font-mono text-[#1f1f1f] bg-[#f4f4f5] px-[6px] py-[2px] rounded-[4px]">{tc.component.name}</code>
                         {tc.component.props && Object.keys(tc.component.props).length > 0 && (
                           <div className="mt-[6px] text-[11px] font-mono text-[#9a9a9a] bg-[#f4f4f5] rounded-[6px] p-[8px] leading-relaxed">
                             {Object.entries(tc.component.props).map(([k, v]) => (
-                              <div key={k}><span className="text-[#6366f1]">{k}</span>: {String(v)}</div>
+                              <div key={k}><span className="text-[#1f1f1f]">{k}</span>: {String(v)}</div>
                             ))}
                           </div>
                         )}
@@ -396,7 +405,7 @@ export default function BugDetailModal({ bug, onClose, onStatusChange, onSeverit
                           <span className={`text-[10px] font-bold px-[6px] py-[2px] rounded-[4px] shrink-0 ${r.isError ? 'bg-[#fee2e2] text-[#991b1b]' : 'bg-[#dcfce7] text-[#166534]'}`}>{r.status || 'ERR'}</span>
                           <span className="text-[#9a9a9a] shrink-0">{r.method}</span>
                           <span className={`flex-1 truncate ${r.isError ? 'text-[#dc2626]' : 'text-[#1f1f1f]'}`}>{r.url}</span>
-                          <span className="text-[#cfcfcf] shrink-0">{r.durationMs}ms</span>
+                          <span className="text-[#9a9a9a] shrink-0">{r.durationMs}ms</span>
                         </div>
                         {/* Body details — only for errors */}
                         {r.isError && (r.requestBody || r.responseBody || r.requestHeaders) && (
@@ -452,9 +461,9 @@ export default function BugDetailModal({ bug, onClose, onStatusChange, onSeverit
                     {tc.eventLog.map((e, i) => {
                       // Pick icon & color based on event type
                       const config: Record<string, { icon: string; color: string }> = {
-                        navigation:    { icon: '🔀', color: '#2563eb' },
+                        navigation:    { icon: '🔀', color: '#1f1f1f' },
                         click:         { icon: '👆', color: '#1f1f1f' },
-                        form_change:   { icon: '✏️', color: '#7c3aed' },
+                        form_change:   { icon: '✏️', color: '#1f1f1f' },
                         focus:         { icon: '🎯', color: '#9a9a9a' },
                         scroll:        { icon: '↕️', color: '#9a9a9a' },
                         network_error: { icon: '🔴', color: '#dc2626' },
@@ -499,7 +508,7 @@ export default function BugDetailModal({ bug, onClose, onStatusChange, onSeverit
                           {key}
                         </div>
                         <div className="grid grid-cols-2">
-                          <div className="px-[10px] py-[6px] bg-[#fff0f0] border-r border-[#fca5a5]">
+                          <div className="px-[10px] py-[6px] bg-[#fff0f0] border-r border-[#e9e9e9]">
                             <div className="text-[9px] font-bold text-[#991b1b] uppercase tracking-wider mb-[3px]">before</div>
                             <pre className="text-[10px] font-mono text-[#991b1b] whitespace-pre-wrap break-all leading-relaxed">
                               {JSON.stringify(before, null, 2)}
