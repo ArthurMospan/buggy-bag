@@ -39,11 +39,8 @@ export default function BugCard({ bug, selected, onClick, onSelect }: BugCardPro
   return (
     <div
       onClick={onClick}
-      className="bg-[#ffffff] border rounded-[16px] overflow-hidden cursor-pointer transition-all duration-150 flex flex-col relative hover:border-[#cfcfcf]"
-      style={{
-        borderColor: selected ? '#1f1f1f' : '#e9e9e9',
-        boxShadow: selected ? '0 0 0 2px rgba(31,31,31,0.15), 0 4px 16px rgba(0,0,0,0.08)' : '0 2px 8px rgba(0,0,0,0.05)',
-      }}
+      className={`rounded-[20px] overflow-hidden cursor-pointer transition-all duration-200 flex flex-col relative
+        ${selected ? 'bg-[#e4e4e5]' : 'bg-[#f4f4f5] hover:bg-[#ececec]'}`}
     >
       {onSelect && (
         <button
@@ -51,14 +48,15 @@ export default function BugCard({ bug, selected, onClick, onSelect }: BugCardPro
           onClick={onSelect}
           className="absolute top-[8px] left-[8px] z-10"
           style={{
-            width: '20px', height: '20px', borderRadius: '6px',
-            background: selected ? '#1f1f1f' : 'rgba(0,0,0,0.1)',
-            border: selected ? '2px solid #1f1f1f' : '1.5px solid rgba(0,0,0,0.15)',
+            width: '22px', height: '22px', borderRadius: '8px',
+            background: selected ? '#1f1f1f' : 'rgba(255,255,255,0.8)',
+            border: selected ? 'none' : '1px solid rgba(0,0,0,0.1)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             backdropFilter: 'blur(4px)',
+            transition: 'all 0.2s ease',
           }}
         >
-          {selected && <Check size={11} color="white" strokeWidth={3} />}
+          {selected && <Check size={14} color="white" strokeWidth={3} />}
         </button>
       )}
 
@@ -76,21 +74,21 @@ export default function BugCard({ bug, selected, onClick, onSelect }: BugCardPro
         </div>
       </div>
 
-      <div className="p-[11px] flex flex-col gap-[5px] flex-1">
+      <div className="p-[14px] flex flex-col gap-[6px] flex-1">
         <div className="flex items-center gap-[6px]">
-          <div className="w-[6px] h-[6px] rounded-full shrink-0" style={{ background: STATUS_DOT[bug.status] }} />
-          <span className="text-[11px] font-semibold" style={{ color: STATUS_DOT[bug.status] }}>
+          <div className="w-[8px] h-[8px] rounded-full shrink-0" style={{ background: STATUS_DOT[bug.status] }} />
+          <span className="text-[12px] font-semibold" style={{ color: STATUS_DOT[bug.status] }}>
             {STATUS_LABEL[bug.status]}
           </span>
-          <span className="text-[10px] text-[#9a9a9a] ml-auto">{timeAgo}</span>
+          <span className="text-[11px] text-[#9a9a9a] ml-auto">{timeAgo}</span>
         </div>
         {bug.description ? (
-          <p className="text-[12px] text-[#1f1f1f] font-normal line-clamp-2 leading-relaxed">{bug.description}</p>
+          <p className="text-[13px] text-[#3f3f46] font-normal line-clamp-3 leading-relaxed mt-1">{bug.description}</p>
         ) : (
-          <p className="text-[12px] text-[#9a9a9a] italic">Без опису</p>
+          <p className="text-[13px] text-[#9a9a9a] italic mt-1">Без опису</p>
         )}
         {bug.tech_context?.component && (
-          <span className="text-[10px] font-mono text-[#1f1f1f] bg-[#f4f4f5] px-[5px] py-[1px] rounded-[4px] self-start">
+          <span className="text-[11px] font-mono text-[#52525b] bg-[#e4e4e7] px-[6px] py-[2px] rounded-[6px] self-start mt-2">
             {bug.tech_context.component.name}
           </span>
         )}

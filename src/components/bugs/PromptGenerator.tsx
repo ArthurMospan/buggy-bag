@@ -134,33 +134,40 @@ function techSummary(tc: TechContext | null): string {
 
 function pinContextSummary(jsonShapes: Bug['json_shapes'], annotations: Bug['json_annotations']): string {
   if (!jsonShapes || jsonShapes.length === 0) return '';
-  const pins = jsonShapes.filter(s => s.type === 'pin' && s.elementContext);
-  if (pins.length === 0) return '';
+  // All annotated non-eraser shapes — pins, rects, arrows, measures
+  const entries = jsonShapes
+    .map((s, idx) => ({ shape: s, idx }))
+    .filter(({ shape, idx }) =>
+      shape.type !== 'eraser' && !!(annotations[idx]?.text || shape.elementContext)
+    );
+  if (entries.length === 0) return '';
 
-  const lines: string[] = ['Pin element context:'];
-  pins.forEach((pin, i) => {
-    const ctx = pin.elementContext!;
-    const ann = annotations[i];
-    const label = ann?.text ? `"${ann.text}"` : `Pin ${i + 1}`;
+  const lines: string[] = ['Annotation context:'];
+  entries.forEach(({ shape, idx: shapeIdx }) => {
+    const ctx = shape.elementContext;
+    const ann = annotations[shapeIdx];
+    const pinNum = ann?.index ?? (shapeIdx + 1);
+    const label = ann?.text ? `"${ann.text}"` : `Pin ${pinNum}`;
     lines.push(`  ${label}:`);
-    if (ctx.sourceFile) {
-      lines.push(`    📁 Source: ${ctx.sourceFile}${ctx.sourceLine ? `:${ctx.sourceLine}` : ''}`);
-    }
-    lines.push(`    Element: ${ctx.selector}`);
-    if (ctx.reactComponent) {
-      const fp = ctx.reactComponent.filePath
-        ? ` (${ctx.reactComponent.filePath}${ctx.reactComponent.lineNumber ? `:${ctx.reactComponent.lineNumber}` : ''})`
-        : '';
-      lines.push(`    Component: ${ctx.reactComponent.name}${fp}`);
-    }
-    if (ctx.dataSources?.length) {
-      lines.push(`    Data sources: ${ctx.dataSources.join(', ')}`);
-    }
-    if (ctx.innerText) {
-      lines.push(`    Text: "${ctx.innerText}"`);
-    }
-    if (ctx.ariaLabel) {
-      lines.push(`    aria-label: ${ctx.ariaLabel}`);
+    if (ctx) {
+      lines.push(`    Element: ${ctx.selector}`);
+      if (ctx.reactComponent) {
+        const fp = ctx.reactComponent.filePath
+          ? ` (${ctx.reactComponent.filePath}${ctx.reactComponent.lineNumber ? `:${ctx.reactComponent.lineNumber}` : ''})`
+          : '';
+        lines.push(`    Component: ${ctx.reactComponent.name}${fp}`);
+      }
+      if (ctx.dataSources?.length) {
+        lines.push(`    Data sources: ${ctx.dataSources.join(', ')}`);
+      }
+      if (ctx.innerText) {
+        lines.push(`    Text: "${ctx.innerText}"`);
+      }
+      if (ctx.ariaLabel) {
+        lines.push(`    aria-label: ${ctx.ariaLabel}`);
+      }
+    } else if (ann) {
+      lines.push(`    Position: ${ann.x}% × ${ann.y}% (no DOM context)`);
     }
   });
   return lines.join('\n');
@@ -173,20 +180,35 @@ function formatGitHub(bugs: Bug[]): string {
   return sorted.map((bug, i) => {
     const tc = bug.tech_context;
     const sev = (bug.severity ?? 'low').toUpperCase();
-    const pins = (bug.json_shapes ?? []).filter(s => s.type === 'pin' && s.elementContext);
+    const allShapes = bug.json_shapes ?? [];
+    // All annotated non-eraser shapes — pins, rects, arrows, measures
+    const annotatedEntries = allShapes
+      .map((s, idx) => ({ shape: s, idx }))
+      .filter(({ shape, idx }) =>
+        shape.type !== 'eraser' && !!(bug.json_annotations[idx]?.text || shape.elementContext)
+      );
     const netErrors = tc?.networkRequests?.filter(r => r.isError) ?? [];
     const consoleErrors = tc?.consoleErrors?.filter(e => e.level === 'error') ?? [];
 
-    // Primary component: prefer pin's reactComponent, fall back to tc.component
-    const primaryComp = pins[0]?.elementContext?.reactComponent ?? tc?.component;
+    // Primary component: prefer first shape's reactComponent, fall back to tc.component
+    const primaryComp = annotatedEntries[0]?.shape?.elementContext?.reactComponent ?? tc?.component;
     const compLine = primaryComp
       ? `**Component:** \`${primaryComp.name}\`${primaryComp.filePath ? ` (\`${primaryComp.filePath}${primaryComp.lineNumber ? `:${primaryComp.lineNumber}` : ''}\`)` : ''}`
       : null;
 
     const lines: string[] = [
-      `## Bug Report #${i + 1}: ${bug.description || 'Без опису'}`,
+      `## Bug Report #${i + 1}`,
       '',
     ];
+    if (bug.description) {
+      const parts = bug.description.split('|').map(p => p.trim()).filter(Boolean);
+      if (parts.length > 1) {
+        parts.forEach((p, idx) => lines.push(`${idx + 1}. ${p}`));
+      } else {
+        lines.push(bug.description);
+      }
+      lines.push('');
+    }
 
     // Meta table
     lines.push('| | |', '|---|---|');
@@ -196,19 +218,26 @@ function formatGitHub(bugs: Bug[]): string {
     if (compLine) lines.push(`| **Component** | \`${primaryComp!.name}\` |`);
     lines.push('');
 
-    // Element / Pin context
-    if (pins.length > 0) {
+    // Element context — all annotated shapes with position fallback when DOM context is missing
+    if (annotatedEntries.length > 0) {
       lines.push('### Element');
-      pins.forEach((pin, j) => {
-        const ctx = pin.elementContext!;
-        const ann = bug.json_annotations[j];
+      annotatedEntries.forEach(({ shape, idx: shapeIdx }) => {
+        const ctx = shape.elementContext;
+        const ann = bug.json_annotations[shapeIdx];
+        const pinNum = ann?.index ?? (shapeIdx + 1);
         const note = ann?.text ? ` — "${ann.text}"` : '';
-        lines.push(`Pin #${j + 1} on \`${ctx.selector}\`${note}`);
-        if (ctx.reactComponent?.filePath) {
-          lines.push(`→ \`${ctx.reactComponent.name}\` in \`${ctx.reactComponent.filePath}${ctx.reactComponent.lineNumber ? `:${ctx.reactComponent.lineNumber}` : ''}\``);
-        }
-        if (ctx.dataSources?.length) {
-          lines.push(`→ Data: \`${ctx.dataSources.join('`, `')}\``);
+        if (ctx?.selector) {
+          lines.push(`Pin #${pinNum} on \`${ctx.selector}\`${note}`);
+          if (ctx.reactComponent?.filePath) {
+            lines.push(`→ \`${ctx.reactComponent.name}\` in \`${ctx.reactComponent.filePath}${ctx.reactComponent.lineNumber ? `:${ctx.reactComponent.lineNumber}` : ''}\``);
+          }
+          if (ctx.dataSources?.length) {
+            lines.push(`→ Data: \`${ctx.dataSources.join('`, `')}\``);
+          }
+        } else if (ann) {
+          lines.push(`Pin #${pinNum} at ${ann.x}%×${ann.y}%${note}`);
+        } else {
+          lines.push(`Pin #${pinNum}${note}`);
         }
       });
       lines.push('');
@@ -263,13 +292,22 @@ function formatAntigravity(bugs: Bug[]): string {
     '- Fix ONE bug at a time in listed order',
     '- After each fix: show exact file changed',
     '- Do NOT refactor unrelated code',
-    '- If unsure — ask, do not guess', '',
+    '- If unsure — ask, do not guess',
+    '- If the textual context is ambiguous or the bug is strictly visual/spatial, you MUST automatically analyze the provided Screenshot URL before making any code changes.', '',
     `## Bugs (${sorted.length})`, '',
   ];
   sorted.forEach((bug, i) => {
     const sev = bug.severity ?? 'low';
     lines.push(`### Bug ${i + 1} [${sev.toUpperCase()}]`);
-    if (bug.description) lines.push(`Description: ${bug.description}`);
+    if (bug.description) {
+      const parts = bug.description.split('|').map(p => p.trim()).filter(Boolean);
+      if (parts.length > 1) {
+        lines.push('Description:');
+        parts.forEach((p, idx) => lines.push(`  ${idx + 1}. ${p}`));
+      } else {
+        lines.push(`Description: ${bug.description}`);
+      }
+    }
     const tc = techSummary(bug.tech_context);
     if (tc) lines.push(tc);
     const pinCtx = pinContextSummary(bug.json_shapes ?? null, bug.json_annotations);
@@ -283,15 +321,26 @@ function formatAntigravity(bugs: Bug[]): string {
 
 function formatCursor(bugs: Bug[]): string {
   const sorted = sortBySev(bugs);
-  const lines = [`Fix ${sorted.length} bug${sorted.length > 1 ? 's' : ''} one at a time.`, ''];
+  const lines = [
+    `Fix ${sorted.length} bug${sorted.length > 1 ? 's' : ''} one at a time.`,
+    'If the textual context is ambiguous or the bug is strictly visual/spatial, you MUST automatically analyze the provided Screenshot URL before making any code changes.',
+    ''
+  ];
   sorted.forEach((bug, i) => {
     lines.push(`--- Bug ${i + 1}/${sorted.length} [${bug.severity ?? 'low'}] ---`);
-    if (bug.description) lines.push(bug.description);
+    if (bug.description) {
+      const parts = bug.description.split('|').map(p => p.trim()).filter(Boolean);
+      if (parts.length > 1) {
+        parts.forEach((p, idx) => lines.push(`${idx + 1}. ${p}`));
+      } else {
+        lines.push(bug.description);
+      }
+    }
     const tc = bug.tech_context;
     
     // Check if we have sourceFile from a pin
-    const pins = (bug.json_shapes ?? []).filter(s => s.type === 'pin' && s.elementContext);
-    const pinWithSource = pins.find(p => p.elementContext?.sourceFile);
+    const shapes = (bug.json_shapes ?? []).filter(s => s.type !== 'eraser' && s.elementContext);
+    const pinWithSource = shapes.find(p => p.elementContext?.sourceFile);
     
     if (pinWithSource) {
       const ctx = pinWithSource.elementContext!;
@@ -331,11 +380,22 @@ function formatClaude(bugs: Bug[]): string {
     '<task>', `Fix ${sorted.length} bug${sorted.length > 1 ? 's' : ''} in order.`, '</task>', '',
     '<rules>',
     '- One bug at a time', '- Show file path and line', '- No unrelated changes',
-    '- Ask if unsure', '</rules>', '', '<bugs>',
+    '- Ask if unsure',
+    '- If the textual context is ambiguous or the bug is strictly visual/spatial, you MUST automatically analyze the provided Screenshot URL before making any code changes.',
+    '</rules>', '', '<bugs>',
   ];
   sorted.forEach((bug, i) => {
     lines.push(`<bug index="${i + 1}" severity="${bug.severity ?? 'low'}">`);
-    if (bug.description) lines.push(`  <description>${bug.description}</description>`);
+    if (bug.description) {
+      const parts = bug.description.split('|').map(p => p.trim()).filter(Boolean);
+      if (parts.length > 1) {
+        lines.push(`  <description>`);
+        parts.forEach((p, idx) => lines.push(`    ${idx + 1}. ${p}`));
+        lines.push(`  </description>`);
+      } else {
+        lines.push(`  <description>${bug.description}</description>`);
+      }
+    }
     const tc = bug.tech_context;
     if (tc?.component) {
       const fp = tc.component.filePath ? ` file="${tc.component.filePath}${tc.component.lineNumber ? `:${tc.component.lineNumber}` : ''}"` : '';
@@ -355,23 +415,28 @@ function formatClaude(bugs: Bug[]): string {
         lines.push(`    <change key="${k}" before="${JSON.stringify(before)}" after="${JSON.stringify(after)}" />`));
       lines.push('  </state-diff>');
     }
-    // Pin element context
-    const pins = (bug.json_shapes ?? []).filter(s => s.type === 'pin' && s.elementContext);
-    pins.forEach((pin, j) => {
-      const ctx = pin.elementContext!;
-      const ann = bug.json_annotations[j];
-      lines.push(`  <pin index="${j + 1}"${ann?.text ? ` annotation="${ann.text}"` : ''}>`);
-      lines.push(`    <element>${ctx.selector}</element>`);
-      if (ctx.sourceFile) {
-        lines.push(`    <source-file>${ctx.sourceFile}</source-file>`);
-        if (ctx.sourceLine) lines.push(`    <source-line>${ctx.sourceLine}</source-line>`);
+    // All annotated shapes — with DOM context when available, viewport position as fallback
+    const claudeEntries = (bug.json_shapes ?? [])
+      .map((s, idx) => ({ shape: s, idx }))
+      .filter(({ shape, idx }) =>
+        shape.type !== 'eraser' && !!(bug.json_annotations[idx]?.text || shape.elementContext)
+      );
+    claudeEntries.forEach(({ shape, idx: shapeIdx }) => {
+      const ctx = shape.elementContext;
+      const ann = bug.json_annotations[shapeIdx];
+      const pinNum = ann?.index ?? (shapeIdx + 1);
+      lines.push(`  <pin index="${pinNum}"${ann?.text ? ` annotation="${ann.text}"` : ''}>`);
+      if (ctx?.selector) {
+        lines.push(`    <element>${ctx.selector}</element>`);
+      } else if (ann) {
+        lines.push(`    <position x="${ann.x}%" y="${ann.y}%" />`);
       }
-      if (ctx.reactComponent) {
+      if (ctx?.reactComponent) {
         const fp = ctx.reactComponent.filePath ? ` file="${ctx.reactComponent.filePath}${ctx.reactComponent.lineNumber ? `:${ctx.reactComponent.lineNumber}` : ''}"` : '';
         lines.push(`    <component${fp}>${ctx.reactComponent.name}</component>`);
       }
-      if (ctx.dataSources?.length) lines.push(`    <datasources>${ctx.dataSources.join(', ')}</datasources>`);
-      if (ctx.innerText) lines.push(`    <text>${ctx.innerText}</text>`);
+      if (ctx?.dataSources?.length) lines.push(`    <datasources>${ctx.dataSources.join(', ')}</datasources>`);
+      if (ctx?.innerText) lines.push(`    <text>${ctx.innerText}</text>`);
       lines.push(`  </pin>`);
     });
     if (bug.image_url) lines.push(`  <screenshot>${bug.image_url}</screenshot>`);
@@ -387,7 +452,15 @@ function formatGeneric(bugs: Bug[]): string {
   sorted.forEach((bug, i) => {
     lines.push(`---`, `## Bug #${i + 1} [${(bug.severity ?? 'low').toUpperCase()}]`);
     lines.push(`Status: ${bug.status}`);
-    if (bug.description) lines.push(`Description: ${bug.description}`);
+    if (bug.description) {
+      const parts = bug.description.split('|').map(p => p.trim()).filter(Boolean);
+      if (parts.length > 1) {
+        lines.push('Description:');
+        parts.forEach((p, idx) => lines.push(`  ${idx + 1}. ${p}`));
+      } else {
+        lines.push(`Description: ${bug.description}`);
+      }
+    }
     const tc = techSummary(bug.tech_context);
     if (tc) lines.push(tc);
     const pinCtx = pinContextSummary(bug.json_shapes ?? null, bug.json_annotations);

@@ -53,7 +53,7 @@ export default function ProjectDashboardPage() {
 
   if (selectedBugIds.size > 0) {
     return (
-      <div className="h-full w-full bg-[#f4f4f5]">
+      <div className="h-full w-full bg-[#ffffff]">
         <PromptGenerator
           bugs={bugs}
           selectedIds={selectedBugIds}
@@ -64,7 +64,7 @@ export default function ProjectDashboardPage() {
   }
 
   return (
-    <div className="h-full flex flex-col items-center justify-center p-[40px] text-center bg-[#f4f4f5]">
+    <div className="h-full flex flex-col items-center justify-center p-[40px] text-center bg-[#ffffff]">
       <div className="w-[72px] h-[72px] bg-[#ffffff] border border-[#e9e9e9] rounded-full flex items-center justify-center mb-[20px] shadow-sm">
         <BugIcon size={28} className="text-[#9a9a9a]" />
       </div>

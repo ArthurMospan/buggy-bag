@@ -192,21 +192,21 @@ export default function ProjectSidebar() {
     <div className="w-[360px] bg-[#ffffff] flex flex-col shrink-0 relative z-20">
 
       {/* ── Header ── */}
-      <div className="h-[52px] flex items-center justify-between px-[20px] shrink-0 bg-[#ffffff]">
-        <div className="flex items-center gap-[8px] min-w-0 flex-1">
-          {project?.connected_domain ? (
+      <div className="h-[64px] flex items-center justify-between px-[20px] shrink-0 bg-[#ffffff]">
+        <div className="flex items-center gap-[10px] min-w-0 flex-1">
+          {project?.favicon_url ? (
             <img 
-              src={`/api/favicon?domain=${project.connected_domain}`}
-              className="w-[20px] h-[20px] rounded-[4px] bg-[#f4f4f5]"
+              src={project.favicon_url}
+              className="w-[24px] h-[24px] rounded-[6px] bg-[#f4f4f5] object-cover"
               alt="favicon"
               onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
             />
           ) : (
-            <div className="w-[20px] h-[20px] rounded-[4px] bg-[#f4f4f5] flex items-center justify-center text-[10px] font-bold text-[#1f1f1f]">
+            <div className="w-[24px] h-[24px] rounded-[6px] bg-[#f4f4f5] flex items-center justify-center text-[12px] font-bold text-[#1f1f1f]">
               {project?.name?.charAt(0).toUpperCase() || '?'}
             </div>
           )}
-          <span className="text-[14px] font-semibold text-[#1f1f1f] truncate">
+          <span className="text-[16px] font-bold text-[#1f1f1f] truncate">
             {project?.name || 'Завантаження...'}
           </span>
           {project?.connected_domain && (
@@ -359,47 +359,49 @@ export default function ProjectSidebar() {
               <div
                 key={bug.id}
                 onClick={() => toggleSelectBug(bug.id)}
-                className={`group/card flex flex-col shrink-0 cursor-pointer overflow-hidden transition-all mx-[8px] rounded-[16px] border ${
+                className={`group/card flex flex-col shrink-0 cursor-pointer overflow-hidden transition-all duration-300 ease-out mx-[12px] mb-[12px] rounded-[16px] ${
                   isChecked
-                    ? 'bg-[#f4f4f5] border-[#1f1f1f]/15'
-                    : 'border-transparent hover:bg-[#f4f4f5] hover:border-[#1f1f1f]/10'
+                    ? 'bg-[#e4e4e5] ring-2 ring-[#1f1f1f] ring-offset-2 ring-offset-white'
+                    : 'bg-[#f4f4f5] hover:bg-[#ececec] hover:-translate-y-[2px]'
                 }`}
               >
                 {/* Screenshot — white bg for transparent PNGs */}
                 {bug.image_url && (
-                  <div className={`w-full aspect-video bg-white relative overflow-hidden transition-colors ${
-                    isChecked ? 'bg-[#f4f4f5]' : ''
-                  }`}>
-                    <img
-                      src={bug.image_url}
-                      alt="Screenshot"
-                      crossOrigin="anonymous"
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover/card:scale-[1.03]"
-                    />
-
-                    {/* Dark overlay: subtle on hover, tint when selected */}
-                    <div className={`absolute inset-0 pointer-events-none transition-all duration-200 ${
-                      isChecked
-                        ? 'bg-black/[0.04]'
-                        : 'bg-black/0 group-hover/card:bg-black/[0.04]'
-                    }`} />
-
-                    {/* Selection circle — top-right, appears on hover, fills on select */}
-                    <div className={`absolute top-[8px] right-[8px] w-[22px] h-[22px] rounded-full flex items-center justify-center transition-all duration-200 ${
-                      isChecked
-                        ? 'bg-[#1f1f1f] opacity-100 scale-100'
-                        : 'bg-black/10 backdrop-blur-sm border border-white/0 group-hover/card:border-white/50 opacity-0 group-hover/card:opacity-90 scale-75 group-hover/card:scale-100'
+                  <div className="pt-[12px] px-[12px]">
+                    <div className={`w-full aspect-video bg-white relative overflow-hidden rounded-[8px] transition-colors ${
+                      isChecked ? 'bg-[#e4e4e5]' : ''
                     }`}>
-                      <Check
-                        size={12}
-                        strokeWidth={2.5}
-                        className={`text-white transition-opacity duration-100 ${isChecked ? 'opacity-100' : 'opacity-0 group-hover/card:opacity-40'}`}
+                      <img
+                        src={bug.image_url}
+                        alt="Screenshot"
+                        crossOrigin="anonymous"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover/card:scale-[1.03]"
                       />
+
+                      {/* Dark overlay: subtle on hover, tint when selected */}
+                      <div className={`absolute inset-0 pointer-events-none transition-all duration-200 ${
+                        isChecked
+                          ? 'bg-black/[0.04]'
+                          : 'bg-black/0 group-hover/card:bg-black/[0.04]'
+                      }`} />
+
+                      {/* Selection circle — top-right, appears on hover, fills on select */}
+                      <div className={`absolute top-[12px] right-[12px] w-[24px] h-[24px] rounded-[8px] flex items-center justify-center transition-all duration-200 ${
+                        isChecked
+                          ? 'bg-[#1f1f1f] opacity-100 scale-100'
+                          : 'bg-white/40 backdrop-blur-md border border-white/60 group-hover/card:border-white opacity-0 group-hover/card:opacity-100 scale-90 group-hover/card:scale-100'
+                      }`}>
+                        <Check
+                          size={12}
+                          strokeWidth={2.5}
+                          className={`text-white transition-opacity duration-100 ${isChecked ? 'opacity-100' : 'opacity-0 group-hover/card:opacity-40'}`}
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
 
-                <div className="px-[20px] py-[12px] flex flex-col gap-[8px]">
+                <div className="p-[20px] flex flex-col gap-[12px]">
                   {/* Top row: checkbox (if no screenshot) + severity + status */}
                   <div className="flex items-center justify-between gap-[8px]">
                     <div className="flex items-center gap-[6px]">
@@ -450,10 +452,10 @@ export default function ProjectSidebar() {
                     <Link
                       href={`/projects/${id}/bugs/${bug.id}`}
                       onClick={e => e.stopPropagation()}
-                      className="group/btn shrink-0 flex items-center justify-center gap-[4px] text-[11px] font-semibold text-[#1f1f1f] hover:text-white bg-[#f4f4f5] hover:bg-[#1f1f1f] transition-all px-[9px] h-[24px] rounded-[5px]"
+                      className="group/btn shrink-0 flex items-center justify-center gap-[6px] text-[12px] font-bold text-[#1f1f1f] hover:text-white bg-[#e4e4e5] hover:bg-[#1f1f1f] transition-all px-[12px] h-[28px] rounded-[8px]"
                     >
                       Деталі
-                      <ArrowRight size={11} className="transition-transform group-hover/btn:translate-x-[2px]" />
+                      <ArrowRight size={13} className="transition-transform group-hover/btn:translate-x-[2px]" />
                     </Link>
                   </div>
                 </div>

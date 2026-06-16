@@ -57,8 +57,8 @@ export default function Tabs({
         );
 
         const classes = [
-          'flex items-center justify-center gap-[6px]',
-          tab.label ? 'px-[16px]' : 'w-[28px] shrink-0',
+          'flex-1 flex items-center justify-center gap-[6px]',
+          tab.label ? 'px-[8px]' : 'w-[28px] shrink-0',
           'h-[28px] text-[13px] font-medium rounded-[8px]',
           'transition-all whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[#1f1f1f] focus-visible:ring-offset-2',
           active

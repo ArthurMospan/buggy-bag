@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { Bug, BugStatus, BugSeverity, DrawShape, PinElementContext, Project } from '@/lib/types';
+import { Bug, BugStatus, BugSeverity, DrawShape, PinElementContext, Project, Annotation } from '@/lib/types';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { ChevronDown, Copy, Check, Maximize2, X, ArrowLeft, Monitor, Globe, Calendar, Terminal, Code2, ExternalLink } from 'lucide-react';
@@ -105,21 +105,117 @@ function useCopyMarkdown(bug: Bug) {
   const [copied, setCopied] = useState(false);
   const copy = useCallback(() => {
     const tc = bug.tech_context;
-    const steps = tc?.eventLog?.map((e, i) => `${i + 1}. ${e.description}`).join('\n') ?? 'N/A';
-    const consoleErrs = tc?.consoleErrors?.map(e => `- [${e.level.toUpperCase()}] ${e.message}`).join('\n') ?? 'None';
-    const netErrs = tc?.networkRequests?.filter(r => r.isError).map(r => `- ${r.method} ${r.url} -> ${r.status || 'ERR'}`).join('\n') ?? 'None';
-    const md = [
-      `## Bug: ${bug.description || 'Без опису'}`, '',
+    
+    // Process description
+    let descSection = `## Bug Report\n\n`;
+    if (bug.description) {
+      const parts = bug.description.split('|').map(p => p.trim()).filter(Boolean);
+      if (parts.length > 1) {
+        descSection += parts.map((p, idx) => `${idx + 1}. ${p}`).join('\n');
+      } else {
+        descSection += bug.description;
+      }
+    } else {
+      descSection += "Без опису";
+    }
+
+    const lines = [
+      descSection, '',
       `| | |`, `|---|---|`,
       `| **Status** | ${STATUS_CFG.find(s => s.value === bug.status)?.label ?? bug.status} |`,
       `| **Severity** | ${SEVERITY_CFG.find(s => s.value === (bug.severity ?? 'low'))?.label ?? bug.severity} |`,
       `| **Route** | \`${tc?.route ?? '-'}\` |`,
       `| **Viewport** | ${tc?.viewport ?? '-'} |`,
-      `| **Date** | ${format(new Date(bug.created_at), 'dd MMM yyyy, HH:mm', { locale: uk })} |`, '',
-      '### Steps', steps, '', '### Console', consoleErrs, '', '### Network', netErrs,
-      ...(bug.image_url ? ['', `### Screenshot`, `![](${bug.image_url})`] : []),
-    ].join('\n');
-    navigator.clipboard.writeText(md).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    ];
+
+    if (tc?.component) {
+       lines.push(`| **Component** | \`${tc.component.name}\`${tc.component.filePath ? ` (\`${tc.component.filePath}${tc.component.lineNumber ? `:${tc.component.lineNumber}` : ''}\`)` : ''} |`);
+    }
+
+    lines.push(`| **Date** | ${format(new Date(bug.created_at), 'dd MMM yyyy, HH:mm', { locale: uk })} |`, '');
+
+    // Parse shapes & annotations
+    let rawAnns = bug.json_annotations;
+    if (typeof rawAnns === 'string') {
+      try { rawAnns = JSON.parse(rawAnns); } catch (e) { rawAnns = []; }
+    }
+    const annotations: Annotation[] = Array.isArray(rawAnns) ? rawAnns : [];
+
+    let rawShapes = bug.json_shapes;
+    if (typeof rawShapes === 'string') {
+      try { rawShapes = JSON.parse(rawShapes); } catch (e) { rawShapes = []; }
+    }
+    const shapes: DrawShape[] = Array.isArray(rawShapes) ? rawShapes : [];
+
+    const annotatedEntries = shapes
+      .map((s, idx) => ({ shape: s, idx }))
+      .filter(({ shape, idx }) =>
+        shape.type !== 'eraser' && !!(annotations[idx]?.text || shape.elementContext)
+      );
+
+    if (annotatedEntries.length > 0) {
+      lines.push('### Annotations');
+      annotatedEntries.forEach(({ shape, idx: shapeIdx }) => {
+        const ctx = shape.elementContext;
+        const ann = annotations[shapeIdx];
+        const pinNum = ann?.index ?? (shapeIdx + 1);
+        const note = ann?.text ? ` — "${ann.text}"` : '';
+        if (ctx?.selector) {
+          lines.push(`- **Pin #${pinNum}** on \`${ctx.selector}\`${note}`);
+          if (ctx.reactComponent?.filePath) {
+            lines.push(`  - Component: \`${ctx.reactComponent.name}\` in \`${ctx.reactComponent.filePath}${ctx.reactComponent.lineNumber ? `:${ctx.reactComponent.lineNumber}` : ''}\``);
+          } else if (ctx.reactComponent?.name) {
+             lines.push(`  - Component: \`${ctx.reactComponent.name}\``);
+          }
+          if (ctx.dataSources?.length) {
+            lines.push(`  - Data sources: \`${ctx.dataSources.join('`, `')}\``);
+          }
+        } else if (ann) {
+          lines.push(`- **Pin #${pinNum}** at ${ann.x}%×${ann.y}%${note}`);
+        } else {
+          lines.push(`- **Pin #${pinNum}**${note}`);
+        }
+      });
+      lines.push('');
+    }
+
+    if (tc?.eventLog?.length) {
+       lines.push('### Steps to reproduce');
+       tc.eventLog.forEach((e, i) => lines.push(`${i + 1}. ${e.description}`));
+       lines.push('');
+    }
+    
+    if (tc?.storeDiff && Object.keys(tc.storeDiff).length > 0) {
+       lines.push('### State changes');
+       Object.entries(tc.storeDiff).forEach(([key, { before, after }]) => {
+         lines.push(`- \`${key}\`: \`${JSON.stringify(before)}\` → \`${JSON.stringify(after)}\``);
+       });
+       lines.push('');
+    }
+
+    const consoleErrs = tc?.consoleErrors?.filter(e => e.level === 'error') ?? [];
+    if (consoleErrs.length > 0) {
+       lines.push('### Console Errors');
+       consoleErrs.forEach(e => lines.push(`- \`${e.message}${e.source ? ` [${e.source}]` : ''}\``));
+       lines.push('');
+    }
+
+    const netErrs = tc?.networkRequests?.filter(r => r.isError) ?? [];
+    if (netErrs.length > 0) {
+       lines.push('### Network Errors');
+       netErrs.forEach(r => {
+         lines.push(`- \`${r.method} ${r.url} → ${r.status || 'ERR'}\``);
+         if (r.requestBody) lines.push(`  - Request: \`${r.requestBody}\``);
+         if (r.responseBody) lines.push(`  - Response: \`${r.responseBody}\``);
+       });
+       lines.push('');
+    }
+
+    if (bug.image_url) {
+       lines.push(`### Screenshot`, `![Screenshot](${bug.image_url})`);
+    }
+
+    navigator.clipboard.writeText(lines.join('\n')).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   }, [bug]);
   return { copy, copied };
 }
@@ -160,7 +256,17 @@ export default function BugDetailView({ bug, project, onStatusChange, onSeverity
   if (!bug) return null;
 
   const tc = bug.tech_context;
-  const annotations: typeof bug.json_annotations = bug.json_annotations ?? [];
+  let rawAnns = bug.json_annotations;
+  if (typeof rawAnns === 'string') {
+    try { rawAnns = JSON.parse(rawAnns); } catch (e) { rawAnns = []; }
+  }
+  const annotations: Annotation[] = Array.isArray(rawAnns) ? rawAnns : [];
+
+  let rawShapes = bug.json_shapes;
+  if (typeof rawShapes === 'string') {
+    try { rawShapes = JSON.parse(rawShapes); } catch (e) { rawShapes = []; }
+  }
+  const shapes: DrawShape[] = Array.isArray(rawShapes) ? rawShapes : [];
 
   const handleStatusChange = async (newStatus: BugStatus) => {
     setStatus(newStatus); setSaving(true);
@@ -287,8 +393,8 @@ export default function BugDetailView({ bug, project, onStatusChange, onSeverity
               <div className="text-[13px] text-center text-[#9a9a9a] py-[24px]">Пінів немає</div>
             ) : (
               annotations.map((ann, i) => {
-                const shape: DrawShape | undefined = bug.json_shapes?.find(
-                  (s: DrawShape) => s.type === 'pin' && (s.pinNumber === (ann.index ?? i + 1) || bug.json_shapes?.indexOf(s) === i)
+                const shape: DrawShape | undefined = shapes.find(
+                  (s: DrawShape) => s.type === 'pin' && (s.pinNumber === (ann.index ?? i + 1) || shapes.indexOf(s) === i)
                 );
                 const ctx: PinElementContext | undefined = shape?.elementContext;
                 const pinNum = ann.index ?? i + 1;

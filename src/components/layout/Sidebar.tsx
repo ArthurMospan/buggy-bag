@@ -80,10 +80,15 @@ function ProjectRow({ project, isActive, onClick }: { project: Project; isActive
         )}
       </div>
 
-      {/* Name */}
-      <span className={`text-[13px] font-medium truncate flex-1 min-w-0 ${isActive ? 'text-[#1f1f1f]' : 'text-[#9a9a9a]'}`}>
-        {project.name}
-      </span>
+      {/* Name and domain */}
+      <div className="flex-1 min-w-0 flex flex-col justify-center">
+        <span className={`text-[13px] font-medium truncate ${isActive ? 'text-[#1f1f1f]' : 'text-[#9a9a9a]'}`}>
+          {project.name}
+        </span>
+        <span className={`text-[10px] truncate ${isActive ? 'text-[#71717a]' : 'text-[#a1a1aa]'}`}>
+          {project.connected_domain ? project.connected_domain : 'Не підключено'}
+        </span>
+      </div>
 
       {/* Unread Badge */}
       {unreadCount > 0 && !isActive && (
@@ -158,10 +163,8 @@ export default function Sidebar({ userEmail = '' }: SidebarProps) {
 
       {/* App Logo */}
       <Link href="/" className="flex items-center gap-2.5 px-3.5 py-1.5 mb-3 shrink-0 group">
-        <div className="w-8 h-8 flex items-center justify-center bg-[#f4f4f5] rounded-[10px] group-hover:bg-[#e9e9e9] transition-colors shrink-0">
-          <img src="/bug-logo.svg" alt="Logo" width={18} height={18} />
-        </div>
-        <span className="text-[14px] font-semibold text-[#1f1f1f] truncate">Buggy Bag</span>
+        <img src="/bug-logo.svg" alt="Logo" width={24} height={24} className="shrink-0" />
+        <span className="text-[15px] font-bold text-[#1f1f1f] truncate">Buggy Bag</span>
       </Link>
 
       {/* Projects List */}
