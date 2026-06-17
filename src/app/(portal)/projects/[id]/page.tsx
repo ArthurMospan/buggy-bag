@@ -2,8 +2,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Bug as BugIcon } from 'lucide-react';
+import AnimatedLogo from '@/components/ui/AnimatedLogo';
 import { useProjectContext } from '@/components/layout/ProjectContext';
 import PromptGenerator from '@/components/bugs/PromptGenerator';
+import SetupGuide from '@/components/bugs/SetupGuide';
 import { Bug, BugStatus } from '@/lib/types';
 
 export default function ProjectDashboardPage() {
@@ -12,6 +14,7 @@ export default function ProjectDashboardPage() {
   const { selectedBugIds, clearSelectedBugs, refreshTrigger, triggerRefresh } = useProjectContext();
   const [bugs, setBugs] = useState<Bug[]>([]);
   const [loading, setLoading] = useState(true);
+  const [project, setProject] = useState<any>(null);
 
   useEffect(() => {
     Promise.all([
@@ -25,12 +28,9 @@ export default function ProjectDashboardPage() {
       const p = (projData.projects || []).find((p: any) => p.id === id);
       const b = bugData.bugs || [];
       
-      if (p && !p.connected_domain && b.length === 0) {
-        router.replace(`/projects/${id}/integration`);
-      } else {
-        setBugs(b);
-        setLoading(false);
-      }
+      setProject(p);
+      setBugs(b);
+      setLoading(false);
     });
   }, [id, router, refreshTrigger]);
 
@@ -51,6 +51,18 @@ export default function ProjectDashboardPage() {
     triggerRefresh();
   };
 
+  if (loading) return null;
+
+  if (project && !project.connected_domain && bugs.length === 0) {
+    return (
+      <div className="h-full w-full bg-[#ffffff] overflow-y-auto p-[40px]">
+        <div className="max-w-[800px] mx-auto">
+          <SetupGuide apiKey={project.api_key} />
+        </div>
+      </div>
+    );
+  }
+
   if (selectedBugIds.size > 0) {
     return (
       <div className="h-full w-full bg-[#ffffff]">
@@ -65,8 +77,8 @@ export default function ProjectDashboardPage() {
 
   return (
     <div className="h-full flex flex-col items-center justify-center p-[40px] text-center bg-[#ffffff]">
-      <div className="w-[72px] h-[72px] bg-[#ffffff] border border-[#e9e9e9] rounded-full flex items-center justify-center mb-[20px] shadow-sm">
-        <BugIcon size={28} className="text-[#9a9a9a]" />
+      <div className="mb-[24px] text-[#1f1f1f]">
+        <AnimatedLogo size={84} />
       </div>
       <h1 className="text-[20px] font-semibold text-[#1f1f1f] mb-[8px]">Виберіть баг</h1>
       <p className="text-[13px] text-[#9a9a9a] max-w-[360px] leading-relaxed">

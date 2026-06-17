@@ -4,7 +4,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { Project, ActivityLog } from '@/lib/types';
 import LoadingSpinner from '@/components/ui/Feedback/LoadingSpinner';
 
-import { Copy, Check, Terminal, Code2, Play, Circle, CheckCircle2, RefreshCw, Eye, EyeOff, AlertTriangle, Link as LinkIcon, Users, Settings, Activity, ShieldAlert, X } from 'lucide-react';
+import SetupGuide from '@/components/bugs/SetupGuide';
+import { Copy, Check, Terminal, Code2, Play, Circle, CheckCircle2, RefreshCw, Eye, EyeOff, AlertTriangle, Link as LinkIcon, Users, Settings, Activity, ShieldAlert, X, ArrowLeft, Power } from 'lucide-react';
+import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { uk } from 'date-fns/locale';
 
@@ -36,47 +38,6 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
 // ── Sections ───────────────────────────────────────────────────────────────
 
 function IntegrationSection({ project, onUpdate }: { project: Project, onUpdate: (p: Project) => void }) {
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [showKey, setShowKey] = useState(false);
-  const [copiedKey, setCopiedKey] = useState(false);
-  const [showConfirmRegen, setShowConfirmRegen] = useState(false);
-
-  const toggleActive = async () => {
-    if (isUpdating) return;
-    setIsUpdating(true);
-    const newVal = !project.is_active;
-    try {
-      const res = await fetch('/api/projects', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: project.id, is_active: newVal }),
-      });
-      if (res.ok) onUpdate({ ...project, is_active: newVal });
-    } catch (e) { console.error(e); } finally { setIsUpdating(false); }
-  };
-
-  const handleCopyKey = async () => {
-    await navigator.clipboard.writeText(project.api_key);
-    setCopiedKey(true);
-    setTimeout(() => setCopiedKey(false), 2000);
-  };
-
-  const handleRegenerate = async () => {
-    setIsUpdating(true);
-    setShowConfirmRegen(false);
-    try {
-      const res = await fetch('/api/projects', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: project.id, regenerate_api_key: true }),
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        onUpdate(updated.project ?? project);
-      }
-    } catch (e) { console.error(e); } finally { setIsUpdating(false); }
-  };
-
   const hasSeen = !!project.last_seen_at;
   const isOnline = hasSeen && (new Date().getTime() - new Date(project.last_seen_at!).getTime() < 15 * 60 * 1000);
   
@@ -100,111 +61,43 @@ function IntegrationSection({ project, onUpdate }: { project: Project, onUpdate:
     }
   }
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://your-portal.com';
-  const scriptCode = `<!-- Додайте цей скрипт перед </body> -->\n<script\n  src="${origin}/buggy-bag-standalone.js"\n  data-api-key="${project.api_key}"\n  data-portal-url="${origin}"\n  async\n></script>`;
-  const nextJsCode = `import Script from 'next/script';\n\nexport default function RootLayout({ children }) {\n  return (\n    <html lang="en">\n      <body>\n        {children}\n        <Script\n          src="${origin}/buggy-bag-standalone.js"\n          strategy="afterInteractive"\n          data-api-key="${project.api_key}"\n          data-portal-url="${origin}"\n        />\n      </body>\n    </html>\n  );\n}`;
-  const bookmarkletCode = `javascript:(function(){localStorage.setItem('BUGGY_BAG_ACCESS','active');location.reload();})();`;
-
   return (
     <div className="flex flex-col">
       <div className="pb-[32px]">
         <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Статус віджета</h2>
-        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Керуйте збором багів. Вимикайте віджет, якщо не хочете отримувати нові репорти.</p>
+        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Поточний стан інтеграції вашого проєкту.</p>
         
-        <div className="flex items-center justify-between bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center gap-[12px]">
-            <div style={{ width: 10, height: 10, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-            <div>
-              <span className="text-[14px] font-bold text-[#1f1f1f] block">
-                {statusText}
-              </span>
-              <span className="text-[12px] font-medium text-[#9a9a9a] mt-[2px] block">
-                {subText}
-              </span>
-            </div>
-          </div>
-          <button onClick={toggleActive} disabled={isUpdating} className={`relative w-[44px] h-[24px] rounded-full transition-colors ${project.is_active ? 'bg-[#1f1f1f]' : 'bg-[#e9e9e9]'} ${isUpdating ? 'opacity-50' : ''}`}>
-            <div className={`absolute top-[2px] left-[2px] w-[20px] h-[20px] bg-white rounded-full transition-transform shadow-sm ${project.is_active ? 'translate-x-[20px]' : 'translate-x-0'}`} />
-          </button>
-        </div>
-      </div>
-
-      <div className="py-[32px]">
-        <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">API Ключ</h2>
-        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Цей ключ необхідний для ідентифікації вашого проєкту. Не передавайте його стороннім.</p>
-        
-        <div className="flex flex-col gap-[12px]">
-          <div className="flex items-center gap-[10px] bg-[#f4f4f5] rounded-[10px] px-[16px] py-[12px]">
-            <code className="flex-1 text-[13px] font-mono text-[#1f1f1f] truncate">
-              {showKey ? project.api_key : project.api_key.slice(0, 6) + '••••••••••••••••••••••••••••••••' + project.api_key.slice(-4)}
-            </code>
-            <button onClick={() => setShowKey(!showKey)} className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[4px] rounded">
-              {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-            <button onClick={handleCopyKey} className="flex items-center gap-[6px] text-[#1f1f1f] hover:text-[#000000] text-[13px] font-bold transition-colors pl-[8px] border-l border-[#e9e9e9]">
-              {copiedKey ? <Check size={14} /> : <Copy size={14} />}
-              {copiedKey ? 'Скопійовано' : 'Копіювати'}
-            </button>
-          </div>
-
-          {showConfirmRegen ? (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-[12px] bg-orange-500/10 border border-orange-500/20 rounded-[10px] p-[16px]">
-              <AlertTriangle size={18} className="text-orange-600 shrink-0" />
-              <div className="flex-1">
-                <span className="text-[13px] font-bold text-orange-600 block">Ви впевнені?</span>
-                <span className="text-[12px] text-orange-600/80 block">Віджет перестане працювати, доки ви не оновите ключ у коді.</span>
-              </div>
-              <div className="flex gap-[8px] shrink-0">
-                <button onClick={handleRegenerate} disabled={isUpdating} className="bg-orange-500 hover:bg-orange-600 text-white text-[12px] font-bold px-[12px] py-[6px] rounded-[6px] transition-colors">Оновити</button>
-                <button onClick={() => setShowConfirmRegen(false)} className="bg-transparent border border-orange-500/20 text-orange-600 hover:bg-orange-500/10 text-[12px] font-bold px-[12px] py-[6px] rounded-[6px] transition-colors">Скасувати</button>
+        <div className="flex flex-col gap-[16px]">
+          <div className="flex items-center justify-between bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center gap-[12px]">
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+              <div>
+                <span className="text-[14px] font-bold text-[#1f1f1f] block">
+                  {statusText}
+                </span>
+                <span className="text-[12px] font-medium text-[#9a9a9a] mt-[2px] block">
+                  {subText}
+                </span>
               </div>
             </div>
-          ) : (
-            <button onClick={() => setShowConfirmRegen(true)} className="flex items-center gap-[6px] self-start text-[12px] font-bold text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors">
-              <RefreshCw size={13} /> Згенерувати новий ключ
-            </button>
+          </div>
+          
+          {project.connected_domain && (
+            <div className="flex items-center gap-[12px] bg-[#f0fdf4] border border-[#bbf7d0] rounded-[10px] p-[16px]">
+              <CheckCircle2 size={20} className="text-[#10b981]" />
+              <div>
+                <span className="text-[13px] font-bold text-[#10b981] block">Підключено до домену</span>
+                <a href={project.connected_domain} target="_blank" rel="noreferrer" className="text-[14px] font-medium text-[#1f1f1f] hover:underline mt-[2px] block">
+                  {project.connected_domain}
+                </a>
+              </div>
+            </div>
           )}
         </div>
       </div>
 
-      <div className="py-[32px]">
-        <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Як підключити</h2>
-        <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Вставте скрипт на ваш сайт, щоб почати збирати баги.</p>
-        
-        <div className="flex flex-col gap-[24px]">
-          <div>
-            <h3 className="text-[13px] font-bold text-[#1f1f1f] flex items-center gap-[8px] mb-[12px]">
-              <Code2 size={16} /> Варіант 1: HTML Script (Рекомендовано)
-            </h3>
-            <CodeBlock code={scriptCode} />
-          </div>
-
-          <details className="group border border-[#e9e9e9] rounded-[10px] overflow-hidden">
-            <summary className="flex items-center gap-[8px] p-[16px] cursor-pointer text-[13px] font-bold text-[#1f1f1f] bg-[#ffffff] hover:bg-[#f4f4f5] transition-colors list-none">
-              <Terminal size={16} /> 
-              Варіант 2: Next.js (App Router)
-              <span className="ml-auto text-[#9a9a9a] group-open:rotate-180 transition-transform">▾</span>
-            </summary>
-            <div className="flex flex-col gap-[16px] p-[16px] bg-[#ffffff] border-t border-[#e9e9e9]">
-              <p className="text-[13px] text-[#9a9a9a] leading-relaxed m-0">
-                Використовуйте <code className="bg-[#f4f4f5] px-[6px] py-[2px] rounded text-[#1f1f1f] font-mono text-[11px]">next/script</code> для підключення, щоб завжди отримувати найсвіжіші оновлення віджета.
-              </p>
-              <CodeBlock code={nextJsCode} label="Додавання у Root Layout" />
-            </div>
-          </details>
-
-          <div className="mt-[8px]">
-            <h3 className="text-[13px] font-bold text-[#1f1f1f] flex items-center gap-[8px] mb-[12px]">
-              <Play size={16} /> Як побачити віджет на своєму сайті?
-            </h3>
-            <p className="text-[13px] text-[#9a9a9a] mb-[16px] leading-relaxed">
-              Віджет прихований від звичайних відвідувачів. Щоб він з'явився, додайте параметр <code className="bg-[#f4f4f5] px-[6px] py-[2px] rounded text-[#1f1f1f] font-mono text-[11px]">?bb=on</code> до URL вашого сайту або перетягніть кнопку нижче на панель закладок і натискайте її:
-            </p>
-            <a href={bookmarkletCode} className="inline-flex items-center gap-[8px] px-[16px] py-[10px] bg-[#f4f4f5] hover:bg-[#e9e9e9] text-[#1f1f1f] text-[13px] font-bold rounded-[8px] transition-colors cursor-grab">
-              <Play size={14} /> Активувати віджет
-            </a>
-          </div>
-        </div>
+      <div className="pt-[8px]">
+        <SetupGuide apiKey={project.api_key} />
       </div>
     </div>
   );
@@ -214,6 +107,7 @@ function GeneralSection({ project, onUpdate }: { project: Project, onUpdate: (p:
   const [name, setName] = useState(project.name);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const router = useRouter();
 
   const handleSaveName = async () => {
@@ -246,6 +140,20 @@ function GeneralSection({ project, onUpdate }: { project: Project, onUpdate: (p:
     } catch (e) { console.error(e); } finally { setIsDeleting(false); }
   };
 
+  const toggleActive = async () => {
+    if (isUpdatingStatus) return;
+    setIsUpdatingStatus(true);
+    const newVal = !project.is_active;
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: project.id, is_active: newVal }),
+      });
+      if (res.ok) onUpdate({ ...project, is_active: newVal });
+    } catch (e) { console.error(e); } finally { setIsUpdatingStatus(false); }
+  };
+
   return (
     <div className="flex flex-col">
       <div className="pb-[32px]">
@@ -265,6 +173,23 @@ function GeneralSection({ project, onUpdate }: { project: Project, onUpdate: (p:
             className="bg-[#1f1f1f] hover:bg-[#303030] text-white text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50 shrink-0"
           >
             {isSaving ? 'Збереження...' : 'Зберегти'}
+          </button>
+        </div>
+      </div>
+
+      <div className="py-[32px]">
+        <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px] flex items-center gap-[8px]">
+          <Power size={18} /> Керування збором
+        </h2>
+        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Вимкніть віджет, якщо не хочете отримувати нові репорти.</p>
+        
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px]">
+          <div>
+            <span className="text-[13px] font-bold text-[#1f1f1f] block">Статус віджета: {project.is_active ? 'Активний' : 'Вимкнений'}</span>
+            <span className="text-[12px] text-[#9a9a9a] mt-[4px] block">Відвідувачі {project.is_active ? 'можуть' : 'не можуть'} надсилати баги.</span>
+          </div>
+          <button onClick={toggleActive} disabled={isUpdatingStatus} className={`relative w-[44px] h-[24px] rounded-full transition-colors ${project.is_active ? 'bg-[#1f1f1f]' : 'bg-[#e9e9e9]'} ${isUpdatingStatus ? 'opacity-50' : ''} shrink-0`}>
+            <div className={`absolute top-[2px] left-[2px] w-[20px] h-[20px] bg-white rounded-full transition-transform shadow-sm ${project.is_active ? 'translate-x-[20px]' : 'translate-x-0'}`} />
           </button>
         </div>
       </div>
@@ -442,6 +367,10 @@ function GithubSection({ project, onUpdate }: { project: Project, onUpdate: (p: 
             <span className="text-[13px] font-bold text-[#9a9a9a] w-[120px] shrink-0">Репозиторій</span>
             <input
               type="text"
+              name="bb_repo"
+              id="bb_repo"
+              autoComplete="off"
+              data-lpignore="true"
               placeholder="Власник/Репозиторій (напр. facebook/react)"
               value={repo}
               onChange={e => setRepo(e.target.value)}
@@ -453,6 +382,10 @@ function GithubSection({ project, onUpdate }: { project: Project, onUpdate: (p: 
             <div className="flex-1 flex items-center gap-[10px]">
               <input
                 type={showToken ? 'text' : 'password'}
+                name="bb_pat_token"
+                id="bb_pat_token"
+                autoComplete="new-password"
+                data-lpignore="true"
                 placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                 value={token}
                 onChange={e => setToken(e.target.value)}
@@ -567,43 +500,73 @@ export default function IntegrationPage() {
   if (loading) return <div className="p-[40px] flex items-center justify-center h-full"><LoadingSpinner size="lg" /></div>;
   if (!project) return <div className="p-[40px] text-[#9a9a9a] font-bold text-center">Проєкт не знайдено</div>;
 
-  return (
-    <div className="flex flex-col h-full bg-[#f4f4f5]">
-      {/* Header bar */}
-      <div className="h-[56px] flex items-center px-[40px] bg-[#ffffff] shrink-0">
-        <h1 className="text-[14px] font-bold text-[#1f1f1f]">Налаштування</h1>
-      </div>
+  const getNavDescription = (id: string) => {
+    switch (id) {
+      case 'integration': return 'Налаштування віджета та статус';
+      case 'general': return 'Назва проєкту та видалення';
+      case 'team': return 'Управління доступом та учасники';
+      case 'github': return 'Інтеграція репозиторію та токени';
+      case 'activity': return 'Останні події та лог роботи';
+      default: return '';
+    }
+  };
 
-      <div className="flex flex-1 min-h-0">
-        {/* Sidebar Nav */}
-        <div className="w-[240px] border-r border-[#e9e9e9] bg-[#ffffff] flex flex-col p-[24px] gap-[4px] shrink-0 overflow-y-auto">
+  return (
+    <div className="h-full w-full flex flex-row bg-[#f4f4f5]">
+      {/* ── Left Sidebar (Settings Nav) ── */}
+      <div className="w-[360px] shrink-0 bg-[#ffffff] border-r border-[#e9e9e9] flex flex-col h-full z-20">
+        <div className="pt-[24px] pb-[16px] px-[24px] shrink-0 flex items-center gap-[12px]">
+          <Link
+            href={`/projects/${project.id}`}
+            className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[8px] -ml-[8px] rounded-[8px] hover:bg-[#f4f4f5]"
+          >
+            <ArrowLeft size={20} strokeWidth={1.5} />
+          </Link>
+          <h2 className="text-[20px] font-bold text-[#1f1f1f]">Налаштування</h2>
+        </div>
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-[24px] pb-[32px] flex flex-col gap-[8px]">
           {NAV_ITEMS.map(nav => (
-            <button
+            <div
               key={nav.id}
               onClick={() => setActiveNav(nav.id as NavId)}
-              className={`flex items-center gap-[10px] px-[12px] py-[8px] rounded-[10px] text-[13px] font-bold transition-all ${
+              className={`group flex items-center gap-[12px] px-[16px] py-[12px] rounded-[12px] cursor-pointer transition-colors ${
                 activeNav === nav.id
-                  ? 'bg-[#f4f4f5] text-[#1f1f1f]'
-                  : 'text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-[#f4f4f5]'
+                  ? 'bg-[#f0f4ff]'
+                  : 'bg-[#f4f4f5] hover:bg-[#e9e9e9]'
               }`}
             >
-              <div className="text-[#1f1f1f]">
+              <div className={`w-[28px] h-[28px] rounded-[50px] flex items-center justify-center shrink-0 ${activeNav === nav.id ? 'bg-[#4F46E5] text-white' : 'bg-[#e9e9e9] text-[#1f1f1f]'}`}>
                 {nav.icon}
               </div>
-              {nav.label}
-            </button>
+              <div className="flex flex-col flex-1 min-w-0">
+                <p className={`text-[13px] font-bold leading-tight ${activeNav === nav.id ? 'text-[#4F46E5]' : 'text-[#1f1f1f]'}`}>
+                  {nav.label}
+                </p>
+                <p className="text-[11px] text-[#9a9a9a] mt-[2px] truncate">
+                  {getNavDescription(nav.id)}
+                </p>
+              </div>
+            </div>
           ))}
         </div>
+      </div>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-[40px] pb-[80px]">
-          <div className="max-w-[640px]">
-            {activeNav === 'integration' && <IntegrationSection project={project} onUpdate={setProject} />}
-            {activeNav === 'general' && <GeneralSection project={project} onUpdate={setProject} />}
-            {activeNav === 'team' && <TeamSection project={project} onUpdate={setProject} />}
-            {activeNav === 'github' && <GithubSection project={project} onUpdate={setProject} />}
-            {activeNav === 'activity' && <ActivityTimeline logs={logs} />}
-          </div>
+      {/* ── Right Content Area ── */}
+      <div className="flex-1 flex flex-col h-full bg-[#ffffff] overflow-y-auto custom-scrollbar relative">
+        {/* Header */}
+        <div className="pt-[24px] pb-[16px] shrink-0 flex items-center justify-between px-[32px] sticky top-0 z-50 bg-[#ffffff] border-b border-[#e9e9e9]">
+          <h1 className="text-[24px] font-bold text-[#1f1f1f] tracking-tight">
+             {NAV_ITEMS.find(n => n.id === activeNav)?.label}
+          </h1>
+        </div>
+
+        {/* Content */}
+        <div className="px-[32px] py-[32px] max-w-[800px]">
+          {activeNav === 'integration' && <IntegrationSection project={project} onUpdate={setProject} />}
+          {activeNav === 'general' && <GeneralSection project={project} onUpdate={setProject} />}
+          {activeNav === 'team' && <TeamSection project={project} onUpdate={setProject} />}
+          {activeNav === 'github' && <GithubSection project={project} onUpdate={setProject} />}
+          {activeNav === 'activity' && <ActivityTimeline logs={logs} />}
         </div>
       </div>
     </div>

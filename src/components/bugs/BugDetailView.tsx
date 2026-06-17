@@ -1,16 +1,17 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Bug, BugStatus, BugSeverity, DrawShape, PinElementContext, Project, Annotation } from '@/lib/types';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
-import { ChevronDown, Copy, Check, Maximize2, X, ArrowLeft, Monitor, Globe, Calendar, Terminal, Code2, ExternalLink, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, Check, Maximize2, X, ArrowLeft, Monitor, Globe, Calendar, Terminal, Code2, ExternalLink, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const STATUS_CFG: { value: BugStatus; label: string; color: string; bg: string }[] = [
   { value: 'open',        label: 'Новий',      color: '#71717a', bg: '#f4f4f5' },
   { value: 'in_progress', label: 'В роботі',   color: '#f97316', bg: '#fff7ed' },
   { value: 'resolved',    label: 'Виправлено', color: '#10b981', bg: '#f0fdf4' },
-  { value: 'closed',      label: 'Закрито',    color: '#71717a', bg: '#f4f4f5' },
 ];
 
 function getSeverityColor(num: number) {
@@ -91,13 +92,18 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm" onClick={onClose}>
-      <button onClick={onClose} className="absolute top-4 right-4 w-[36px] h-[36px] rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
-        <X size={18} />
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/90 backdrop-blur-sm" onClick={onClose}>
+      <button onClick={onClose} className="absolute top-[24px] right-[24px] w-[48px] h-[48px] rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors z-[2147483647]">
+        <X size={24} />
       </button>
-      <img src={src} alt="Screenshot fullscreen" crossOrigin="anonymous" className="max-w-[95vw] max-h-[95vh] object-contain rounded-[8px]" onClick={e => e.stopPropagation()} />
-    </div>
+      <div className="bg-white p-[8px] rounded-[16px] max-w-[95vw] max-h-[95vh] flex items-center justify-center shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <img src={src} alt="Screenshot fullscreen" crossOrigin="anonymous" className="max-w-full max-h-[calc(95vh-16px)] object-contain rounded-[8px]" />
+      </div>
+    </div>,
+    document.body
   );
 }
 
@@ -223,11 +229,13 @@ function useCopyMarkdown(bug: Bug) {
 interface BugDetailViewProps {
   bug: Bug | null;
   project?: Project | null;
+  allBugs?: Bug[];
   onStatusChange: (id: string, status: BugStatus) => Promise<void>;
   onSeverityChange?: (id: string, severity: BugSeverity) => Promise<void>;
 }
 
-export default function BugDetailView({ bug, project, onStatusChange, onSeverityChange }: BugDetailViewProps) {
+export default function BugDetailView({ bug, project, allBugs = [], onStatusChange, onSeverityChange }: BugDetailViewProps) {
+  const router = useRouter();
   const [status,    setStatus]   = useState<BugStatus>('open');
   const [severity,  setSeverity] = useState<BugSeverity>('low');
   const [saving,    setSaving]   = useState(false);
@@ -237,6 +245,7 @@ export default function BugDetailView({ bug, project, onStatusChange, onSeverity
 
   const [issueUrl,  setIssueUrl]  = useState<string | null>(null);
   const [isPushing, setIsPushing] = useState(false);
+  const [activePin, setActivePin] = useState<number | null>(null);
 
   useEffect(() => {
     if (bug) {
@@ -302,285 +311,334 @@ export default function BugDetailView({ bug, project, onStatusChange, onSeverity
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#f4f4f5]">
+    <div className="h-full w-full flex flex-row bg-[#f4f4f5]">
       {lightbox && bug.image_url && <Lightbox src={bug.image_url} onClose={() => setLightbox(false)} />}
 
-      {/* ── Header ── */}
-      <div className="h-[64px] flex items-center justify-between px-[40px] shrink-0 bg-[#ffffff] border-b border-[#f0f0f0]">
-        <div className="flex items-center gap-[12px]">
+      {/* ── Left Sidebar (Pins) ── */}
+      <div className="w-[360px] shrink-0 bg-[#ffffff] border-r border-[#e9e9e9] flex flex-col h-full z-20">
+        <div className="pt-[24px] pb-[16px] px-[24px] shrink-0 flex items-center gap-[12px]">
           <Link
             href={`/projects/${bug.project_id}`}
-            className="text-[#9a9a9a] hover:text-[#1f1f1f] p-[8px] -ml-[8px] rounded-[8px] hover:bg-[#f4f4f5] transition-colors"
-            title="Назад"
+            className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[8px] -ml-[8px] rounded-[8px] hover:bg-[#f4f4f5]"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={20} strokeWidth={1.5} />
           </Link>
-          <div className="flex items-center gap-[10px]">
-            <span className="text-[16px] font-bold text-[#1f1f1f] tracking-tight font-mono">
+          <h2 className="text-[20px] font-bold text-[#1f1f1f]">Мітки ({annotations.length})</h2>
+        </div>
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-[24px] pb-[32px] flex flex-col gap-[12px]">
+          {annotations.length === 0 && (
+            <p className="text-[14px] text-[#9a9a9a]">Немає міток</p>
+          )}
+          {annotations.map((ann, i) => {
+            const pinNum = ann.index ?? i + 1;
+            const shape = bug.json_shapes?.find(s => s.type === 'pin' && s.pinNumber === pinNum);
+            const el = shape?.elementContext;
+
+            return (
+              <div
+                key={i}
+                onMouseEnter={() => setActivePin(i)}
+                onMouseLeave={() => setActivePin(null)}
+                className={`group flex items-start gap-[12px] px-[16px] py-[12px] rounded-[12px] cursor-pointer transition-colors ${activePin === i ? 'bg-[#f0f4ff]' : 'bg-[#f4f4f5] hover:bg-[#e9e9e9]'}`}
+              >
+                <div className="bg-[#ef4444] text-white rounded-[50px] w-[28px] h-[28px] flex items-center justify-center text-[13px] font-bold shrink-0 mt-[2px]">
+                  {pinNum}
+                </div>
+                <div className="flex flex-col gap-[8px] min-w-0 flex-1">
+                  <p className="text-[13px] text-[#1f1f1f] font-medium leading-[20px] break-words">
+                    {ann.text || <em className="text-[#9a9a9a] not-italic font-normal">Без тексту</em>}
+                  </p>
+                  
+                  {el && (
+                    <div className="flex flex-col gap-[4px]">
+                      <div className="flex flex-wrap gap-[6px]">
+                        {el.reactComponent?.name ? (
+                          <span className="text-[10px] font-mono bg-[#f0fdf4] text-[#10b981] px-[6px] py-[2px] rounded border border-[#bbf7d0]">
+                            {el.reactComponent.name}
+                          </span>
+                        ) : el.tagName ? (
+                          <span className="text-[10px] font-mono bg-white px-[6px] py-[2px] rounded border border-[#e9e9e9] text-[#5d5d5d]">
+                            {el.tagName.toLowerCase()}
+                          </span>
+                        ) : null}
+                        
+                        {el.classes && el.classes.length > 0 && (
+                          <span className="text-[10px] font-mono bg-white px-[6px] py-[2px] rounded border border-[#e9e9e9] text-[#3b82f6] truncate max-w-[120px]">
+                            .{el.classes[0]}
+                          </span>
+                        )}
+                      </div>
+                      {el.innerText && (
+                        <p className="text-[11px] text-[#9a9a9a] truncate italic">"{el.innerText.substring(0, 40)}{el.innerText.length > 40 ? '...' : ''}"</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Right Content Area ── */}
+      <div className="flex-1 flex flex-col h-full bg-[#ffffff] overflow-y-auto custom-scrollbar relative">
+        
+        {/* Header */}
+        <div className="pt-[24px] pb-[16px] shrink-0 flex items-center justify-between px-[32px] sticky top-0 z-50 bg-[#ffffff]">
+          <div className="flex items-center gap-[16px]">
+            <h1 className="text-[24px] font-bold text-[#1f1f1f] tracking-tight">
               BUG-{bug.id.split('-')[0].toUpperCase()}
-            </span>
+            </h1>
+            
+            <div className="flex items-center bg-[#f4f4f5] rounded-[10px] ml-[8px]">
+              <button 
+                onClick={() => {
+                  const idx = allBugs.findIndex(b => b.id === bug.id);
+                  if (idx > 0) router.push(`/projects/${bug.project_id}/bugs/${allBugs[idx - 1].id}`);
+                }}
+                disabled={allBugs.findIndex(b => b.id === bug.id) <= 0}
+                className="w-[32px] h-[32px] flex items-center justify-center text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-[#e9e9e9] rounded-l-[10px] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              >
+                <ChevronUp size={16} strokeWidth={2} />
+              </button>
+              <div className="w-px h-[16px] bg-[#e9e9e9]" />
+              <button 
+                onClick={() => {
+                  const idx = allBugs.findIndex(b => b.id === bug.id);
+                  if (idx >= 0 && idx < allBugs.length - 1) router.push(`/projects/${bug.project_id}/bugs/${allBugs[idx + 1].id}`);
+                }}
+                disabled={allBugs.findIndex(b => b.id === bug.id) === -1 || allBugs.findIndex(b => b.id === bug.id) === allBugs.length - 1}
+                className="w-[32px] h-[32px] flex items-center justify-center text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-[#e9e9e9] rounded-r-[10px] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              >
+                <ChevronDown size={16} strokeWidth={2} />
+              </button>
+            </div>
+
             {saved && (
-              <span className="flex items-center gap-[4px] text-[12px] text-[#10b981] font-semibold ml-2">
+              <span className="flex items-center gap-[4px] text-[12px] text-[#10b981] font-semibold ml-2 bg-[#f0fdf4] px-[8px] py-[4px] rounded-[6px]">
                 <Check size={14} /> Збережено
               </span>
             )}
           </div>
+          
+          <div className="flex items-center gap-[12px]">
+            {project?.github_repo && (
+              issueUrl ? (
+                <a
+                  href={issueUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Переглянути на GitHub"
+                  className="flex items-center gap-[8px] px-[16px] h-[36px] rounded-[8px] text-[13px] font-medium transition-all bg-white text-[#1f1f1f] hover:bg-[#f4f4f5] shadow-sm border border-[#e9e9e9]"
+                >
+                  <Code2 size={16} />
+                  <span>Відкрити Issue</span>
+                  <ExternalLink size={14} className="opacity-60" />
+                </a>
+              ) : (
+                <button
+                  onClick={pushToGithub}
+                  disabled={isPushing}
+                  className="flex items-center gap-[8px] px-[16px] h-[36px] rounded-[8px] text-[13px] font-medium transition-all bg-white text-[#1f1f1f] hover:bg-[#f4f4f5] shadow-sm border border-[#e9e9e9] disabled:opacity-40"
+                >
+                  <Plus size={16} />
+                  <span>{isPushing ? 'Створюємо...' : 'Github Issue'}</span>
+                </button>
+              )
+            )}
+
+            <button
+              onClick={copy}
+              className="flex items-center gap-[8px] px-[16px] h-[36px] rounded-[8px] text-[13px] font-medium transition-all shadow-sm"
+              style={copied
+                ? { background: 'rgba(16,185,129,0.12)', color: '#34d399' }
+                : { background: '#1f1f1f', color: '#ffffff' }}
+            >
+              {copied ? <Check size={16} /> : <Copy size={16} />}
+              <span>{copied ? 'Скопійовано' : 'Копіювати MD'}</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-[8px]">
-          {project?.github_repo && (
-            issueUrl ? (
-              <a
-                href={issueUrl}
-                target="_blank"
-                rel="noreferrer"
-                title="Переглянути на GitHub"
-                className="flex items-center gap-[7px] px-[16px] py-[8px] rounded-[10px] text-[13px] font-semibold transition-all bg-white text-[#1f1f1f] hover:bg-[#f4f4f5] border border-[#e9e9e9]"
-              >
-                <Code2 size={16} />
-                <span className="hidden sm:inline">Відкрити Issue</span>
-                <ExternalLink size={14} className="opacity-60" />
-              </a>
-            ) : (
-              <button
-                onClick={pushToGithub}
-                disabled={isPushing}
-                title="Створити Issue в GitHub"
-                className="flex items-center gap-[7px] px-[16px] py-[8px] rounded-[10px] text-[13px] font-semibold border transition-all bg-white text-[#1f1f1f] hover:bg-[#f4f4f5] border-[#e9e9e9] disabled:opacity-40"
-              >
-                <Code2 size={16} />
-                <span className="hidden sm:inline">{isPushing ? 'Створюємо...' : 'Github Issue'}</span>
-              </button>
-            )
+        {/* Metadata Strip */}
+        <div className="flex flex-wrap items-center gap-[16px] px-[32px] py-[10px] bg-[#f9f9fa] border-b border-[#e9e9e9] shrink-0">
+          <div className="flex items-center gap-[8px] shrink-0">
+            <span className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest">Статус:</span>
+            <CustomDropdown value={status} options={STATUS_CFG} onChange={handleStatusChange} saving={saving} type="status" />
+          </div>
+          <div className="w-px h-[16px] bg-[#e9e9e9] shrink-0" />
+          <div className="flex items-center gap-[8px] shrink-0">
+            <span className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest">Критичність:</span>
+            <CustomDropdown value={severity} options={SEVERITY_CFG} onChange={handleSeverityChange} saving={saving} type="severity" />
+          </div>
+          <div className="w-px h-[16px] bg-[#e9e9e9] shrink-0" />
+          <div className="flex items-center gap-[6px] shrink-0">
+            <Calendar size={14} className="text-[#9a9a9a]" />
+            <span className="text-[13px] text-[#1f1f1f] font-medium">
+              {format(new Date(bug.created_at), 'dd.MM.yyyy HH:mm')}
+            </span>
+          </div>
+          {tc?.viewport && (
+            <>
+              <div className="w-px h-[16px] bg-[#e9e9e9] shrink-0" />
+              <div className="flex items-center gap-[6px] shrink-0">
+                <Monitor size={14} className="text-[#9a9a9a]" />
+                <span className="text-[13px] font-mono text-[#1f1f1f] font-semibold">{tc.viewport}</span>
+              </div>
+            </>
           )}
-
-          <button
-            onClick={copy}
-            title="Копіювати як Markdown"
-            className="flex items-center gap-[7px] px-[16px] py-[8px] rounded-[10px] text-[13px] font-semibold transition-all cursor-pointer border"
-            style={copied
-              ? { background: 'rgba(16,185,129,0.12)', color: '#34d399', borderColor: 'rgba(52,211,153,0.3)' }
-              : { background: '#1f1f1f', color: '#ffffff', borderColor: 'transparent' }}
-          >
-            {copied ? <Check size={16} /> : <Copy size={16} />}
-            <span className="hidden sm:inline">{copied ? 'Скопійовано' : 'Копіювати MD'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ── Body ── */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#f4f4f5] relative">
-        
-        {/* Screenshot Area */}
-        <div className="relative bg-white min-h-[400px] flex items-center justify-center border-b border-[#e9e9e9]">
-          {bug.image_url ? (
-            <div className="relative group p-[40px] w-full max-w-[1200px] flex justify-center">
-              <img
-                src={bug.image_url}
-                alt="Screenshot"
-                crossOrigin="anonymous"
-                className="max-w-full max-h-[70vh] object-contain rounded-[8px] shadow-sm border border-[#e9e9e9] cursor-zoom-in"
-                onClick={() => setLightbox(true)}
-              />
-              <button
-                onClick={() => setLightbox(true)}
-                className="absolute bottom-[52px] right-[52px] w-[36px] h-[36px] rounded-[8px] bg-black/50 hover:bg-black/70 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm shadow-lg"
-                title="На весь екран"
-              >
-                <Maximize2 size={16} />
-              </button>
-            </div>
-          ) : (
-            <div className="text-[#9a9a9a] text-[14px]">Без скріншоту</div>
-          )}
-
-          {/* Floating Pins Panel */}
-          {annotations.length > 0 && (
-            <div className="absolute right-[24px] top-[24px] w-[320px] max-h-[calc(100%-48px)] flex flex-col pointer-events-none">
-              <div className="bg-[#1f1f1f] rounded-[16px] shadow-2xl p-[16px] pointer-events-auto flex flex-col gap-[12px] overflow-y-auto custom-scrollbar border border-[#333]">
-                {annotations.map((ann, i) => {
-                  const shape: DrawShape | undefined = shapes.find(
-                    (s: DrawShape) => s.type === 'pin' && (s.pinNumber === (ann.index ?? i + 1) || shapes.indexOf(s) === i)
-                  );
-                  const ctx: PinElementContext | undefined = shape?.elementContext;
-                  const pinNum = ann.index ?? i + 1;
-
-                  return (
-                    <div
-                      key={i}
-                      className="flex flex-col bg-[#2a2a2a] rounded-[12px] p-[16px] gap-[10px] hover:bg-[#333] transition-colors border border-[#3a3a3a]"
+          {tc?.route && (
+            <>
+              <div className="w-px h-[16px] bg-[#e9e9e9] shrink-0" />
+              <div className="flex items-center gap-[6px] shrink-0">
+                <Globe size={14} className="text-[#9a9a9a] mt-[1px]" />
+                <code className="text-[12px] font-mono text-[#1f1f1f] bg-[#ffffff] border border-[#e9e9e9] px-2 py-0.5 rounded-[4px] truncate max-w-[200px]">
+                  {tc.route}
+                </code>
+                {(() => {
+                  const routeHref = tc.route.startsWith('http') 
+                    ? tc.route 
+                    : project?.connected_domain 
+                      ? `${project.connected_domain}${tc.route.startsWith('/') ? '' : '/'}${tc.route}` 
+                      : undefined;
+                  return routeHref ? (
+                    <a
+                      href={routeHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[12px] font-semibold text-[#4F46E5] hover:text-[#4338ca] transition-colors ml-1"
                     >
-                      {/* Pin number + text */}
-                      <div className="flex items-start gap-[12px]">
-                        <div className="w-[24px] h-[24px] bg-[#ef4444] text-white rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 mt-[1px] shadow-sm">
-                          {pinNum}
-                        </div>
-                        <p className="text-[13px] text-white leading-snug flex-1 min-w-0 font-medium">
-                          {ann.text || <em className="text-[#9a9a9a] not-italic font-normal">без тексту</em>}
-                        </p>
-                      </div>
+                      Перейти ↗
+                    </a>
+                  ) : null;
+                })()}
+              </div>
+            </>
+          )}
+        </div>
 
-                      {/* Element context */}
-                      {ctx && (
-                        <div className="ml-[36px] flex flex-col gap-[6px]">
-                          {ctx.selector && (
-                            <code
-                              className="text-[10px] font-mono text-[#9a9a9a] bg-[#1f1f1f] px-[8px] py-[4px] rounded-[6px] truncate block border border-[#333]"
-                              title={ctx.selector}
-                            >
-                              {ctx.selector}
-                            </code>
-                          )}
-                          {ctx.reactComponent && (
-                            <code
-                              className="text-[10px] font-mono text-[#ef4444] bg-[rgba(239,68,68,0.1)] px-[8px] py-[4px] rounded-[6px] truncate block border border-[rgba(239,68,68,0.2)]"
-                              title={`${ctx.reactComponent.name}${ctx.reactComponent.filePath ? ` · ${ctx.reactComponent.filePath}` : ''}`}
-                            >
-                              {ctx.reactComponent.name}
-                              {ctx.reactComponent.filePath && (
-                                <span className="text-[#ef4444]/60"> · {ctx.reactComponent.filePath.split('/').pop()}{ctx.reactComponent.lineNumber ? `:${ctx.reactComponent.lineNumber}` : ''}</span>
-                              )}
-                            </code>
-                          )}
-                        </div>
-                      )}
+        {/* Screenshot Container */}
+        <div className="w-full shrink-0 border-b border-[#e9e9e9] bg-[#ffffff]">
+          <div className="flex items-center justify-center min-h-[300px]">
+            {bug.image_url ? (
+              <div className="relative inline-block group w-full">
+                <img
+                  src={bug.image_url}
+                  alt="Screenshot"
+                  crossOrigin="anonymous"
+                  className="w-full h-auto object-cover block"
+                />
+                
+                {/* Pin Overlays */}
+                <div className="absolute inset-0 pointer-events-none">
+                  {annotations.map((ann, i) => {
+                    const isActive = activePin === i;
+                    return (
+                      <div
+                        key={i}
+                        className={`absolute w-[40px] h-[40px] -ml-[20px] -mt-[20px] rounded-full border-[3px] transition-all duration-300 pointer-events-auto cursor-pointer flex items-center justify-center ${isActive ? 'border-white scale-125 shadow-[0_0_20px_rgba(0,0,0,0.5)]' : 'border-transparent'}`}
+                        style={{ left: `${ann.x}%`, top: `${ann.y}%` }}
+                        onMouseEnter={() => setActivePin(i)}
+                        onMouseLeave={() => setActivePin(null)}
+                      >
+                         {isActive && <div className="absolute inset-0 rounded-full bg-white/30 animate-pulse" />}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setLightbox(true)}
+                  className="absolute bottom-[24px] right-[24px] w-[40px] h-[40px] rounded-[10px] bg-black/60 hover:bg-black/80 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md shadow-lg pointer-events-auto"
+                  title="На весь екран"
+                >
+                  <Maximize2 size={18} />
+                </button>
+              </div>
+            ) : (
+              <div className="text-[#9a9a9a] text-[14px]">Без скріншоту</div>
+            )}
+          </div>
+        </div>
+
+        {/* Details Grid */}
+        <div className="px-[24px] py-[24px] grid grid-cols-1 lg:grid-cols-2 gap-[16px] max-w-[1200px] mx-auto w-full">
+          
+          {/* Metadata Block */}
+          {/* Metadata Block (Moved to Strip above) */}
+
+          {/* Description Block */}
+          {bug.description && (
+            <div className="bg-[#f9f9fa] rounded-[16px] p-[24px]">
+              <h2 className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[12px]">Опис проблеми</h2>
+              <p className="text-[14px] text-[#1f1f1f] leading-relaxed whitespace-pre-wrap font-medium">{bug.description}</p>
+            </div>
+          )}
+
+          {/* Steps to reproduce */}
+          {tc?.eventLog && tc.eventLog.length > 0 && (
+            <div className="bg-[#f9f9fa] rounded-[16px] p-[24px] col-span-1 lg:col-span-2">
+              <h2 className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[12px]">Кроки відтворення</h2>
+              <div className="flex flex-col gap-[8px]">
+                {tc.eventLog.map((e, i) => {
+                  const cfg: Record<string, { icon: string; color: string }> = {
+                    navigation: { icon: '🔀', color: '#1f1f1f' },
+                    click:      { icon: '👆', color: '#1f1f1f' },
+                  };
+                  const { icon, color } = cfg[e.type] ?? { icon: '•', color: '#1f1f1f' };
+                  return (
+                    <div key={i} className="flex items-start gap-[12px] py-[10px] bg-[#ffffff] border border-[#e9e9e9] px-[16px] rounded-[10px]">
+                      <span className="shrink-0 w-[20px] text-center text-[14px] pt-[1px]">{icon}</span>
+                      <span className="flex-1 text-[13px] leading-relaxed font-medium" style={{ color }}>{e.description}</span>
                     </div>
                   );
                 })}
               </div>
             </div>
           )}
-        </div>
 
-        {/* Content sections */}
-        <div className="px-[48px] py-[40px] flex flex-col gap-[36px] max-w-[900px] mx-auto w-full">
-
-          {/* Description */}
-          {bug.description && (
-            <div className="bg-[#ffffff] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-[#e9e9e9]">
-              <h2 className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[12px]">Опис проблеми</h2>
-              <p className="text-[14px] text-[#1f1f1f] leading-loose whitespace-pre-wrap font-medium">{bug.description}</p>
+          {/* Console errors */}
+          {tc?.consoleErrors && tc.consoleErrors.length > 0 && (
+            <div className="bg-[#f9f9fa] rounded-[16px] p-[24px] col-span-1 lg:col-span-2">
+              <h2 className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[12px]">Консоль ({tc.consoleErrors.length})</h2>
+              <div className="flex flex-col gap-[10px]">
+                {tc.consoleErrors.map((e, i) => (
+                  <div
+                    key={i}
+                    className={`px-[16px] py-[12px] rounded-[10px] border ${
+                      e.level === 'error'
+                        ? 'bg-[#ffffff] border-[#fecaca]'
+                        : 'bg-[#ffffff] border-[#fde68a]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-[8px] mb-[8px]">
+                      <Terminal size={14} className={e.level === 'error' ? 'text-[#ef4444]' : 'text-[#f59e0b]'} />
+                      <span className={`text-[10px] font-bold uppercase px-[8px] py-[3px] rounded-[6px] tracking-wider ${
+                        e.level === 'error'
+                          ? 'bg-[#fee2e2] text-[#ef4444]'
+                          : 'bg-[#fef3c7] text-[#f59e0b]'
+                      }`}>
+                        {e.level}
+                      </span>
+                    </div>
+                    <p className="text-[13px] font-mono text-[#1f1f1f] leading-relaxed break-all font-medium">{e.message}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-            {/* Metadata details */}
-            <div className="bg-[#ffffff] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex flex-col gap-[20px] border border-[#e9e9e9]">
-              <div className="flex items-center gap-[24px]">
-                <div className="flex flex-col gap-[6px]">
-                  <h2 className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest">Статус</h2>
-                  <CustomDropdown value={status} options={STATUS_CFG} onChange={handleStatusChange} saving={saving} type="status" />
-                </div>
-                <div className="flex flex-col gap-[6px]">
-                  <h2 className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest">Критичність</h2>
-                  <CustomDropdown value={severity} options={SEVERITY_CFG} onChange={handleSeverityChange} saving={saving} type="severity" />
-                </div>
-              </div>
-              <div className="h-[1px] bg-[#f0f0f0]" />
-              
-              <div className="flex flex-col gap-[12px]">
-                <div className="flex items-center gap-[12px]">
-                  <Calendar size={14} className="text-[#9a9a9a] shrink-0" />
-                  <span className="text-[13px] text-[#1f1f1f] font-medium">
-                    {format(new Date(bug.created_at), 'dd MMMM yyyy, HH:mm', { locale: uk })}
-                  </span>
-                </div>
-
-                {tc?.route && (
-                  <div className="flex items-start gap-[12px]">
-                    <Globe size={14} className="text-[#9a9a9a] mt-[2px] shrink-0" />
-                    <div className="flex-1 min-w-0 flex items-center gap-[10px] flex-wrap">
-                      <code className="text-[12px] font-mono text-[#1f1f1f] bg-[#f4f4f5] px-2 py-0.5 rounded-[4px]">{tc.route}</code>
-                      {project?.connected_domain && (
-                        <a
-                          href={`${project.connected_domain}${tc.route.startsWith('/') ? '' : '/'}${tc.route}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[11px] font-semibold text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors inline-flex items-center gap-[3px]"
-                        >
-                          Відкрити ↗
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {tc?.viewport && (
-                  <div className="flex items-center gap-[12px]">
-                    <Monitor size={14} className="text-[#9a9a9a] shrink-0" />
-                    <span className="text-[13px] font-mono text-[#1f1f1f] font-semibold">{tc.viewport}</span>
-                  </div>
-                )}
-              </div>
+          {/* React component */}
+          {tc?.component && (
+            <div className="bg-[#f9f9fa] rounded-[16px] p-[24px] col-span-1 lg:col-span-2">
+              <h2 className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[12px]">React Компонент</h2>
+              <code className="text-[13px] font-mono text-[#1f1f1f] bg-[#ffffff] border border-[#e9e9e9] px-[12px] py-[6px] rounded-[8px] inline-block font-semibold">
+                {tc.component.name}
+              </code>
             </div>
-
-            {/* Steps to reproduce */}
-            {tc?.eventLog && tc.eventLog.length > 0 && (
-              <div className="bg-[#ffffff] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-[#e9e9e9]">
-                <h2 className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[12px]">
-                  Кроки відтворення
-                </h2>
-                <div className="flex flex-col gap-[8px]">
-                  {tc.eventLog.map((e, i) => {
-                    const cfg: Record<string, { icon: string; color: string }> = {
-                      navigation: { icon: '🔀', color: '#1f1f1f' },
-                      click:      { icon: '👆', color: '#1f1f1f' },
-                    };
-                    const { icon, color } = cfg[e.type] ?? { icon: '•', color: '#1f1f1f' };
-                    return (
-                      <div key={i} className="flex items-start gap-[12px] py-[10px] bg-[#f4f4f5] px-[16px] rounded-[10px]">
-                        <span className="shrink-0 w-[20px] text-center text-[14px] pt-[1px]">{icon}</span>
-                        <span className="flex-1 text-[13px] leading-relaxed font-medium" style={{ color }}>{e.description}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Console errors */}
-            {tc?.consoleErrors && tc.consoleErrors.length > 0 && (
-              <div className="bg-[#ffffff] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-[#e9e9e9]">
-                <h2 className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[12px]">
-                  Консоль ({tc.consoleErrors.length})
-                </h2>
-                <div className="flex flex-col gap-[10px]">
-                  {tc.consoleErrors.map((e, i) => (
-                    <div
-                      key={i}
-                      className={`px-[14px] py-[11px] rounded-[9px] ${
-                        e.level === 'error'
-                          ? 'bg-[#fff0f0]'
-                          : 'bg-[#fffbeb]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-[8px] mb-[7px]">
-                        <Terminal size={13} className={e.level === 'error' ? 'text-[#ef4444]' : 'text-[#f59e0b]'} />
-                        <span className={`text-[9px] font-bold uppercase px-[6px] py-[2px] rounded-[5px] tracking-wider ${
-                          e.level === 'error'
-                            ? 'bg-[#fee2e2] text-[#ef4444]'
-                            : 'bg-[#fef3c7] text-[#f59e0b]'
-                        }`}>
-                          {e.level}
-                        </span>
-                      </div>
-                      <p className="text-[12px] font-mono text-[#1f1f1f] leading-relaxed break-all font-medium">{e.message}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* React component */}
-            {tc?.component && (
-              <div className="bg-[#ffffff] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-[#e9e9e9]">
-                <h2 className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[10px]">React Компонент</h2>
-                <code className="text-[13px] font-mono text-[#1f1f1f] bg-[#f4f4f5] px-[9px] py-[5px] rounded-[7px] inline-block font-semibold">
-                  {tc.component.name}
-                </code>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
+    </div>
   );
 }

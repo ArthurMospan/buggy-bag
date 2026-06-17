@@ -9,18 +9,15 @@ interface PromptGeneratorProps {
   onBulkAction?: (action: 'delete' | 'status' | 'severity', value?: string) => void;
 }
 
-type TemplateId = 'github' | 'antigravity' | 'cursor' | 'claude' | 'generic';
+const GithubLogo = ({ color = 'currentColor' }: {color?: string}) => <svg width="14" height="14" viewBox="0 0 24 24" fill={color}><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>;
 
-const GithubLogo = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>;
-const CursorLogo = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16.9248 11.2334L5.64539 3.12574C4.30691 2.16361 2.39258 3.11942 2.39258 4.76189V18.1724C2.39258 19.8661 4.41725 20.7381 5.65651 19.5822L9.43572 16.0569L11.7584 21.6706C12.1812 22.6922 13.3931 23.181 14.464 22.761L16.2996 22.041C17.3705 21.621 17.8967 20.4497 17.474 19.4282L15.3533 14.3051L19.2319 13.9189C20.9167 13.751 21.6053 11.666 20.2504 10.6033L16.9248 11.2334Z"/></svg>;
-const ClaudeLogo = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M22.063 15.65c-.093-.057-.183-.112-.276-.17-.18-.112-.358-.225-.536-.339-.187-.12-.373-.243-.559-.364-.176-.115-.352-.23-.526-.347-.215-.145-.432-.288-.646-.431-.223-.15-.445-.3-.666-.452-.224-.154-.447-.308-.668-.464-.265-.187-.528-.372-.789-.56a12.83 12.83 0 01-.643-.47c-.201-.153-.4-.306-.596-.461-.177-.14-.352-.28-.525-.421-.15-.122-.298-.246-.445-.37A6.47 6.47 0 0014 9.172c-.105-.114-.216-.226-.328-.336-.128-.125-.262-.249-.398-.369a8.6 8.6 0 00-.47-.41c-.139-.115-.283-.228-.431-.336-.168-.122-.34-.241-.518-.354-.251-.158-.51-.31-.773-.45-.487-.26-.989-.49-1.503-.687A8.13 8.13 0 006.18 5.617a7.92 7.92 0 00-2.404.382c-.381.127-.75.285-1.104.475-.325.174-.633.376-.924.606A6.99 6.99 0 00.323 8.636a6.56 6.56 0 00-.28 2.052 6.64 6.64 0 001.077 3.328 6.94 6.94 0 001.815 1.95c.348.241.722.451 1.115.626a8.4 8.4 0 001.32.46c.551.139 1.118.214 1.692.219a8.44 8.44 0 003.882-.89 8.28 8.28 0 003.023-2.392c.162-.213.315-.432.459-.658.077-.121.15-.246.223-.372.074-.127.146-.254.214-.383l.115-.218c.038-.073.075-.145.111-.218.033-.067.065-.133.097-.2l.092-.191.082-.178.074-.162c.023-.053.047-.105.07-.156.031-.072.062-.144.094-.216a4.8 4.8 0 01.199-.447 3.34 3.34 0 01.597-.887c.231-.24.512-.432.825-.561.353-.146.738-.21 1.126-.188.358.02.708.118 1.026.284.288.151.545.358.756.608.204.24.364.515.468.81.1.284.143.585.127.886-.017.33-.11.649-.271.932-.14.247-.323.468-.538.65-.211.178-.445.33-.69.46a8.03 8.03 0 01-.84.382c-.297.113-.604.21-.916.29a7.61 7.61 0 01-.984.195c-.347.042-.698.06-1.049.053-.298-.006-.596-.027-.892-.064a7.9 7.9 0 01-2.615-.658 8.35 8.35 0 01-2.18-1.289 8.65 8.65 0 01-1.636-1.782A8.65 8.65 0 013.2 8.337a8.79 8.79 0 01-.168-3.037 8.87 8.87 0 011.66-3.411A9.09 9.09 0 017.306.182 9.27 9.27 0 0111.45.023a9.42 9.42 0 014.07 1.603 9.49 9.49 0 012.923 3.011c.216.357.408.73.575 1.116.113.262.213.53.3.8.067.206.126.415.178.625.04.161.076.323.109.487l.044.225.022.115c.015.078.027.155.039.233.006.039.01.077.015.116l.012.117.008.118c.005.078.008.156.009.234 0 .079 0 .157-.003.236 0 .04-.002.079-.004.118l-.004.118c-.004.079-.011.157-.019.235-.01.078-.022.156-.036.233-.032.155-.069.308-.11.46-.056.2-.12.398-.192.593-.162.434-.361.85-.593 1.25a8.74 8.74 0 01-1.07 1.488 8.44 8.44 0 01-1.378 1.25c-.244.175-.5.335-.765.48a7.87 7.87 0 01-.817.395c-.382.158-.781.284-1.19.373a7.84 7.84 0 01-2.42.2 7.72 7.72 0 01-2.33-.501 7.6 7.6 0 01-2.1-.99 7.4 7.4 0 01-1.706-1.46c-.256-.289-.485-.6-.684-.928a6.52 6.52 0 01-.527-1.127c-.066-.184-.124-.372-.174-.564-.047-.184-.085-.37-.114-.56-.026-.174-.044-.35-.054-.526-.007-.156-.007-.314 0-.471.008-.175.026-.35.054-.522.03-.19.068-.376.115-.562.05-.192.108-.382.174-.567.147-.406.326-.798.536-1.173.23-.404.499-.785.801-1.14.32-.375.674-.72 1.055-1.034.398-.328.825-.623 1.274-.881.458-.264.939-.492 1.436-.683.473-.182.962-.323 1.46-.42a9.14 9.14 0 011.667-.17c.563-.008 1.125.04 1.681.144a9.18 9.18 0 011.64.444 9.3 9.3 0 011.536.702c.49.277.954.597 1.385.952.417.344.806.726 1.157 1.138.337.395.642.816.908 1.255.25.414.464.848.636 1.294.159.412.28.835.362 1.267.073.385.114.776.12 1.169.006.368-.018.736-.071 1.1-.051.353-.127.702-.228 1.043a8.9 8.9 0 01-.433 1.14c-.167.362-.36.711-.577 1.045-.23.35-.487.683-.768 1-.29.324-.602.628-.934.912-.328.28-.675.541-1.035.782-.363.243-.742.464-1.133.663a9.85 9.85 0 01-1.25.546 10.15 10.15 0 01-1.381.408c-.464.1-.935.163-1.409.185-.429.02-.86-.002-1.288-.066a9.54 9.54 0 01-1.284-.282 9.21 9.21 0 01-1.258-.458c-.417-.189-.821-.413-1.206-.669a8.97 8.97 0 01-1.096-.86 8.78 8.78 0 01-.933-.941c-.287-.337-.547-.695-.776-1.072a8.55 8.55 0 01-.646-1.246 8.44 8.44 0 01-.444-1.332 8.42 8.42 0 01-.212-1.42 8.46 8.46 0 01-.013-1.46c.045-.482.138-.958.277-1.42.133-.443.313-.872.535-1.28a8.23 8.23 0 01.815-1.229 8 8 0 011.055-1.079 7.82 7.82 0 011.242-.88 7.66 7.66 0 011.378-.636 7.55 7.55 0 011.458-.363 7.5 7.5 0 011.492-.081c.52.023 1.034.113 1.534.267.498.153.98.36 1.442.613.435.239.846.52 1.23.839.36.299.691.631.988.991.272.331.513.685.719 1.062.186.341.341.698.461 1.067.108.333.185.676.231 1.025.04.305.056.613.048.922a4.42 4.42 0 01-.06.829 3.52 3.52 0 01-.177.728 2.8 2.8 0 01-.336.666c-.146.208-.323.393-.526.547-.197.148-.418.265-.653.344-.265.09-.544.135-.826.136-.312 0-.619-.053-.913-.153a2.76 2.76 0 01-.84-.42 2.7 2.7 0 01-.643-.655 2.84 2.84 0 01-.39-.817c-.104-.3-.162-.614-.173-.934a4 4 0 01.01-.856 5.2 5.2 0 01.124-.87c.068-.316.162-.625.282-.924.126-.313.28-.616.457-.905.188-.306.402-.596.639-.868.246-.282.518-.544.811-.781.306-.247.635-.472.981-.67.359-.206.735-.386 1.124-.537.402-.156.815-.28 1.236-.37a8.73 8.73 0 011.354-.183c.475-.027.952-.016 1.425.034.453.048.902.131 1.343.25.438.118.868.271 1.286.456.405.18.799.395 1.176.639.362.235.708.5 1.033.788.31.276.6.577.864.896.248.303.473.626.67 .964.186.321.348.657.483 1.006.126.325.225.66.295 1.003a8.1 8.1 0 01.134 1.045c.026.353.024.707-.006 1.059a7.6 7.6 0 01-.157 1.01 7.24 7.24 0 01-.32.96 6.94 6.94 0 01-.502.915 6.64 6.64 0 01-.692.852 6.51 6.51 0 01-.885.76c-.32.228-.654.436-.998.623L22.063 15.65z"/></svg>;
+type TemplateId = 'antigravity' | 'claude' | 'cursor' | 'github';
 
-const TEMPLATES: { id: TemplateId; label: string; icon: React.ReactNode }[] = [
-  { id: 'github',      label: 'GitHub Issue', icon: <GithubLogo /> },
-  { id: 'antigravity', label: 'Antigravity',  icon: <Sparkles size={14} /> },
-  { id: 'cursor',      label: 'Cursor',       icon: <CursorLogo /> },
-  { id: 'claude',      label: 'Claude Code',  icon: <ClaudeLogo /> },
-  { id: 'generic',     label: 'Generic',      icon: <Bot size={14} /> },
+const TEMPLATES: { id: TemplateId; label: string; icon: (selected: boolean) => React.ReactNode }[] = [
+  { id: 'antigravity', label: 'Antigravity',  icon: (s) => <img src="/icons/antigravity-color.svg" alt="Antigravity" width={16} height={16} className={`transition-opacity ${s ? 'opacity-100' : 'opacity-60 grayscale'}`} /> },
+  { id: 'claude',      label: 'Claude Code',  icon: (s) => <img src="/icons/claude-color.svg" alt="Claude" width={16} height={16} className={`transition-opacity ${s ? 'opacity-100' : 'opacity-60 grayscale'}`} /> },
+  { id: 'cursor',      label: 'Cursor',       icon: (s) => <img src="/icons/cursor-color.svg" alt="Cursor" width={16} height={16} className={`transition-opacity ${s ? 'opacity-100' : 'opacity-60 grayscale'}`} /> },
+  { id: 'github',      label: 'GitHub Issue', icon: (s) => <GithubLogo color={s ? '#1f1f1f' : 'currentColor'} /> },
 ];
 
 const SEV_ORDER: Record<BugSeverity, number> = { critical: 0, high: 1, medium: 2, low: 3 };
@@ -446,34 +443,8 @@ function formatClaude(bugs: Bug[]): string {
   return lines.join('\n');
 }
 
-function formatGeneric(bugs: Bug[]): string {
-  const sorted = sortBySev(bugs);
-  const lines = [`# Bug Report — ${new Date().toLocaleDateString('uk-UA')}`, `Total: ${sorted.length}`, ''];
-  sorted.forEach((bug, i) => {
-    lines.push(`---`, `## Bug #${i + 1} [${(bug.severity ?? 'low').toUpperCase()}]`);
-    lines.push(`Status: ${bug.status}`);
-    if (bug.description) {
-      const parts = bug.description.split('|').map(p => p.trim()).filter(Boolean);
-      if (parts.length > 1) {
-        lines.push('Description:');
-        parts.forEach((p, idx) => lines.push(`  ${idx + 1}. ${p}`));
-      } else {
-        lines.push(`Description: ${bug.description}`);
-      }
-    }
-    const tc = techSummary(bug.tech_context);
-    if (tc) lines.push(tc);
-    const pinCtx = pinContextSummary(bug.json_shapes ?? null, bug.json_annotations);
-    if (pinCtx) lines.push(pinCtx);
-    if (bug.image_url) lines.push(`Screenshot: ${bug.image_url}`);
-    lines.push('');
-  });
-  return lines.join('\n');
-}
-
 const FORMATTERS: Record<TemplateId, (bugs: Bug[]) => string> = {
-  github: formatGitHub, antigravity: formatAntigravity, cursor: formatCursor,
-  claude: formatClaude, generic: formatGeneric,
+  antigravity: formatAntigravity, claude: formatClaude, cursor: formatCursor, github: formatGitHub,
 };
 
 // ── UI helpers ───────────────────────────────────────────────────────────────
@@ -483,11 +454,10 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const TOOL_OPTIONS: { id: TemplateId; label: string; desc: string }[] = [
-  { id: 'github',      label: 'GitHub Issue',  desc: 'Структурований звіт для GitHub/Jira' },
   { id: 'antigravity', label: 'Antigravity',   desc: 'Агент виправляє баги по черзі' },
-  { id: 'cursor',      label: 'Cursor',        desc: 'AI-редактор з chat-режимом' },
   { id: 'claude',      label: 'Claude Code',   desc: 'Claude у терміналі' },
-  { id: 'generic',     label: 'Інший',         desc: 'Будь-який AI асистент' },
+  { id: 'cursor',      label: 'Cursor',        desc: 'AI-редактор з chat-режимом' },
+  { id: 'github',      label: 'GitHub Issue',  desc: 'Структурований звіт для GitHub/Jira' },
 ];
 
 
@@ -537,7 +507,7 @@ function QualityBar({ score, hint, factors }: { score: number; hint: string; fac
 
 export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: PromptGeneratorProps) {
   const [copied, setCopied]         = useState(false);
-  const [template, setTemplate]     = useState<TemplateId>('github');
+  const [template, setTemplate]     = useState<TemplateId>('antigravity');
 
   const selected = sortBySev(bugs.filter(b => selectedIds.has(b.id)));
   const prompt   = selected.length > 0 ? FORMATTERS[template](selected) : '';
@@ -555,12 +525,17 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
           {/* Main prompt area */}
           <div className="flex-1 flex flex-col min-w-0 bg-[#ffffff]">
             {/* Template tabs + quality */}
-            <div className="h-[52px] flex items-center gap-[6px] px-[32px] border-b border-[#e9e9e9] overflow-x-auto bg-[#ffffff] shrink-0">
-              <span className="text-[13px] font-bold text-[#1f1f1f] mr-[12px]">Формат:</span>
+            <div className="h-[52px] flex items-center gap-[24px] px-[32px] border-b border-[#e9e9e9] overflow-x-auto bg-[#ffffff] shrink-0">
               {TEMPLATES.map(t => (
                 <button key={t.id} onClick={() => setTemplate(t.id)}
-                  className={`flex items-center gap-[6px] px-[12px] py-[6px] rounded-[8px] text-[12px] font-bold transition-all cursor-pointer ${template === t.id ? 'bg-[#1f1f1f] text-white shadow-sm scale-105' : 'text-[#9a9a9a] bg-transparent hover:bg-[#f4f4f5] hover:text-[#1f1f1f]'}`}>
-                  {t.icon} {t.label}
+                  className={`relative flex items-center gap-[8px] h-[52px] text-[13px] font-medium transition-all cursor-pointer ${
+                    template === t.id ? 'text-[#1f1f1f]' : 'text-[#9a9a9a] hover:text-[#5d5d5d]'
+                  }`}>
+                  <span className={template === t.id ? 'text-[#1f1f1f]' : 'text-[#9a9a9a]'}>{t.icon(template === t.id)}</span>
+                  {t.label}
+                  {template === t.id && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#1f1f1f] rounded-t-full" />
+                  )}
                 </button>
               ))}
               {selected.length > 0 && (
@@ -572,10 +547,11 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
 
             {/* Bulk Actions Toolbar */}
             {selected.length > 0 && onBulkAction && (
-              <div className="flex items-center px-[32px] py-[12px] bg-[#ffffff] border-b border-[#e9e9e9]">
-                <span className="text-[12px] font-medium text-[#9a9a9a] mr-auto">Вибрано: <span className="font-bold text-[#1f1f1f]">{selected.length}</span></span>
-                
+              <div className="flex items-center justify-between px-[32px] py-[12px] bg-[#ffffff] border-b border-[#e9e9e9]">
                 <div className="flex items-center gap-[16px]">
+                  <span className="text-[12px] font-medium text-[#9a9a9a]">Вибрано: <span className="font-bold text-[#1f1f1f]">{selected.length}</span></span>
+                  <div className="w-[1px] h-[16px] bg-[#e9e9e9] mx-[4px]" />
+                  
                   <select onChange={(e) => { onBulkAction('status', e.target.value); e.target.value = ''; }} className="appearance-none text-[12px] font-semibold text-[#9a9a9a] bg-transparent outline-none cursor-pointer hover:text-[#1f1f1f] transition-colors" value="">
                     <option value="" disabled>Змінити статус ▾</option>
                     <option value="open">Новий</option>
@@ -601,11 +577,9 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
                   </button>
                 </div>
                 
-                <div className="w-[1px] h-[16px] bg-[#e9e9e9] mx-[20px]" />
-                
                 <button 
                   onClick={handleCopy} 
-                  className="flex items-center gap-[6px] text-[13px] font-bold text-[#1f1f1f] hover:text-[#000000] transition-colors cursor-pointer"
+                  className="flex items-center gap-[6px] text-[13px] font-bold bg-[#1f1f1f] text-white hover:bg-[#2a2a2a] transition-colors cursor-pointer px-[16px] py-[8px] rounded-[10px]"
                 >
                   {copied ? <Check size={16} /> : <Copy size={16} />}
                   {copied ? 'Скопійовано' : 'Копіювати промпт'}
@@ -614,21 +588,21 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
             )}
 
             {/* Prompt textarea / Viewer */}
-            <div className="flex-1 overflow-hidden relative bg-[#f4f4f5]">
+            <div className="flex-1 overflow-hidden relative bg-[#2a2a2a]">
               {selected.length === 0 ? (
-                <div className="w-full h-full flex items-center justify-center text-[#9a9a9a] font-medium text-[14px] bg-[#f4f4f5]">
+                <div className="w-full h-full flex items-center justify-center text-[#9a9a9a] font-medium text-[14px] bg-[#2a2a2a]">
                   Оберіть баги зі списку ліворуч — промпт згенерується автоматично...
                 </div>
               ) : (
-                <div className="w-full h-full font-mono text-[13px] leading-relaxed bg-[#f4f4f5] p-[32px] text-[#1f1f1f] overflow-y-auto custom-scrollbar whitespace-pre-wrap select-text">
+                <div className="w-full h-full font-mono text-[13px] leading-relaxed bg-[#2a2a2a] p-[32px] text-white/90 overflow-y-auto custom-scrollbar whitespace-pre-wrap select-text">
                   {prompt.split('\n').map((line, i) => {
-                    let className = "text-[#1f1f1f]";
-                    if (line.startsWith('#')) className = "text-[#1f1f1f] font-bold";
-                    else if (line.match(/^<[\w-]+.*>$/) || line.match(/^<\/[\w-]+>$/)) className = "text-[#0f766e]";
-                    else if (line.startsWith('- ') || line.match(/^\d+\./)) className = "text-[#0369a1]";
-                    else if (line.includes('→')) className = "text-[#6b21a8]";
-                    else if (line.match(/\[(CRITICAL|HIGH|MEDIUM|LOW)\]/i) || line.match(/\| \*\*(Severity)\*\* \|/)) className = "text-[#c2410c] font-semibold";
-                    else if (line.includes('`')) className = "text-[#b45309]";
+                    let className = "text-white/90";
+                    if (line.startsWith('#')) className = "text-white font-bold";
+                    else if (line.match(/^<[\w-]+.*>$/) || line.match(/^<\/[\w-]+>$/)) className = "text-[#2dd4bf]";
+                    else if (line.startsWith('- ') || line.match(/^\d+\./)) className = "text-[#38bdf8]";
+                    else if (line.includes('→')) className = "text-[#c084fc]";
+                    else if (line.match(/\[(CRITICAL|HIGH|MEDIUM|LOW)\]/i) || line.match(/\| \*\*(Severity)\*\* \|/)) className = "text-[#fb923c] font-semibold";
+                    else if (line.includes('`')) className = "text-[#fcd34d]";
 
                     return <div key={i} className={className}>{line || ' '}</div>;
                   })}

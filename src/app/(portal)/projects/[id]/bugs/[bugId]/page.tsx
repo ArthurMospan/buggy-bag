@@ -10,6 +10,7 @@ export default function BugPage() {
   const [bug, setBug] = useState<Bug | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [allBugs, setAllBugs] = useState<Bug[]>([]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -24,6 +25,7 @@ export default function BugPage() {
       const foundProj = (projData.projects ?? []).find((p: Project) => p.id === id);
       if (foundProj) setProject(foundProj);
       
+      setAllBugs(bugsData.bugs ?? []);
       const foundBug = (bugsData.bugs ?? []).find((b: Bug) => b.id === bugId);
       if (foundBug) setBug(foundBug);
     } finally {
@@ -55,6 +57,7 @@ export default function BugPage() {
     <BugDetailView 
       bug={bug} 
       project={project} 
+      allBugs={allBugs}
       onStatusChange={handleStatusChange} 
       onSeverityChange={handleSeverityChange} 
     />
