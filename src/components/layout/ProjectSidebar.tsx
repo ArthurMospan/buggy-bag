@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
-import { Settings, Check, ArrowRight, Search, MoreVertical, LayoutGrid, List as ListIcon, Download, HardDrive, Trash } from 'lucide-react';
+import { Settings, Check, ArrowRight, ArrowUpRight, Search, MoreHorizontal, LayoutGrid, List as ListIcon, Download, HardDrive, Trash } from 'lucide-react';
 import Tabs from '@/components/ui/Tabs';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -194,41 +194,28 @@ export default function ProjectSidebar() {
       {/* ── Header ── */}
       <div className="h-[64px] flex items-center justify-between px-[20px] shrink-0 bg-[#ffffff]">
         <div className="flex items-center gap-[10px] min-w-0 flex-1">
-          {project?.favicon_url ? (
-            <img 
-              src={project.favicon_url}
-              className="w-[24px] h-[24px] rounded-[6px] bg-[#f4f4f5] object-cover"
-              alt="favicon"
-              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-            />
-          ) : (
-            <div className="w-[24px] h-[24px] rounded-[6px] bg-[#f4f4f5] flex items-center justify-center text-[12px] font-bold text-[#1f1f1f]">
-              {project?.name?.charAt(0).toUpperCase() || '?'}
-            </div>
-          )}
-          <span className="text-[16px] font-bold text-[#1f1f1f] truncate">
+          <span className="text-[20px] font-bold text-[#1f1f1f] truncate">
             {project?.name || 'Завантаження...'}
           </span>
-          {project?.connected_domain && (
-            <a href={project.connected_domain} target="_blank" rel="noopener noreferrer" className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors">
-              <ArrowRight size={14} className="-rotate-45" />
-            </a>
-          )}
         </div>
 
         <div className="flex items-center gap-[4px] ml-[8px]">
+          {project?.connected_domain && (
+            <a href={project.connected_domain} target="_blank" rel="noopener noreferrer" className="w-[36px] h-[36px] flex items-center justify-center bg-[#f4f4f5] rounded-l-[10px] text-[#1f1f1f] hover:bg-[#e9e9e9] transition-colors">
+              <ArrowUpRight size={16} />
+            </a>
+          )}
+
           {/* Kebab Menu */}
           <div className="relative" ref={kebabRef}>
-            <Button
-              style="ghost"
-              size="icon-sm"
-              icon={MoreVertical}
+            <button
               onClick={() => setShowKebab(!showKebab)}
+              className="w-[36px] h-[36px] flex items-center justify-center bg-[#f4f4f5] text-[#1f1f1f] hover:bg-[#e9e9e9] transition-colors"
             >
-              Меню
-            </Button>
+              <MoreHorizontal size={16} />
+            </button>
             {showKebab && (
-              <div className="absolute right-0 top-[36px] w-[220px] bg-[#ffffff] border border-[#f0f0f0] rounded-[12px] shadow-[0_8px_30px_rgba(0,0,0,0.08)] py-[6px] z-50 overflow-hidden">
+              <div className="absolute right-0 top-[40px] w-[220px] bg-[#ffffff] border border-[#f0f0f0] rounded-[12px] shadow-[0_8px_30px_rgba(0,0,0,0.08)] py-[6px] z-50 overflow-hidden">
                 <button onClick={handleDownloadZip} disabled={exporting} className="w-full px-[12px] h-[36px] text-left flex items-center gap-[8px] text-[13px] font-medium text-[#1f1f1f] hover:bg-[#f4f4f5] transition-colors disabled:opacity-50">
                   <Download size={14} className="shrink-0" /> {exporting ? 'Генерація...' : 'Завантажити архів ZIP'}
                 </button>
@@ -245,13 +232,9 @@ export default function ProjectSidebar() {
               </div>
             )}
           </div>
-
-          <Button style="ghost" size="icon-sm" icon={viewMode === 'grid' ? ListIcon : LayoutGrid} onClick={toggleView}>
-            {viewMode === 'grid' ? 'Список' : 'Сітка'}
-          </Button>
           
-          <Link href={`/projects/${id}/integration`}>
-            <Button style="ghost" size="icon-sm" icon={Settings}>Налаштування</Button>
+          <Link href={`/projects/${id}/integration`} className="w-[36px] h-[36px] flex items-center justify-center bg-[#f4f4f5] rounded-r-[10px] text-[#1f1f1f] hover:bg-[#e9e9e9] transition-colors">
+            <Settings size={16} />
           </Link>
         </div>
       </div>
@@ -278,26 +261,23 @@ export default function ProjectSidebar() {
       </div>
 
       {/* ── Sub-bar: bug count + "Виділити всі" ── */}
-      <div className="h-[32px] flex items-center justify-between px-[12px] bg-[#ffffff] shrink-0">
-        <span className="text-[10.5px] text-[#9a9a9a]">
-          {!loading && `${filteredBugs.length} ${bugLabel(filteredBugs.length)}`}
-        </span>
-        {selectedBugIds.size > 0 ? (
-          <button
-            onClick={clearSelectedBugs}
-            className="text-[10.5px] font-semibold text-[#ef4444] hover:text-[#dc2626] transition-colors"
-          >
-            Зняти ({selectedBugIds.size})
-          </button>
-        ) : filteredBugs.length > 0 ? (
-          <button
-            onClick={() => selectAllBugs(filteredBugs.map(b => b.id))}
-            className="text-[10.5px] font-semibold text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors"
-          >
-            Виділити всі
-          </button>
-        ) : null}
-      </div>
+      {selectedBugIds.size > 0 && (
+        <div className="absolute bottom-[20px] left-1/2 -translate-x-1/2 z-30 w-[90%] max-w-[351px]">
+          <div className="h-[40px] rounded-[24px] bg-white/80 backdrop-blur-[10px] border border-black/10 flex items-center px-[16px] shadow-lg">
+            <button
+              onClick={clearSelectedBugs}
+              className="text-[13px] font-semibold text-[#f54848] hover:text-[#dc2626] transition-colors whitespace-nowrap"
+            >
+              Зняти ({selectedBugIds.size})
+            </button>
+            <div className="flex-1" />
+            <span className="text-[11px] font-normal text-[#9a9a9a] whitespace-nowrap mr-[12px]">
+              Всього: {filteredBugs.length}
+            </span>
+            <Search size={16} className="text-[#9a9a9a]" />
+          </div>
+        </div>
+      )}
 
       {/* ── Bug list ── */}
       <div className="flex-1 overflow-y-auto flex flex-col custom-scrollbar pb-[20px] bg-[#ffffff]">
@@ -359,105 +339,74 @@ export default function ProjectSidebar() {
               <div
                 key={bug.id}
                 onClick={() => toggleSelectBug(bug.id)}
-                className={`group/card flex flex-col shrink-0 cursor-pointer overflow-hidden transition-all duration-300 ease-out mx-[12px] mb-[12px] rounded-[16px] ${
+                className={`group/card relative shrink-0 cursor-pointer overflow-hidden transition-all duration-300 ease-out mx-[16px] mb-[16px] rounded-[12px] h-[242px] bg-[#f4f4f5] ${
                   isChecked
-                    ? 'bg-[#e4e4e5] ring-2 ring-[#1f1f1f] ring-offset-2 ring-offset-white'
-                    : 'bg-[#f4f4f5] hover:bg-[#ececec] hover:-translate-y-[2px]'
+                    ? 'ring-2 ring-[#1f1f1f] ring-offset-2 ring-offset-white'
+                    : 'hover:bg-[#ebebeb]'
                 }`}
               >
-                {/* Screenshot — white bg for transparent PNGs */}
-                {bug.image_url && (
-                  <div className="pt-[12px] px-[12px]">
-                    <div className={`w-full aspect-video bg-white relative overflow-hidden rounded-[8px] transition-colors ${
-                      isChecked ? 'bg-[#e4e4e5]' : ''
-                    }`}>
-                      <img
-                        src={bug.image_url}
-                        alt="Screenshot"
-                        crossOrigin="anonymous"
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover/card:scale-[1.03]"
-                      />
+                {/* Screenshot Container */}
+                <div className="absolute top-[10px] left-[10px] right-[10px] h-[165px] rounded-[10px] border border-[#ebebeb] bg-white overflow-hidden">
+                  {bug.image_url ? (
+                    <img
+                      src={bug.image_url}
+                      alt="Screenshot"
+                      crossOrigin="anonymous"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover/card:scale-[1.02]"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[#9a9a9a] text-[12px]">Без скріншоту</div>
+                  )}
 
-                      {/* Dark overlay: subtle on hover, tint when selected */}
-                      <div className={`absolute inset-0 pointer-events-none transition-all duration-200 ${
-                        isChecked
-                          ? 'bg-black/[0.04]'
-                          : 'bg-black/0 group-hover/card:bg-black/[0.04]'
-                      }`} />
+                  {/* Dark overlay for selection tint */}
+                  <div className={`absolute inset-0 pointer-events-none transition-all duration-200 ${
+                    isChecked ? 'bg-black/[0.05]' : 'bg-transparent'
+                  }`} />
 
-                      {/* Selection circle — top-right, appears on hover, fills on select */}
-                      <div className={`absolute top-[12px] right-[12px] w-[24px] h-[24px] rounded-[8px] flex items-center justify-center transition-all duration-200 ${
-                        isChecked
-                          ? 'bg-[#1f1f1f] opacity-100 scale-100'
-                          : 'bg-white/40 backdrop-blur-md border border-white/60 group-hover/card:border-white opacity-0 group-hover/card:opacity-100 scale-90 group-hover/card:scale-100'
-                      }`}>
-                        <Check
-                          size={12}
-                          strokeWidth={2.5}
-                          className={`text-white transition-opacity duration-100 ${isChecked ? 'opacity-100' : 'opacity-0 group-hover/card:opacity-40'}`}
-                        />
-                      </div>
+                  {/* Checkbox Overlay (Top-Left) */}
+                  <div className={`absolute top-[8px] left-[8px] w-[20px] h-[20px] rounded-[6px] border border-[#cecece] bg-white/80 backdrop-blur-sm flex items-center justify-center transition-all ${
+                    isChecked ? 'bg-[#1f1f1f] border-[#1f1f1f]' : 'group-hover/card:border-[#9a9a9a]'
+                  }`}>
+                    {isChecked && <Check size={12} strokeWidth={3} className="text-white" />}
+                  </div>
+
+                  {/* Badges Overlay (Top-Right) */}
+                  <div className="absolute top-[4px] right-[4px] flex items-center gap-[4px]">
+                    <div className="bg-[#5e83e3] h-[20px] px-[4px] rounded-[4px] flex items-center justify-center">
+                      <span className="text-white text-[10px] font-semibold">{STATUS_LABEL_UK[bug.status] ?? bug.status}</span>
+                    </div>
+                    <div className="h-[20px] px-[6px] rounded-[4px] flex items-center justify-center" style={{ backgroundColor: color }}>
+                      <span className="text-white text-[10px] font-bold">{num}</span>
                     </div>
                   </div>
-                )}
 
-                <div className="p-[20px] flex flex-col gap-[12px]">
-                  {/* Top row: checkbox (if no screenshot) + severity + status */}
-                  <div className="flex items-center justify-between gap-[8px]">
-                    <div className="flex items-center gap-[6px]">
-                      {!bug.image_url && (
-                        <div className={`w-[17px] h-[17px] shrink-0 rounded-full border-[2px] transition-all flex items-center justify-center ${
-                          isChecked ? 'bg-[#1f1f1f] border-[#1f1f1f]' : 'border-[#cfcfcf]'
-                        }`}>
-                          {isChecked && <Check size={10} strokeWidth={3} className="text-white" />}
-                        </div>
-                      )}
-                      
-                      <div
-                        className="w-[16px] h-[16px] rounded-[4px] flex items-center justify-center text-[9px] font-bold border shrink-0"
-                        style={{ color, backgroundColor: bg, borderColor: color + '40' }}
-                        title={`Критичність: ${num}/10`}
-                      >
-                        {num}
-                      </div>
-                      <span
-                        className="text-[9px] font-bold uppercase tracking-wider px-[5px] py-[1px] rounded-[4px] shrink-0"
-                        style={{ color: STATUS_COLOR[bug.status], background: STATUS_BG[bug.status] }}
-                      >
-                        {STATUS_LABEL_UK[bug.status] ?? bug.status}
-                      </span>
+                  {/* Route Pill (Bottom-Left) */}
+                  {bug.tech_context?.route && (
+                    <div className="absolute bottom-[8px] left-[8px] bg-black/50 backdrop-blur-[2px] rounded-[4px] px-[4px] flex items-center justify-center">
+                      <span className="text-white text-[10px] font-normal leading-[20px]">{bug.tech_context.route}</span>
                     </div>
-                    <span className="text-[10px] text-[#9a9a9a] whitespace-nowrap">
+                  )}
+                </div>
+
+                {/* Bottom Details Section */}
+                <div className="absolute top-[185px] left-[10px] right-[10px] flex items-start justify-between">
+                  <div className="flex flex-col min-w-0 pr-[8px]">
+                    <p className="text-[#1f1f1f] text-[13px] font-medium leading-[20px] truncate" title={bug.description || 'Без опису'}>
+                      {bug.description || 'Без опису'}
+                    </p>
+                    <p className="text-[#707070] text-[10px] leading-[20px] truncate">
                       {formatDistanceToNow(new Date(bug.created_at), { addSuffix: true, locale: uk })}
-                    </span>
+                    </p>
                   </div>
 
-                  {/* Description */}
-                  <p className="text-[13px] font-medium text-[#1f1f1f] line-clamp-3 leading-relaxed">
-                    {bug.description || 'Без опису'}
-                  </p>
-
-                  {/* Bottom row: route + Деталі button */}
-                  <div className="flex items-center justify-between gap-[8px] mt-[4px]">
-                    <div className="min-w-0 flex-1 flex items-center h-[24px]">
-                      {bug.tech_context?.route && (
-                        <div
-                          className="inline-flex items-center text-[10px] font-mono bg-[#f4f4f5] text-[#1f1f1f] rounded-[5px] px-[6px] h-full truncate max-w-full"
-                          title={bug.tech_context.route}
-                        >
-                          {bug.tech_context.route}
-                        </div>
-                      )}
-                    </div>
-                    <Link
-                      href={`/projects/${id}/bugs/${bug.id}`}
-                      onClick={e => e.stopPropagation()}
-                      className="group/btn shrink-0 flex items-center justify-center gap-[6px] text-[12px] font-bold text-[#1f1f1f] hover:text-white bg-[#e4e4e5] hover:bg-[#1f1f1f] transition-all px-[12px] h-[28px] rounded-[8px]"
-                    >
-                      Деталі
-                      <ArrowRight size={13} className="transition-transform group-hover/btn:translate-x-[2px]" />
-                    </Link>
-                  </div>
+                  <Link
+                    href={`/projects/${id}/bugs/${bug.id}`}
+                    onClick={e => e.stopPropagation()}
+                    className="shrink-0 bg-white hover:bg-gray-50 transition-colors h-[28px] px-[8px] rounded-[4px] flex items-center gap-[4px] mt-[2px] shadow-sm"
+                  >
+                    <span className="text-[#1f1f1f] text-[11px] font-semibold">Деталі</span>
+                    <ArrowRight size={12} className="text-[#1f1f1f]" />
+                  </Link>
                 </div>
               </div>
             );

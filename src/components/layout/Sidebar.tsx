@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
-import { Plus, LogOut, User, ChevronUp } from 'lucide-react';
+import { Plus, LogOut, User, ChevronUp, Folder } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import type { Project } from '@/lib/types';
@@ -11,15 +12,14 @@ import { Button } from '@/components/ui/Button';
 
 interface SidebarProps {
   userEmail?: string;
+  userName?: string;
+  userAvatar?: string;
 }
 
 function ProjectRow({ project, isActive, onClick }: { project: Project; isActive: boolean; onClick: () => void }) {
-  const accentColor = project.favicon_color || '#1f1f1f';
   const [unreadCount, setUnreadCount] = useState(0);
-  const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
-    // Check unread bugs
     const lastRead = localStorage.getItem(`BUGGY_BAG_LAST_READ_${project.id}`);
     fetch(`/api/bugs?project_id=${project.id}`)
       .then(res => res.json())
@@ -37,55 +37,40 @@ function ProjectRow({ project, isActive, onClick }: { project: Project; isActive
   useEffect(() => {
     if (isActive) {
       localStorage.setItem(`BUGGY_BAG_LAST_READ_${project.id}`, new Date().toISOString());
+      // We don't strictly need to set unreadCount to 0 synchronously here,
+      // but if we do, it shouldn't cause infinite renders if we just depend on isActive/project.id
+      // A better way is to clear it and rely on the next fetch
       setUnreadCount(0);
     }
   }, [isActive, project.id]);
 
-  const fallbackLetter = project.name.charAt(0).toUpperCase();
-
   return (
     <div
-      className="relative group w-full flex items-center gap-2.5 pl-3 pr-2.5 py-2 cursor-pointer rounded-lg transition-colors"
-      style={{ backgroundColor: isActive ? '#f4f4f5' : 'transparent' }}
+      className={`relative group w-full flex items-center gap-[10px] px-[12px] py-[12px] cursor-pointer rounded-[12px] transition-colors ${
+        isActive ? 'bg-[#242424]' : 'bg-transparent hover:bg-[#242424]'
+      }`}
       onClick={onClick}
       title={project.name}
-      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.backgroundColor = '#f4f4f5'; }}
-      onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.backgroundColor = 'transparent'; }}
     >
-      {/* Active indicator — thin left stripe */}
-      <div
-        className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full transition-all duration-300 ${
-          isActive ? 'h-5' : 'h-0'
+      {/* Icon */}
+      <div 
+        className={`w-[32px] h-[32px] flex items-center justify-center rounded-[8px] shrink-0 overflow-hidden ${
+          isActive ? 'bg-[#333333]' : 'bg-[#242424]'
         }`}
-        style={{ backgroundColor: accentColor }}
-      />
-
-      {/* Project Icon */}
-      <div
-        className="w-7 h-7 flex items-center justify-center rounded-[8px] overflow-hidden shrink-0"
-        style={{
-          backgroundColor: '#f4f4f5',
-          color: '#1f1f1f',
-        }}
       >
-        {project.favicon_url && !showFallback ? (
-          <img
-            src={project.favicon_url}
-            alt={project.name}
-            className="w-full h-full object-cover"
-            onError={() => setShowFallback(true)}
-          />
+        {project.favicon_url ? (
+          <img src={project.favicon_url} alt="Favicon" width={18} height={18} className="rounded-sm object-contain" />
         ) : (
-          <span className="text-[11px] font-bold">{fallbackLetter}</span>
+          <Folder size={16} className={isActive ? 'text-white' : 'text-[#9a9a9a]'} />
         )}
       </div>
 
       {/* Name and domain */}
-      <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <span className={`text-[13px] font-medium truncate ${isActive ? 'text-[#1f1f1f]' : 'text-[#9a9a9a]'}`}>
+      <div className="flex-1 min-w-0 flex flex-col justify-center gap-[2px]">
+        <span className={`text-[14px] leading-[20px] font-normal truncate ${isActive ? 'text-white' : 'text-[#9a9a9a]'}`}>
           {project.name}
         </span>
-        <span className={`text-[10px] truncate ${isActive ? 'text-[#71717a]' : 'text-[#a1a1aa]'}`}>
+        <span className="text-[10px] leading-[16px] text-[#666] font-normal truncate">
           {project.connected_domain ? project.connected_domain : 'Не підключено'}
         </span>
       </div>
@@ -100,7 +85,7 @@ function ProjectRow({ project, isActive, onClick }: { project: Project; isActive
   );
 }
 
-export default function Sidebar({ userEmail = '' }: SidebarProps) {
+export default function Sidebar({ userEmail = '', userName = '', userAvatar = '' }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -159,16 +144,40 @@ export default function Sidebar({ userEmail = '' }: SidebarProps) {
   const activeProjectId = pathname.match(/\/projects\/([^/]+)/)?.[1];
 
   return (
-    <div className="flex flex-col h-full w-full py-3 overflow-y-auto no-scrollbar relative">
+    <div className="flex flex-col h-full w-full py-[12px] overflow-y-auto custom-scrollbar relative bg-transparent">
 
       {/* App Logo */}
-      <Link href="/" className="flex items-center gap-2.5 px-3.5 py-1.5 mb-3 shrink-0 group">
-        <img src="/bug-logo.svg" alt="Logo" width={24} height={24} className="shrink-0" />
-        <span className="text-[15px] font-bold text-[#1f1f1f] truncate">Buggy Bag</span>
-      </Link>
+      <div className="flex flex-col px-[20px] pt-[12px] pb-[16px] shrink-0 relative">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center min-w-0 flex-1">
+            <Link href="/" className="flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity">
+              <Image src="/bug-logo-white.svg" alt="BuggyBag Logo" width={32} height={32} className="object-contain" />
+            </Link>
+            <div className="flex min-w-0 ml-[12px] justify-center">
+              <Link href="/" className="hover:opacity-80 transition-opacity flex items-center">
+                 <h1 className="text-white text-[20px] font-bold tracking-tight leading-none truncate">BuggyBag</h1>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Projects Header */}
+      <div className="flex items-center justify-between px-[20px] mt-[16px] mb-[12px]">
+        <span className="text-[10px] font-semibold text-[#666] tracking-[0.1px] uppercase leading-[16px]">
+          ПРОЄКТИ
+        </span>
+        <button
+          onClick={() => setShowNewDialog(true)}
+          className="text-[#484747] hover:text-white transition-colors flex items-center justify-center"
+          title="Додати проєкт"
+        >
+          <Plus size={16} strokeWidth={2} />
+        </button>
+      </div>
 
       {/* Projects List */}
-      <div className="flex-1 flex flex-col gap-0.5 px-2">
+      <div className="flex-1 flex flex-col gap-[2px] px-[12px] mt-0">
         {projects.map(p => (
           <ProjectRow
             key={p.id}
@@ -177,33 +186,22 @@ export default function Sidebar({ userEmail = '' }: SidebarProps) {
             onClick={() => router.push(`/projects/${p.id}`)}
           />
         ))}
-
-        {/* Create Project Row — muted, same shape as a project row */}
-        <button
-          onClick={() => setShowNewDialog(true)}
-          className="flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-lg text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-[#f4f4f5] transition-colors mt-0.5"
-        >
-          <div className="w-7 h-7 flex items-center justify-center rounded-[8px] border border-[#e9e9e9] shrink-0">
-            <Plus size={13} />
-          </div>
-          <span className="text-[13px] font-medium">Додати проєкт</span>
-        </button>
       </div>
 
       {/* Bottom Profile Menu */}
       {userEmail && (
-        <div ref={menuRef} className="mt-2 px-2 shrink-0 relative">
+        <div ref={menuRef} className="px-[20px] pb-0 mt-auto shrink-0 relative">
           {menuOpen && (
-            <div className="absolute left-2 right-2 bottom-[calc(100%+2px)] bg-[#ffffff] rounded-lg shadow-[0_8px_30px_rgba(0,0,0,0.08)] overflow-hidden py-1 z-50">
+            <div className="absolute left-[20px] right-[20px] bottom-[calc(100%+8px)] bg-[#242424] border border-[#333] rounded-[12px] shadow-xl overflow-hidden py-1 z-50">
               <button
                 onClick={() => { setMenuOpen(false); router.push('/profile'); }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-[13px] font-medium text-[#1f1f1f] hover:bg-[#f4f4f5] transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-white hover:bg-[#333] transition-colors"
               >
                 <User size={14} /> Профіль
               </button>
               <button
                 onClick={() => { setMenuOpen(false); if (confirm('Вийти з акаунту?')) handleLogout(); }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-[13px] font-medium text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-[#ef4444] hover:bg-[#ef4444]/20 transition-colors"
               >
                 <LogOut size={14} /> Вийти
               </button>
@@ -212,13 +210,21 @@ export default function Sidebar({ userEmail = '' }: SidebarProps) {
 
           <button
             onClick={() => setMenuOpen(v => !v)}
-            className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[#f4f4f5] transition-colors"
+            className="w-full flex items-center gap-[12px] p-[12px] bg-[#252525] rounded-[12px] hover:bg-[#2a2a2a] transition-colors"
           >
-            <div className="w-7 h-7 flex items-center justify-center bg-[#f4f4f5] text-[#1f1f1f] rounded-full shrink-0">
-              <User size={14} />
+            {userAvatar ? (
+              <div className="w-[32px] h-[32px] flex items-center justify-center rounded-full shrink-0 overflow-hidden shadow-sm">
+                <img src={userAvatar} alt="Avatar" className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="w-[32px] h-[32px] flex items-center justify-center bg-gradient-to-br from-[#4b5563] to-[#1f2937] text-[#ffffff] font-semibold text-[14px] rounded-full shrink-0 overflow-hidden shadow-sm">
+                 {userName ? userName.charAt(0).toUpperCase() : (userEmail ? userEmail.charAt(0).toUpperCase() : <User size={16} />)}
+              </div>
+            )}
+            <div className="flex flex-col flex-1 min-w-0 text-left gap-[2px]">
+              <span className="text-[12px] font-normal text-[#9a9a9a] truncate leading-[18px]">{userName || userEmail || 'Користувач'}</span>
+              <span className="text-[10px] font-normal text-[#666] truncate leading-[14px]">{userEmail}</span>
             </div>
-            <span className="text-[12px] font-medium text-[#9a9a9a] truncate flex-1 text-left">{userEmail}</span>
-            <ChevronUp size={13} className={`text-[#9a9a9a] shrink-0 transition-transform ${menuOpen ? '' : 'rotate-180'}`} />
           </button>
         </div>
       )}

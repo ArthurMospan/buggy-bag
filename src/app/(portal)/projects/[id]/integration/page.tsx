@@ -78,12 +78,31 @@ function IntegrationSection({ project, onUpdate }: { project: Project, onUpdate:
   };
 
   const hasSeen = !!project.last_seen_at;
-  const dotColor = !project.is_active ? '#ef4444' : hasSeen ? '#10b981' : '#f59e0b';
+  const isOnline = hasSeen && (new Date().getTime() - new Date(project.last_seen_at!).getTime() < 15 * 60 * 1000);
+  
+  let dotColor = '#f59e0b';
+  let statusText = 'Очікуємо підключення...';
+  let subText = 'Зробіть запит до віджета, щоб ми його побачили';
+
+  if (!project.is_active) {
+    dotColor = '#ef4444';
+    statusText = 'Збір призупинено';
+    subText = 'Віджет вимкнено в налаштуваннях';
+  } else if (hasSeen) {
+    if (isOnline) {
+      dotColor = '#10b981';
+      statusText = 'Віджет онлайн';
+      subText = `Активно ${formatDistanceToNow(new Date(project.last_seen_at!), { addSuffix: true, locale: uk })}`;
+    } else {
+      dotColor = '#9a9a9a';
+      statusText = 'Немає активності / Відключено';
+      subText = `Останній сигнал ${formatDistanceToNow(new Date(project.last_seen_at!), { addSuffix: true, locale: uk })}`;
+    }
+  }
 
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://your-portal.com';
   const scriptCode = `<!-- Додайте цей скрипт перед </body> -->\n<script\n  src="${origin}/buggy-bag-standalone.js"\n  data-api-key="${project.api_key}"\n  data-portal-url="${origin}"\n  async\n></script>`;
-  const npmCode = `npm install buggy-bag-widget`;
-  const reactCode = `import { BuggyBag } from 'buggy-bag-widget';\n\nexport default function RootLayout({ children }) {\n  return (\n    <html lang="en">\n      <body>\n        {children}\n        <BuggyBag\n          apiKey="${project.api_key}"\n          portalUrl="${origin}"\n        />\n      </body>\n    </html>\n  );\n}`;
+  const nextJsCode = `import Script from 'next/script';\n\nexport default function RootLayout({ children }) {\n  return (\n    <html lang="en">\n      <body>\n        {children}\n        <Script\n          src="${origin}/buggy-bag-standalone.js"\n          strategy="afterInteractive"\n          data-api-key="${project.api_key}"\n          data-portal-url="${origin}"\n        />\n      </body>\n    </html>\n  );\n}`;
   const bookmarkletCode = `javascript:(function(){localStorage.setItem('BUGGY_BAG_ACCESS','active');location.reload();})();`;
 
   return (
@@ -97,10 +116,10 @@ function IntegrationSection({ project, onUpdate }: { project: Project, onUpdate:
             <div style={{ width: 10, height: 10, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
             <div>
               <span className="text-[14px] font-bold text-[#1f1f1f] block">
-                {!project.is_active ? 'Збір призупинено' : hasSeen ? 'Віджет підключено' : 'Очікуємо підключення...'}
+                {statusText}
               </span>
               <span className="text-[12px] font-medium text-[#9a9a9a] mt-[2px] block">
-                {project.is_active ? (hasSeen ? `Активно ${formatDistanceToNow(new Date(project.last_seen_at!), { addSuffix: true, locale: uk })}` : 'Зробіть запит до віджета, щоб ми його побачили') : 'Віджет вимкнено в налаштуваннях'}
+                {subText}
               </span>
             </div>
           </div>
@@ -163,12 +182,14 @@ function IntegrationSection({ project, onUpdate }: { project: Project, onUpdate:
           <details className="group border border-[#e9e9e9] rounded-[10px] overflow-hidden">
             <summary className="flex items-center gap-[8px] p-[16px] cursor-pointer text-[13px] font-bold text-[#1f1f1f] bg-[#ffffff] hover:bg-[#f4f4f5] transition-colors list-none">
               <Terminal size={16} /> 
-              Варіант 2: React / Next.js (NPM)
+              Варіант 2: Next.js (App Router)
               <span className="ml-auto text-[#9a9a9a] group-open:rotate-180 transition-transform">▾</span>
             </summary>
             <div className="flex flex-col gap-[16px] p-[16px] bg-[#ffffff] border-t border-[#e9e9e9]">
-              <CodeBlock code={npmCode} label="1. Встановлення пакету" />
-              <CodeBlock code={reactCode} label="2. Додавання у Root Layout" />
+              <p className="text-[13px] text-[#9a9a9a] leading-relaxed m-0">
+                Використовуйте <code className="bg-[#f4f4f5] px-[6px] py-[2px] rounded text-[#1f1f1f] font-mono text-[11px]">next/script</code> для підключення, щоб завжди отримувати найсвіжіші оновлення віджета.
+              </p>
+              <CodeBlock code={nextJsCode} label="Додавання у Root Layout" />
             </div>
           </details>
 

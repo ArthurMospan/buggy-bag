@@ -6,9 +6,11 @@ import Sidebar from './Sidebar';
 interface AppShellProps {
   children: React.ReactNode;
   userEmail?: string;
+  userName?: string;
+  userAvatar?: string;
 }
 
-export default function AppShell({ children, userEmail = '' }: AppShellProps) {
+export default function AppShell({ children, userEmail = '', userName = '', userAvatar = '' }: AppShellProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,15 +31,12 @@ export default function AppShell({ children, userEmail = '' }: AppShellProps) {
   return (
     <div 
       ref={containerRef}
-      className="h-screen flex p-[8px] gap-[8px] overflow-hidden relative"
-      style={{
-        backgroundColor: '#f4f4f5',
-      }}
+      className="h-screen flex overflow-hidden relative bg-[#1f1f1f]"
     >
-      <aside className="w-[210px] bg-[#ffffff] flex flex-col shrink-0 overflow-hidden relative z-20 rounded-[16px]">
-        <Sidebar userEmail={userEmail} />
+      <aside className="w-[284px] flex flex-col shrink-0 overflow-hidden relative z-20">
+        <Sidebar userEmail={userEmail} userName={userName} userAvatar={userAvatar} />
       </aside>
-      <main className="flex-1 flex overflow-hidden relative z-10 bg-[#ffffff] rounded-[16px]">
+      <main className="flex-1 flex overflow-hidden relative z-10 bg-[#ffffff] rounded-[24px] my-[12px] mr-[12px]">
         {children}
       </main>
     </div>

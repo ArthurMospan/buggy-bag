@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Bug, BugStatus, BugSeverity, DrawShape, PinElementContext, Project, Annotation } from '@/lib/types';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
-import { ChevronDown, Copy, Check, Maximize2, X, ArrowLeft, Monitor, Globe, Calendar, Terminal, Code2, ExternalLink } from 'lucide-react';
+import { ChevronDown, Copy, Check, Maximize2, X, ArrowLeft, Monitor, Globe, Calendar, Terminal, Code2, ExternalLink, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 const STATUS_CFG: { value: BugStatus; label: string; color: string; bg: string }[] = [
@@ -306,34 +306,28 @@ export default function BugDetailView({ bug, project, onStatusChange, onSeverity
       {lightbox && bug.image_url && <Lightbox src={bug.image_url} onClose={() => setLightbox(false)} />}
 
       {/* ── Header ── */}
-      <div className="h-[52px] flex items-center justify-between px-[40px] shrink-0 bg-[#ffffff]">
+      <div className="h-[64px] flex items-center justify-between px-[40px] shrink-0 bg-[#ffffff] border-b border-[#f0f0f0]">
         <div className="flex items-center gap-[12px]">
           <Link
             href={`/projects/${bug.project_id}`}
-            className="text-[#9a9a9a] hover:text-[#1f1f1f] p-[7px] -ml-[7px] rounded-[8px] hover:bg-[#f4f4f5] transition-colors"
+            className="text-[#9a9a9a] hover:text-[#1f1f1f] p-[8px] -ml-[8px] rounded-[8px] hover:bg-[#f4f4f5] transition-colors"
             title="Назад"
           >
             <ArrowLeft size={18} />
           </Link>
           <div className="flex items-center gap-[10px]">
-            <span className="text-[12px] font-bold text-[#9a9a9a] tracking-widest font-mono">
+            <span className="text-[16px] font-bold text-[#1f1f1f] tracking-tight font-mono">
               BUG-{bug.id.split('-')[0].toUpperCase()}
             </span>
-            <div className="w-[1px] h-[16px] bg-[#e9e9e9]" />
-            <div className="flex items-center gap-[6px]">
-              <CustomDropdown value={status} options={STATUS_CFG} onChange={handleStatusChange} saving={saving} type="status" />
-              <CustomDropdown value={severity} options={SEVERITY_CFG} onChange={handleSeverityChange} saving={saving} type="severity" />
-            </div>
+            {saved && (
+              <span className="flex items-center gap-[4px] text-[12px] text-[#10b981] font-semibold ml-2">
+                <Check size={14} /> Збережено
+              </span>
+            )}
           </div>
         </div>
 
         <div className="flex items-center gap-[8px]">
-          {saved && (
-            <span className="flex items-center gap-[4px] text-[12px] text-[#10b981] font-semibold">
-              <Check size={14} />
-            </span>
-          )}
-
           {project?.github_repo && (
             issueUrl ? (
               <a
@@ -341,21 +335,21 @@ export default function BugDetailView({ bug, project, onStatusChange, onSeverity
                 target="_blank"
                 rel="noreferrer"
                 title="Переглянути на GitHub"
-                className="flex items-center gap-[7px] px-[12px] py-[7px] rounded-[8px] text-[12px] font-semibold transition-all bg-[#1f1f1f] text-[#ffffff] hover:bg-[#303030] border border-transparent"
+                className="flex items-center gap-[7px] px-[16px] py-[8px] rounded-[10px] text-[13px] font-semibold transition-all bg-white text-[#1f1f1f] hover:bg-[#f4f4f5] border border-[#e9e9e9]"
               >
-                <Code2 size={14} />
+                <Code2 size={16} />
                 <span className="hidden sm:inline">Відкрити Issue</span>
-                <ExternalLink size={12} className="opacity-60" />
+                <ExternalLink size={14} className="opacity-60" />
               </a>
             ) : (
               <button
                 onClick={pushToGithub}
                 disabled={isPushing}
                 title="Створити Issue в GitHub"
-                className="flex items-center gap-[7px] px-[12px] py-[7px] rounded-[8px] text-[12px] font-semibold border transition-all bg-[#f4f4f5] text-[#1f1f1f] hover:bg-[#e9e9e9] border-transparent disabled:opacity-40"
+                className="flex items-center gap-[7px] px-[16px] py-[8px] rounded-[10px] text-[13px] font-semibold border transition-all bg-white text-[#1f1f1f] hover:bg-[#f4f4f5] border-[#e9e9e9] disabled:opacity-40"
               >
-                <Code2 size={14} />
-                <span className="hidden sm:inline">{isPushing ? 'Створюємо...' : 'Додати в GitHub'}</span>
+                <Code2 size={16} />
+                <span className="hidden sm:inline">{isPushing ? 'Створюємо...' : 'Github Issue'}</span>
               </button>
             )
           )}
@@ -363,125 +357,126 @@ export default function BugDetailView({ bug, project, onStatusChange, onSeverity
           <button
             onClick={copy}
             title="Копіювати як Markdown"
-            className="flex items-center gap-[7px] px-[12px] py-[7px] rounded-[8px] text-[12px] font-semibold transition-all cursor-pointer border border-transparent"
+            className="flex items-center gap-[7px] px-[16px] py-[8px] rounded-[10px] text-[13px] font-semibold transition-all cursor-pointer border"
             style={copied
               ? { background: 'rgba(16,185,129,0.12)', color: '#34d399', borderColor: 'rgba(52,211,153,0.3)' }
-              : { background: '#f4f4f5', color: '#1f1f1f' }}
+              : { background: '#1f1f1f', color: '#ffffff', borderColor: 'transparent' }}
           >
-            {copied ? <Check size={14} /> : <Copy size={14} />}
+            {copied ? <Check size={16} /> : <Copy size={16} />}
             <span className="hidden sm:inline">{copied ? 'Скопійовано' : 'Копіювати MD'}</span>
           </button>
         </div>
       </div>
 
-      {/* ── Two-column body ── */}
-      <div className="flex-1 flex min-h-0 bg-[#f4f4f5]">
-
-        {/* ── Left: Pins panel ── */}
-        <div className="w-[360px] shrink-0 flex flex-col bg-[#ffffff]">
-
-          {/* Pin count sub-bar */}
-          <div className="h-[32px] flex items-center px-[24px] bg-[#ffffff] shrink-0">
-            <span className="text-[10.5px] text-[#9a9a9a]">
-              {annotations.length} {pinLabel(annotations.length)}
-            </span>
-          </div>
-
-          {/* Pin list */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-[12px] p-[24px] pt-0">
-            {annotations.length === 0 ? (
-              <div className="text-[13px] text-center text-[#9a9a9a] py-[24px]">Пінів немає</div>
-            ) : (
-              annotations.map((ann, i) => {
-                const shape: DrawShape | undefined = shapes.find(
-                  (s: DrawShape) => s.type === 'pin' && (s.pinNumber === (ann.index ?? i + 1) || shapes.indexOf(s) === i)
-                );
-                const ctx: PinElementContext | undefined = shape?.elementContext;
-                const pinNum = ann.index ?? i + 1;
-
-                return (
-                  <div
-                    key={i}
-                    className="flex flex-col bg-[#f4f4f5] rounded-[10px] p-[16px] gap-[10px] hover:bg-[#e9e9e9] transition-colors"
-                  >
-                    {/* Pin number + text */}
-                    <div className="flex items-start gap-[10px]">
-                      <div className="w-[22px] h-[22px] bg-[#ef4444] text-white rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 mt-[1px]">
-                        {pinNum}
-                      </div>
-                      <p className="text-[13px] text-[#1f1f1f] leading-snug flex-1 min-w-0 font-medium">
-                        {ann.text || <em className="text-[#9a9a9a] not-italic font-normal">без тексту</em>}
-                      </p>
-                    </div>
-
-                    {/* Element context */}
-                    {ctx && (
-                      <div className="ml-[32px] flex flex-col gap-[5px]">
-                        {ctx.selector && (
-                          <code
-                            className="text-[10px] font-mono text-[#1f1f1f] bg-[#ffffff] px-[6px] py-[2px] rounded-[4px] truncate block"
-                            title={ctx.selector}
-                          >
-                            {ctx.selector}
-                          </code>
-                        )}
-                        {ctx.reactComponent && (
-                          <code
-                            className="text-[10px] font-mono text-[#ef4444] bg-[rgba(239,68,68,0.05)] px-[6px] py-[2px] rounded-[4px] truncate block"
-                            title={`${ctx.reactComponent.name}${ctx.reactComponent.filePath ? ` · ${ctx.reactComponent.filePath}` : ''}`}
-                          >
-                            {ctx.reactComponent.name}
-                            {ctx.reactComponent.filePath && (
-                              <span className="text-[#9a9a9a]"> · {ctx.reactComponent.filePath}{ctx.reactComponent.lineNumber ? `:${ctx.reactComponent.lineNumber}` : ''}</span>
-                            )}
-                          </code>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* ── Right: screenshot + all info ── */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#f4f4f5]">
-
-          {/* Screenshot */}
-          {bug.image_url && (
-            <div className="relative bg-white group">
+      {/* ── Body ── */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#f4f4f5] relative">
+        
+        {/* Screenshot Area */}
+        <div className="relative bg-white min-h-[400px] flex items-center justify-center border-b border-[#e9e9e9]">
+          {bug.image_url ? (
+            <div className="relative group p-[40px] w-full max-w-[1200px] flex justify-center">
               <img
                 src={bug.image_url}
                 alt="Screenshot"
                 crossOrigin="anonymous"
-                className="w-full object-contain cursor-zoom-in"
+                className="max-w-full max-h-[70vh] object-contain rounded-[8px] shadow-sm border border-[#e9e9e9] cursor-zoom-in"
                 onClick={() => setLightbox(true)}
               />
               <button
                 onClick={() => setLightbox(true)}
-                className="absolute bottom-[12px] right-[12px] w-[32px] h-[32px] rounded-[8px] bg-black/50 hover:bg-black/70 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
+                className="absolute bottom-[52px] right-[52px] w-[36px] h-[36px] rounded-[8px] bg-black/50 hover:bg-black/70 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm shadow-lg"
                 title="На весь екран"
               >
-                <Maximize2 size={14} />
+                <Maximize2 size={16} />
               </button>
+            </div>
+          ) : (
+            <div className="text-[#9a9a9a] text-[14px]">Без скріншоту</div>
+          )}
+
+          {/* Floating Pins Panel */}
+          {annotations.length > 0 && (
+            <div className="absolute right-[24px] top-[24px] w-[320px] max-h-[calc(100%-48px)] flex flex-col pointer-events-none">
+              <div className="bg-[#1f1f1f] rounded-[16px] shadow-2xl p-[16px] pointer-events-auto flex flex-col gap-[12px] overflow-y-auto custom-scrollbar border border-[#333]">
+                {annotations.map((ann, i) => {
+                  const shape: DrawShape | undefined = shapes.find(
+                    (s: DrawShape) => s.type === 'pin' && (s.pinNumber === (ann.index ?? i + 1) || shapes.indexOf(s) === i)
+                  );
+                  const ctx: PinElementContext | undefined = shape?.elementContext;
+                  const pinNum = ann.index ?? i + 1;
+
+                  return (
+                    <div
+                      key={i}
+                      className="flex flex-col bg-[#2a2a2a] rounded-[12px] p-[16px] gap-[10px] hover:bg-[#333] transition-colors border border-[#3a3a3a]"
+                    >
+                      {/* Pin number + text */}
+                      <div className="flex items-start gap-[12px]">
+                        <div className="w-[24px] h-[24px] bg-[#ef4444] text-white rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 mt-[1px] shadow-sm">
+                          {pinNum}
+                        </div>
+                        <p className="text-[13px] text-white leading-snug flex-1 min-w-0 font-medium">
+                          {ann.text || <em className="text-[#9a9a9a] not-italic font-normal">без тексту</em>}
+                        </p>
+                      </div>
+
+                      {/* Element context */}
+                      {ctx && (
+                        <div className="ml-[36px] flex flex-col gap-[6px]">
+                          {ctx.selector && (
+                            <code
+                              className="text-[10px] font-mono text-[#9a9a9a] bg-[#1f1f1f] px-[8px] py-[4px] rounded-[6px] truncate block border border-[#333]"
+                              title={ctx.selector}
+                            >
+                              {ctx.selector}
+                            </code>
+                          )}
+                          {ctx.reactComponent && (
+                            <code
+                              className="text-[10px] font-mono text-[#ef4444] bg-[rgba(239,68,68,0.1)] px-[8px] py-[4px] rounded-[6px] truncate block border border-[rgba(239,68,68,0.2)]"
+                              title={`${ctx.reactComponent.name}${ctx.reactComponent.filePath ? ` · ${ctx.reactComponent.filePath}` : ''}`}
+                            >
+                              {ctx.reactComponent.name}
+                              {ctx.reactComponent.filePath && (
+                                <span className="text-[#ef4444]/60"> · {ctx.reactComponent.filePath.split('/').pop()}{ctx.reactComponent.lineNumber ? `:${ctx.reactComponent.lineNumber}` : ''}</span>
+                              )}
+                            </code>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Content sections */}
+        <div className="px-[48px] py-[40px] flex flex-col gap-[36px] max-w-[900px] mx-auto w-full">
+
+          {/* Description */}
+          {bug.description && (
+            <div className="bg-[#ffffff] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-[#e9e9e9]">
+              <h2 className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[12px]">Опис проблеми</h2>
+              <p className="text-[14px] text-[#1f1f1f] leading-loose whitespace-pre-wrap font-medium">{bug.description}</p>
             </div>
           )}
 
-          {/* Content sections */}
-          <div className="px-[48px] py-[40px] flex flex-col gap-[36px] max-w-[900px] mx-auto bg-transparent">
-
-            {/* Description */}
-            {bug.description && (
-              <div className="bg-[#ffffff] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-                <h2 className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[12px]">Опис проблеми</h2>
-                <p className="text-[14px] text-[#1f1f1f] leading-loose whitespace-pre-wrap font-medium">{bug.description}</p>
-              </div>
-            )}
-
             {/* Metadata details */}
-            <div className="bg-[#ffffff] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex flex-col gap-[12px]">
-              <h2 className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[4px]">Деталі</h2>
+            <div className="bg-[#ffffff] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex flex-col gap-[20px] border border-[#e9e9e9]">
+              <div className="flex items-center gap-[24px]">
+                <div className="flex flex-col gap-[6px]">
+                  <h2 className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest">Статус</h2>
+                  <CustomDropdown value={status} options={STATUS_CFG} onChange={handleStatusChange} saving={saving} type="status" />
+                </div>
+                <div className="flex flex-col gap-[6px]">
+                  <h2 className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest">Критичність</h2>
+                  <CustomDropdown value={severity} options={SEVERITY_CFG} onChange={handleSeverityChange} saving={saving} type="severity" />
+                </div>
+              </div>
+              <div className="h-[1px] bg-[#f0f0f0]" />
+              
               <div className="flex flex-col gap-[12px]">
                 <div className="flex items-center gap-[12px]">
                   <Calendar size={14} className="text-[#9a9a9a] shrink-0" />
@@ -520,7 +515,7 @@ export default function BugDetailView({ bug, project, onStatusChange, onSeverity
 
             {/* Steps to reproduce */}
             {tc?.eventLog && tc.eventLog.length > 0 && (
-              <div className="bg-[#ffffff] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              <div className="bg-[#ffffff] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-[#e9e9e9]">
                 <h2 className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[12px]">
                   Кроки відтворення
                 </h2>
@@ -544,7 +539,7 @@ export default function BugDetailView({ bug, project, onStatusChange, onSeverity
 
             {/* Console errors */}
             {tc?.consoleErrors && tc.consoleErrors.length > 0 && (
-              <div className="bg-[#ffffff] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              <div className="bg-[#ffffff] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-[#e9e9e9]">
                 <h2 className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[12px]">
                   Консоль ({tc.consoleErrors.length})
                 </h2>
@@ -577,17 +572,15 @@ export default function BugDetailView({ bug, project, onStatusChange, onSeverity
 
             {/* React component */}
             {tc?.component && (
-              <div className="bg-[#ffffff] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              <div className="bg-[#ffffff] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-[#e9e9e9]">
                 <h2 className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[10px]">React Компонент</h2>
                 <code className="text-[13px] font-mono text-[#1f1f1f] bg-[#f4f4f5] px-[9px] py-[5px] rounded-[7px] inline-block font-semibold">
                   {tc.component.name}
                 </code>
               </div>
             )}
-
           </div>
         </div>
       </div>
-    </div>
   );
 }
