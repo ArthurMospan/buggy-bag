@@ -15,6 +15,9 @@ function GitHubIcon() {
   );
 }
 
+import Image from 'next/image';
+import logoWhite from '../../../../public/bug-logo-white.svg';
+
 function RegisterForm() {
   const searchParams = useSearchParams();
   const [email, setEmail]       = useState('');
@@ -66,107 +69,106 @@ function RegisterForm() {
   };
 
   return (
-    <div className="w-full max-w-[400px] flex flex-col gap-[28px]">
-      {/* Logo */}
-      <div className="flex items-center justify-center gap-[10px]">
-        <div className="w-[36px] h-[36px] bg-[#6366f1] rounded-[10px] flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.3)]">
-          <Bug size={18} className="text-white" />
+    <div className="w-full max-w-sm animate-fade-in-up">
+      {/* Logo / Brand */}
+      <div className="text-center mb-10">
+        <div className="inline-flex items-center justify-center mb-6">
+          <Image src={logoWhite} alt="BuggyBag" width={80} height={80} className="w-20 h-20" />
         </div>
-        <span className="text-[20px] font-bold text-white tracking-tight">BuggyBag</span>
+        <h1 className="text-2xl font-semibold text-white tracking-tight">
+          Реєстрація
+        </h1>
+        <p className="mt-2 text-sm text-white/70">
+          Створіть новий акаунт
+        </p>
       </div>
 
-      {/* Card */}
-      <div className="bg-[#18181c] rounded-[20px] border border-[#2a2a32] p-[28px] flex flex-col gap-[20px] shadow-[0_24px_60px_rgba(0,0,0,0.6)]">
+      <div className="flex flex-col items-center animate-fade-in-up gap-4">
         {success ? (
-          /* ── Success state ── */
-          <div className="flex flex-col items-center gap-[16px] py-[8px]">
+          <div className="flex flex-col items-center gap-[16px] py-[8px] bg-white/5 border border-white/10 rounded-2xl p-6 w-full shadow-sm text-center">
             <div className="w-[56px] h-[56px] bg-[rgba(16,185,129,0.12)] rounded-full flex items-center justify-center">
               <MailCheck size={26} className="text-[#34d399]" />
             </div>
-            <div className="text-center flex flex-col gap-[8px]">
+            <div className="flex flex-col gap-[8px]">
               <h2 className="text-[17px] font-bold text-white">Перевірте пошту</h2>
-              <p className="text-[13px] text-[#7878887] leading-relaxed">
+              <p className="text-[13px] text-white/70 leading-relaxed">
                 Ми надіслали підтвердження на{' '}
                 <strong className="text-white">{email}</strong>.
                 Перейдіть за посиланням у листі, щоб активувати акаунт.
               </p>
             </div>
-            <div className="w-full pt-[4px] border-t border-[#2a2a32]">
-              <p className="text-center text-[13px] text-[#9696b0] mt-[12px]">
-                <Link href="/login" className="text-[#818cf8] font-semibold hover:text-[#a5b4fc] transition-colors">
+            <div className="w-full pt-[4px] border-t border-white/10 mt-2">
+              <p className="text-center text-[13px] text-white/60 mt-[12px]">
+                <Link href="/login" className="text-white font-semibold hover:text-white/80 transition-colors">
                   Повернутися до входу
                 </Link>
               </p>
             </div>
           </div>
         ) : (
-          /* ── Registration form ── */
           <>
-            <h1 className="text-[18px] font-bold text-white">Реєстрація</h1>
-
             {/* GitHub OAuth */}
             <button
               onClick={handleGitHub}
               disabled={ghLoading || loading}
-              className="flex items-center justify-center gap-[10px] w-full px-[16px] py-[11px] bg-[#23232b] hover:bg-[#2e2e38] active:bg-[#2c2c35] text-white text-[14px] font-semibold rounded-[10px] transition-colors disabled:opacity-50 border border-[#36363f]"
+              className="w-full flex items-center justify-center gap-3 rounded-full bg-white px-6 py-3 text-sm font-semibold text-gray-900 transition-all hover:bg-gray-100 active:scale-[0.98] focus-ring cursor-pointer shadow-sm"
             >
               <GitHubIcon />
               {ghLoading ? 'Перенаправлення...' : 'Зареєструватися з GitHub'}
             </button>
 
-            {/* Divider */}
-            <div className="flex items-center gap-[12px]">
-              <div className="flex-1 h-px bg-[#2a2a32]" />
-              <span className="text-[12px] font-medium text-[#9696b0]">або</span>
-              <div className="flex-1 h-px bg-[#2a2a32]" />
+            <div className="flex items-center gap-3 w-full my-2">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-[12px] font-medium text-white/40">або з Email</span>
+              <div className="flex-1 h-px bg-white/10" />
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-[14px]">
-              <div>
-                <label className="text-[11px] font-semibold text-[#9696b0] uppercase tracking-widest block mb-[8px]">
-                  Email
-                </label>
-                <Input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                />
-              </div>
+            <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
+              <input
+                type="email"
+                placeholder="Email адреса"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-center text-white text-base font-medium outline-none focus:border-white/40 focus:bg-white/10 transition-all placeholder:text-white/30"
+              />
 
-              <div>
-                <label className="text-[11px] font-semibold text-[#9696b0] uppercase tracking-widest block mb-[8px]">
-                  Пароль
-                </label>
-                <Input
-                  type="password"
-                  placeholder="Мінімум 6 символів"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  autoComplete="new-password"
-                />
-              </div>
+              <input
+                type="password"
+                placeholder="Мінімум 6 символів"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                minLength={6}
+                autoComplete="new-password"
+                className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-center text-white text-base font-medium outline-none focus:border-white/40 focus:bg-white/10 transition-all placeholder:text-white/30"
+              />
 
               {error && (
-                <p className="text-[12px] font-medium text-[#f87171] bg-[#2d1515] border border-[#5c2020]/50 px-[12px] py-[10px] rounded-[10px]">
+                <p className="text-[12px] font-medium text-[#f87171] text-center mt-1">
                   {error}
                 </p>
               )}
 
-              <Button type="submit" style="primary" size="lg" loading={loading} className="w-full">
+              <button
+                type="submit"
+                disabled={loading || ghLoading}
+                className="w-full flex items-center justify-center gap-3 rounded-full bg-white/10 px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-white/20 active:scale-[0.98] border border-white/10 focus-ring cursor-pointer shadow-sm mt-2"
+              >
                 {loading ? 'Реєструємо...' : 'Створити акаунт'}
-              </Button>
+              </button>
             </form>
 
-            <p className="text-center text-[13px] text-[#9696b0]">
+            <p className="mt-4 text-center text-[13px] text-white/60">
               Вже є акаунт?{' '}
-              <Link href="/login" className="text-[#818cf8] font-semibold hover:text-[#a5b4fc] transition-colors">
+              <Link href="/login" className="text-white font-semibold hover:text-white/80 transition-colors">
                 Увійти
               </Link>
+            </p>
+
+            <p className="mt-6 text-center text-xs text-white/40">
+              Продовжуючи, ви погоджуєтесь з умовами використання.
             </p>
           </>
         )}

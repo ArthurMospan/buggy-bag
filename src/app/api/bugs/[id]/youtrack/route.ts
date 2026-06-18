@@ -50,50 +50,73 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
     const project = projData as Project;
 
-    if (!project.github_repo || !project.github_token) {
-      return NextResponse.json({ error: 'GitHub is not configured for this project' }, { status: 400 });
+    if (!project.youtrack_url || !project.youtrack_token || !project.youtrack_project) {
+      return NextResponse.json({ error: 'YouTrack is not configured for this project' }, { status: 400 });
     }
 
     // Generate Markdown
     const md = formatBugMarkdown(bug);
 
-    const title = `[BuggyBag] ${bug.description ? bug.description.substring(0, 60) : 'New Bug Report'}`;
+    const summary = `[BuggyBag] ${bug.description ? bug.description.substring(0, 60) : 'New Bug Report'}`;
 
-    const decryptedToken = decrypt(project.github_token);
+    const decryptedToken = decrypt(project.youtrack_token);
+    const ytUrl = project.youtrack_url.replace(/\/$/, ''); // Remove trailing slash if any
 
-    // Create Issue via GitHub API
-    const ghResponse = await fetch(`https://api.github.com/repos/${project.github_repo}/issues`, {
+    // 1. Fetch YouTrack internal project ID
+    const projResponse = await fetch(`${ytUrl}/api/admin/projects?fields=id,shortName`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${decryptedToken}`,
+        'Accept': 'application/json',
+      }
+    });
+
+    if (!projResponse.ok) {
+      const errText = await projResponse.text();
+      console.error('YouTrack API error fetching projects:', errText);
+      return NextResponse.json({ error: 'Failed to fetch YouTrack projects' }, { status: 502 });
+    }
+
+    const projects: { id: string, shortName: string }[] = await projResponse.json();
+    const ytProject = projects.find(p => p.shortName === project.youtrack_project);
+
+    if (!ytProject) {
+      return NextResponse.json({ error: `YouTrack project '${project.youtrack_project}' not found` }, { status: 404 });
+    }
+
+    // 2. Create Issue via YouTrack API
+    const ytResponse = await fetch(`${ytUrl}/api/issues?fields=id,idReadable`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${decryptedToken}`,
-        'Accept': 'application/vnd.github.v3+json',
+        'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        title,
-        body: md,
-        labels: ['bug', 'buggybag']
+        project: { id: ytProject.id },
+        summary: summary,
+        description: md
       })
     });
 
-    if (!ghResponse.ok) {
-      const ghErr = await ghResponse.text();
-      console.error('GitHub API error:', ghErr);
-      return NextResponse.json({ error: 'Failed to create GitHub issue' }, { status: 502 });
+    if (!ytResponse.ok) {
+      const ytErr = await ytResponse.text();
+      console.error('YouTrack API error creating issue:', ytErr);
+      return NextResponse.json({ error: 'Failed to create YouTrack issue' }, { status: 502 });
     }
 
-    const ghData = await ghResponse.json();
-    const issueUrl = ghData.html_url;
+    const ytData = await ytResponse.json();
+    const issueUrl = `${ytUrl}/issue/${ytData.idReadable}`;
 
     // Save issue url to bug
     await service
       .from('bugs')
-      .update({ github_issue_url: issueUrl })
+      .update({ youtrack_issue_url: issueUrl })
       .eq('id', bugId);
 
     return NextResponse.json({ success: true, url: issueUrl });
   } catch (error: any) {
-    console.error('GitHub integration error:', error);
+    console.error('YouTrack integration error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

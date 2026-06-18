@@ -11,6 +11,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { uk } from 'date-fns/locale';
 
 const GithubLogo = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>;
+const YoutrackLogo = () => <img src="/icons/YouTrack_icon.svg" alt="YouTrack" width="16" height="16" className="grayscale opacity-80" />;
 
 function CodeBlock({ code, label }: { code: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -463,6 +464,116 @@ function GithubSection({ project, onUpdate }: { project: Project, onUpdate: (p: 
   );
 }
 
+function YoutrackSection({ project, onUpdate }: { project: Project, onUpdate: (p: Project) => void }) {
+  const [url, setUrl] = useState(project.youtrack_url || '');
+  const [token, setToken] = useState(project.youtrack_token || '');
+  const [ytProject, setYtProject] = useState(project.youtrack_project || '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [showToken, setShowToken] = useState(false);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setSuccess(false);
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: project.id, youtrack_url: url, youtrack_token: token, youtrack_project: ytProject }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        onUpdate(updated.project ?? { ...project, youtrack_url: url, youtrack_token: token, youtrack_project: ytProject });
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      } else { alert('Помилка збереження'); }
+    } catch (e) { console.error(e); alert('Помилка збереження'); } finally { setIsSaving(false); }
+  };
+
+  return (
+    <div className="flex flex-col">
+      <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Інтеграція з YouTrack</h2>
+      <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Підключіть свій YouTrack інстанс, щоб генерувати повноцінні Issues прямо з порталу в один клік.</p>
+
+      <form onSubmit={handleSave} className="flex flex-col gap-[16px] max-w-[560px]">
+        <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
+          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+            <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">URL інстансу</span>
+            <input
+              type="text"
+              name="bb_yt_url"
+              id="bb_yt_url"
+              autoComplete="off"
+              data-lpignore="true"
+              placeholder="https://your-domain.youtrack.cloud"
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+              className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+            />
+          </div>
+          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+            <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Permanent Token</span>
+            <div className="flex-1 flex items-center gap-[10px]">
+              <input
+                type={showToken ? 'text' : 'password'}
+                name="bb_yt_token"
+                id="bb_yt_token"
+                autoComplete="new-password"
+                data-lpignore="true"
+                placeholder="perm:xxxxxxxxxxxxxxxxxxxx"
+                value={token}
+                onChange={e => setToken(e.target.value)}
+                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+              />
+              {token && (
+                <button type="button" onClick={() => setShowToken(!showToken)} className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[2px]">
+                  {showToken ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+            <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Короткий код</span>
+            <input
+              type="text"
+              name="bb_yt_project"
+              id="bb_yt_project"
+              autoComplete="off"
+              data-lpignore="true"
+              placeholder="Напр. FIN"
+              value={ytProject}
+              onChange={e => setYtProject(e.target.value)}
+              className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+            />
+          </div>
+        </div>
+        
+        <div className="flex items-end justify-between mt-[4px]">
+          <div className="text-[12px] font-medium text-[#9a9a9a] max-w-[400px]">
+            <p className="mb-[6px]">
+              Створіть токен у профілі: <span className="text-[#1f1f1f] font-bold">Profile → Account Security → New Token</span>.
+            </p>
+            <p>
+              Короткий код (Project ID) — це префікс ваших задач (напр. <span className="text-[#1f1f1f] font-bold">FIN</span> для задачі FIN-123). Його можна знайти в налаштуваннях проєкту в YouTrack.
+            </p>
+          </div>
+          <div className="flex items-center gap-[12px] shrink-0 pb-[2px]">
+            {success && (
+              <span className="flex items-center gap-[6px] text-[13px] font-bold text-emerald-600">
+                <Check size={14} /> Збережено
+              </span>
+            )}
+            <button type="submit" disabled={isSaving} className="bg-[#1f1f1f] hover:bg-[#303030] text-[#ffffff] text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50">
+              {isSaving ? 'Збереження...' : 'Зберегти'}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 function ActivityTimeline({ logs }: { logs: ActivityLog[] }) {
   if (logs.length === 0) return <div className="text-[13px] font-bold text-[#9a9a9a]">Історія порожня.</div>;
 
@@ -512,9 +623,10 @@ const NAV_ITEMS = [
   { id: 'general', label: 'Загальні', icon: <Settings size={16} /> },
   { id: 'team', label: 'Команда', icon: <Users size={16} /> },
   { id: 'github', label: 'GitHub', icon: <GithubLogo /> },
+  { id: 'youtrack', label: 'YouTrack', icon: <YoutrackLogo /> },
   { id: 'activity', label: 'Активність', icon: <Activity size={16} /> },
 ];
-type NavId = 'integration' | 'general' | 'team' | 'github' | 'activity';
+type NavId = 'integration' | 'general' | 'team' | 'github' | 'youtrack' | 'activity';
 
 export default function IntegrationPage() {
   const { id } = useParams<{ id: string }>();
@@ -549,6 +661,7 @@ export default function IntegrationPage() {
       case 'general': return 'Назва проєкту та видалення';
       case 'team': return 'Управління доступом та учасники';
       case 'github': return 'Інтеграція репозиторію та токени';
+      case 'youtrack': return 'Інтеграція з YouTrack';
       case 'activity': return 'Останні події та лог роботи';
       default: return '';
     }
@@ -609,6 +722,7 @@ export default function IntegrationPage() {
           {activeNav === 'general' && <GeneralSection project={project} onUpdate={setProject} />}
           {activeNav === 'team' && <TeamSection project={project} onUpdate={setProject} />}
           {activeNav === 'github' && <GithubSection project={project} onUpdate={setProject} />}
+          {activeNav === 'youtrack' && <YoutrackSection project={project} onUpdate={setProject} />}
           {activeNav === 'activity' && <ActivityTimeline logs={logs} />}
         </div>
       </div>

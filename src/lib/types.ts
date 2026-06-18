@@ -127,6 +127,7 @@ export interface Bug {
   description: string | null;
   tech_context: TechContext | null;
   github_issue_url: string | null;
+  youtrack_issue_url?: string | null;
   created_at: string;
 }
 
@@ -157,6 +158,9 @@ export interface Project {
   members: ProjectMember[];
   github_token: string | null;
   github_repo: string | null;
+  youtrack_url?: string | null;
+  youtrack_token?: string | null;
+  youtrack_project?: string | null;
   google_access_token?: string | null;
   google_refresh_token?: string | null;
   google_token_expiry?: string | null;

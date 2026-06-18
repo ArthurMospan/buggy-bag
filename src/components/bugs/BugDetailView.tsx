@@ -4,10 +4,15 @@ import { createPortal } from 'react-dom';
 import { Bug, BugStatus, BugSeverity, DrawShape, PinElementContext, Project, Annotation } from '@/lib/types';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
-import { ChevronDown, ChevronUp, Copy, Check, Maximize2, X, ArrowLeft, Monitor, Globe, Calendar, Terminal, Code2, ExternalLink, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, Check, Maximize2, X, ArrowLeft, Monitor, Globe, Calendar, Terminal, Code2, ExternalLink, Plus, Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { STATUS_CFG, SEVERITY_CFG } from '@/lib/constants';
+import { formatBugMarkdown } from '@/lib/markdownFormatter';
+
+const GithubIcon = ({ size = 16, className = '' }: { size?: number, className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+);
 
 function pinLabel(n: number): string {
   const mod10 = n % 10;
@@ -92,118 +97,8 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
 function useCopyMarkdown(bug: Bug) {
   const [copied, setCopied] = useState(false);
   const copy = useCallback(() => {
-    const tc = bug.tech_context;
-    
-    // Process description
-    let descSection = `## Bug Report\n\n`;
-    if (bug.description) {
-      const parts = bug.description.split('|').map(p => p.trim()).filter(Boolean);
-      if (parts.length > 1) {
-        descSection += parts.map((p, idx) => `${idx + 1}. ${p}`).join('\n');
-      } else {
-        descSection += bug.description;
-      }
-    } else {
-      descSection += "Без опису";
-    }
-
-    const lines = [
-      descSection, '',
-      `| | |`, `|---|---|`,
-      `| **Status** | ${STATUS_CFG.find(s => s.value === bug.status)?.label ?? bug.status} |`,
-      `| **Severity** | ${SEVERITY_CFG.find(s => s.value === (bug.severity ?? 'low'))?.label ?? bug.severity} |`,
-      `| **Route** | \`${tc?.route ?? '-'}\` |`,
-      `| **Viewport** | ${tc?.viewport ?? '-'} |`,
-    ];
-
-    if (tc?.component) {
-       lines.push(`| **Component** | \`${tc.component.name}\`${tc.component.filePath ? ` (\`${tc.component.filePath}${tc.component.lineNumber ? `:${tc.component.lineNumber}` : ''}\`)` : ''} |`);
-    }
-
-    lines.push(`| **Date** | ${format(new Date(bug.created_at), 'dd MMM yyyy, HH:mm', { locale: uk })} |`, '');
-
-    // Parse shapes & annotations
-    let rawAnns = bug.json_annotations;
-    if (typeof rawAnns === 'string') {
-      try { rawAnns = JSON.parse(rawAnns); } catch (e) { rawAnns = []; }
-    }
-    const annotations: Annotation[] = Array.isArray(rawAnns) ? rawAnns : [];
-
-    let rawShapes = bug.json_shapes;
-    if (typeof rawShapes === 'string') {
-      try { rawShapes = JSON.parse(rawShapes); } catch (e) { rawShapes = []; }
-    }
-    const shapes: DrawShape[] = Array.isArray(rawShapes) ? rawShapes : [];
-
-    const annotatedEntries = shapes
-      .map((s, idx) => ({ shape: s, idx }))
-      .filter(({ shape, idx }) =>
-        shape.type !== 'eraser' && !!(annotations[idx]?.text || shape.elementContext)
-      );
-
-    if (annotatedEntries.length > 0) {
-      lines.push('### Annotations');
-      annotatedEntries.forEach(({ shape, idx: shapeIdx }) => {
-        const ctx = shape.elementContext;
-        const ann = annotations[shapeIdx];
-        const pinNum = ann?.index ?? (shapeIdx + 1);
-        const note = ann?.text ? ` — "${ann.text}"` : '';
-        if (ctx?.selector) {
-          lines.push(`- **Pin #${pinNum}** on \`${ctx.selector}\`${note}`);
-          if (ctx.reactComponent?.filePath) {
-            lines.push(`  - Component: \`${ctx.reactComponent.name}\` in \`${ctx.reactComponent.filePath}${ctx.reactComponent.lineNumber ? `:${ctx.reactComponent.lineNumber}` : ''}\``);
-          } else if (ctx.reactComponent?.name) {
-             lines.push(`  - Component: \`${ctx.reactComponent.name}\``);
-          }
-          if (ctx.dataSources?.length) {
-            lines.push(`  - Data sources: \`${ctx.dataSources.join('`, `')}\``);
-          }
-        } else if (ann) {
-          lines.push(`- **Pin #${pinNum}** at ${ann.x}%×${ann.y}%${note}`);
-        } else {
-          lines.push(`- **Pin #${pinNum}**${note}`);
-        }
-      });
-      lines.push('');
-    }
-
-    if (tc?.eventLog?.length) {
-       lines.push('### Steps to reproduce');
-       tc.eventLog.forEach((e, i) => lines.push(`${i + 1}. ${e.description}`));
-       lines.push('');
-    }
-    
-    if (tc?.storeDiff && Object.keys(tc.storeDiff).length > 0) {
-       lines.push('### State changes');
-       Object.entries(tc.storeDiff).forEach(([key, { before, after }]) => {
-         lines.push(`- \`${key}\`: \`${JSON.stringify(before)}\` → \`${JSON.stringify(after)}\``);
-       });
-       lines.push('');
-    }
-
-    const consoleErrs = tc?.consoleErrors?.filter(e => e.level === 'error') ?? [];
-    if (consoleErrs.length > 0) {
-       lines.push('### Console Errors');
-       consoleErrs.forEach(e => lines.push(`- \`${e.message}${e.source ? ` [${e.source}]` : ''}\``));
-       lines.push('');
-    }
-
-    const netErrs = tc?.networkRequests?.filter(r => r.isError) ?? [];
-    if (netErrs.length > 0) {
-       lines.push('### Network Errors');
-       netErrs.forEach(r => {
-         lines.push(`- \`${r.method} ${r.url} → ${r.status || 'ERR'}\``);
-         if (r.requestBody) lines.push(`  - Request: \`${r.requestBody}\``);
-         if (r.responseBody) lines.push(`  - Response: \`${r.responseBody}\``);
-       });
-       lines.push('');
-    }
-
-    if (bug.image_url) {
-       lines.push(`### Screenshot`, `![Screenshot](${bug.image_url})`);
-    }
-
-    navigator.clipboard.writeText(lines.join('\n')).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    const markdown = formatBugMarkdown(bug);
+    navigator.clipboard.writeText(markdown).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   }, [bug]);
   return { copy, copied };
 }
@@ -227,6 +122,8 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
 
   const [issueUrl,  setIssueUrl]  = useState<string | null>(null);
   const [isPushing, setIsPushing] = useState(false);
+  const [ytIssueUrl,  setYtIssueUrl]  = useState<string | null>(null);
+  const [isPushingYt, setIsPushingYt] = useState(false);
   const [activePin, setActivePin] = useState<number | null>(null);
 
   useEffect(() => {
@@ -241,6 +138,7 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
       }
       setSeverity(initialSev ?? '1');
       setIssueUrl(bug.github_issue_url ?? null);
+      setYtIssueUrl(bug.youtrack_issue_url ?? null);
     }
   }, [bug?.id, bug?.status, bug?.severity, bug?.github_issue_url]);
 
@@ -301,6 +199,25 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
       alert('Помилка при створенні Issue');
     } finally {
       setIsPushing(false);
+    }
+  };
+
+  const pushToYoutrack = async () => {
+    setIsPushingYt(true);
+    try {
+      const res = await fetch(`/api/bugs/${bug.id}/youtrack`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setYtIssueUrl(data.url);
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Помилка інтеграції з YouTrack');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Помилка при створенні Issue в YouTrack');
+    } finally {
+      setIsPushingYt(false);
     }
   };
 
@@ -416,6 +333,31 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
           </div>
           
           <div className="flex items-center gap-[12px]">
+            {project?.youtrack_url && project?.youtrack_token && project?.youtrack_project && (
+              ytIssueUrl ? (
+                <a
+                  href={ytIssueUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Переглянути в YouTrack"
+                  className="flex items-center gap-[8px] px-[16px] h-[36px] rounded-[8px] text-[13px] font-bold transition-all bg-[#f0f4ff] text-[#4F46E5] hover:bg-[#e0e7ff]"
+                >
+                  <img src="/icons/YouTrack_icon.svg" alt="YouTrack" width="16" height="16" />
+                  <span>YouTrack Issue</span>
+                  <ExternalLink size={14} className="opacity-60" />
+                </a>
+              ) : (
+                <button
+                  onClick={pushToYoutrack}
+                  disabled={isPushingYt}
+                  className="flex items-center gap-[8px] px-[16px] h-[36px] rounded-[8px] text-[13px] font-bold transition-all bg-[#f4f4f5] text-[#1f1f1f] hover:bg-[#e9e9e9] disabled:opacity-40"
+                >
+                  <img src="/icons/YouTrack_icon.svg" alt="YouTrack" width="16" height="16" className="grayscale" />
+                  <span>{isPushingYt ? 'Створюємо...' : 'YouTrack Issue'}</span>
+                </button>
+              )
+            )}
+
             {project?.github_repo && (
               issueUrl ? (
                 <a
@@ -423,19 +365,19 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
                   target="_blank"
                   rel="noreferrer"
                   title="Переглянути на GitHub"
-                  className="flex items-center gap-[8px] px-[16px] h-[36px] rounded-[8px] text-[13px] font-medium transition-all bg-white text-[#1f1f1f] hover:bg-[#f4f4f5] shadow-sm border border-[#e9e9e9]"
+                  className="flex items-center gap-[8px] px-[16px] h-[36px] rounded-[8px] text-[13px] font-bold transition-all bg-[#f0f4ff] text-[#4F46E5] hover:bg-[#e0e7ff]"
                 >
-                  <Code2 size={16} />
-                  <span>Відкрити Issue</span>
+                  <GithubIcon size={16} />
+                  <span>Github Issue</span>
                   <ExternalLink size={14} className="opacity-60" />
                 </a>
               ) : (
                 <button
                   onClick={pushToGithub}
                   disabled={isPushing}
-                  className="flex items-center gap-[8px] px-[16px] h-[36px] rounded-[8px] text-[13px] font-medium transition-all bg-white text-[#1f1f1f] hover:bg-[#f4f4f5] shadow-sm border border-[#e9e9e9] disabled:opacity-40"
+                  className="flex items-center gap-[8px] px-[16px] h-[36px] rounded-[8px] text-[13px] font-bold transition-all bg-[#f4f4f5] text-[#1f1f1f] hover:bg-[#e9e9e9] disabled:opacity-40"
                 >
-                  <Plus size={16} />
+                  <GithubIcon size={16} />
                   <span>{isPushing ? 'Створюємо...' : 'Github Issue'}</span>
                 </button>
               )

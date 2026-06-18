@@ -38,6 +38,7 @@ export async function GET() {
 
     const projects = (data ?? []).map((p: any) => {
       if (p.github_token) p.github_token = 'ghp_***';
+      if (p.youtrack_token) p.youtrack_token = 'perm:***';
       return p;
     });
 
@@ -75,6 +76,9 @@ export async function POST(req: NextRequest) {
 
     if (data?.github_token) {
       data.github_token = 'ghp_***';
+    }
+    if (data?.youtrack_token) {
+      data.youtrack_token = 'perm:***';
     }
 
     return NextResponse.json({ project: data }, { status: 201 });
@@ -117,11 +121,11 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json() as { id: string; is_active?: boolean; name?: string; regenerate_api_key?: boolean; github_repo?: string; github_token?: string; widget_password?: string };
-    const { id, is_active, name, regenerate_api_key, github_repo, github_token, widget_password } = body;
+    const body = await req.json() as { id: string; is_active?: boolean; name?: string; regenerate_api_key?: boolean; github_repo?: string; github_token?: string; widget_password?: string; youtrack_url?: string; youtrack_token?: string; youtrack_project?: string };
+    const { id, is_active, name, regenerate_api_key, github_repo, github_token, widget_password, youtrack_url, youtrack_token, youtrack_project } = body;
     if (!id) return NextResponse.json({ error: 'Project id is required' }, { status: 400 });
 
-    const updateData: { is_active?: boolean; name?: string; api_key?: string; github_repo?: string; github_token?: string | null; widget_password?: string | null } = {};
+    const updateData: { is_active?: boolean; name?: string; api_key?: string; github_repo?: string; github_token?: string | null; widget_password?: string | null; youtrack_url?: string | null; youtrack_token?: string | null; youtrack_project?: string | null } = {};
     if (typeof is_active === 'boolean') updateData.is_active = is_active;
     if (name?.trim()) updateData.name = name.trim();
     if (regenerate_api_key) updateData.api_key = crypto.randomUUID();
@@ -129,6 +133,11 @@ export async function PATCH(req: NextRequest) {
     if (widget_password !== undefined) updateData.widget_password = widget_password ? widget_password.trim() : null;
     if (github_token !== undefined) {
       updateData.github_token = github_token ? encrypt(github_token) : null;
+    }
+    if (youtrack_url !== undefined) updateData.youtrack_url = youtrack_url;
+    if (youtrack_project !== undefined) updateData.youtrack_project = youtrack_project;
+    if (youtrack_token !== undefined) {
+      updateData.youtrack_token = youtrack_token ? encrypt(youtrack_token) : null;
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -153,6 +162,9 @@ export async function PATCH(req: NextRequest) {
     }
     if (data?.github_token) {
       data.github_token = 'ghp_***';
+    }
+    if (data?.youtrack_token) {
+      data.youtrack_token = 'perm:***';
     }
 
     return NextResponse.json({ project: data });

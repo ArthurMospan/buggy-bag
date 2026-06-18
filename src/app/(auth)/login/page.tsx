@@ -15,6 +15,9 @@ function GitHubIcon() {
   );
 }
 
+import Image from 'next/image';
+import logoWhite from '../../../../public/bug-logo-white.svg';
+
 function LoginForm() {
   const router        = useRouter();
   const searchParams  = useSearchParams();
@@ -70,81 +73,82 @@ function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-[400px] flex flex-col gap-[28px]">
-      {/* Logo */}
-      <div className="flex items-center justify-center gap-[10px]">
-        <div className="w-[36px] h-[36px] bg-[#6366f1] rounded-[10px] flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.3)]">
-          <Bug size={18} className="text-white" />
+    <div className="w-full max-w-sm animate-fade-in-up">
+      {/* Logo / Brand */}
+      <div className="text-center mb-10">
+        <div className="inline-flex items-center justify-center mb-6">
+          <Image src={logoWhite} alt="BuggyBag" width={80} height={80} className="w-20 h-20" />
         </div>
-        <span className="text-[20px] font-bold text-white tracking-tight">BuggyBag</span>
+        <h1 className="text-2xl font-semibold text-white tracking-tight">
+          Вхід в систему
+        </h1>
+        <p className="mt-2 text-sm text-white/70">
+          Платформа для трекінгу багів
+        </p>
       </div>
 
-      {/* Card */}
-      <div className="bg-[#18181c] rounded-[20px] border border-[#2a2a32] p-[28px] flex flex-col gap-[20px] shadow-[0_24px_60px_rgba(0,0,0,0.6)]">
-        <h1 className="text-[18px] font-bold text-white">Увійти</h1>
-
+      <div className="flex flex-col items-center animate-fade-in-up gap-4">
         {/* GitHub OAuth */}
         <button
           onClick={handleGitHub}
           disabled={ghLoading || loading}
-          className="flex items-center justify-center gap-[10px] w-full px-[16px] py-[11px] bg-[#23232b] hover:bg-[#2e2e38] active:bg-[#2c2c35] text-white text-[14px] font-semibold rounded-[10px] transition-colors disabled:opacity-50 border border-[#36363f]"
+          className="w-full flex items-center justify-center gap-3 rounded-full bg-white px-6 py-3 text-sm font-semibold text-gray-900 transition-all hover:bg-gray-100 active:scale-[0.98] focus-ring cursor-pointer shadow-sm"
         >
           <GitHubIcon />
-          {ghLoading ? 'Перенаправлення...' : 'Продовжити з GitHub'}
+          {ghLoading ? 'Перенаправлення...' : 'Увійти через GitHub'}
         </button>
 
-        {/* Divider */}
-        <div className="flex items-center gap-[12px]">
-          <div className="flex-1 h-px bg-[#2a2a32]" />
-          <span className="text-[12px] font-medium text-[#9696b0]">або</span>
-          <div className="flex-1 h-px bg-[#2a2a32]" />
+        <div className="flex items-center gap-3 w-full my-2">
+          <div className="flex-1 h-px bg-white/10" />
+          <span className="text-[12px] font-medium text-white/40">або з Email</span>
+          <div className="flex-1 h-px bg-white/10" />
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-[14px]">
-          <div>
-            <label className="text-[11px] font-semibold text-[#9696b0] uppercase tracking-widest block mb-[8px]">
-              Email
-            </label>
-            <Input
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
+          <input
+            type="email"
+            placeholder="Email адреса"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-center text-white text-base font-medium outline-none focus:border-white/40 focus:bg-white/10 transition-all placeholder:text-white/30"
+          />
 
-          <div>
-            <label className="text-[11px] font-semibold text-[#9696b0] uppercase tracking-widest block mb-[8px]">
-              Пароль
-            </label>
-            <Input
-              type="password"
-              placeholder="Ваш пароль"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </div>
+          <input
+            type="password"
+            placeholder="Ваш пароль"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+            className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-center text-white text-base font-medium outline-none focus:border-white/40 focus:bg-white/10 transition-all placeholder:text-white/30"
+          />
 
           {error && (
-            <p className="text-[12px] font-medium text-[#f87171] bg-[#2d1515] border border-[#5c2020]/50 px-[12px] py-[10px] rounded-[10px]">
+            <p className="text-[12px] font-medium text-[#f87171] text-center mt-1">
               {error}
             </p>
           )}
 
-          <Button type="submit" style="primary" size="lg" loading={loading} className="w-full">
-            {loading ? 'Входимо...' : 'Увійти з Email'}
-          </Button>
+          <button
+            type="submit"
+            disabled={loading || ghLoading}
+            className="w-full flex items-center justify-center gap-3 rounded-full bg-white/10 px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-white/20 active:scale-[0.98] border border-white/10 focus-ring cursor-pointer shadow-sm mt-2"
+          >
+            {loading ? 'Входимо...' : 'Увійти'}
+          </button>
         </form>
 
-        <p className="text-center text-[13px] text-[#9696b0]">
+        <p className="mt-4 text-center text-[13px] text-white/60">
           Немає акаунту?{' '}
-          <Link href="/register" className="text-[#818cf8] font-semibold hover:text-[#a5b4fc] transition-colors">
+          <Link href="/register" className="text-white font-semibold hover:text-white/80 transition-colors">
             Зареєструватися
           </Link>
+        </p>
+
+        <p className="mt-6 text-center text-xs text-white/40">
+          Продовжуючи, ви погоджуєтесь з умовами використання.
         </p>
       </div>
     </div>
