@@ -174,7 +174,7 @@ export default function ProjectSidebar() {
     const sev = (b.severity as string)?.toLowerCase() || '';
     const idStr = b.id.toLowerCase();
     const statusStr = b.status?.toLowerCase() || '';
-    const file = b.tech_context?.file_path?.toLowerCase() || '';
+    const file = b.tech_context?.component?.filePath?.toLowerCase() || '';
     return desc.includes(q) || route.includes(q) || comp.includes(q) || sev.includes(q) || idStr.includes(q) || statusStr.includes(q) || file.includes(q);
   }).sort((a, b) => {
     if (a.status === 'open' && b.status !== 'open') return -1;
@@ -246,20 +246,17 @@ export default function ProjectSidebar() {
 
       {/* ── New Bugs Header ── */}
       <div className="px-[24px] pb-[16px] shrink-0 bg-[#ffffff] relative z-20">
-        <div className="bg-[#f4f4f5] flex items-center justify-between h-[36px] px-[4px] py-[4px] rounded-[10px] w-full relative">
+        <div className="bg-[#f4f4f5] flex items-center h-[36px] px-[4px] py-[4px] rounded-full w-full relative transition-all">
           
-          {/* Absolute Search Toggle (expands full width from left) */}
-          <div className={`absolute left-[4px] flex items-center group/search justify-start h-[28px] transition-all duration-300 pointer-events-auto ${searchQuery ? 'w-[calc(100%-8px)] z-20' : 'w-[28px] z-10 focus-within:w-[calc(100%-8px)] focus-within:z-20'}`}>
+          <div className="flex items-center flex-1 h-[28px] relative transition-all">
             <input 
               type="text" 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className={`w-full outline-none h-[28px] rounded-[8px] text-[12px] pl-[28px] transition-all border border-transparent focus:border-[#e9e9e9] text-[#1f1f1f] bg-white placeholder:text-transparent focus:placeholder:text-[#9ca3af] ${
-                searchQuery ? 'pr-[24px] placeholder:text-[#9ca3af] border-[#e9e9e9]' : 'pr-0 focus:pr-[24px]'
-              }`}
-              placeholder="Детальний пошук багів..."
+              className="w-full outline-none h-full rounded-full text-[12px] pl-[28px] pr-[24px] border-none text-[#1f1f1f] bg-transparent transition-all placeholder:text-[#9a9a9a]"
+              placeholder="Пошук..."
             />
-            <div className="absolute left-[0px] w-[28px] h-[28px] flex items-center justify-center pointer-events-none text-[#1f1f1f]">
+            <div className="absolute left-[0px] w-[28px] h-[28px] flex items-center justify-center pointer-events-none text-[#9a9a9a]">
               <Search size={14} />
             </div>
             {searchQuery && (
@@ -272,28 +269,23 @@ export default function ProjectSidebar() {
             )}
           </div>
 
-          <div className="flex items-center gap-[8px] flex-1">
-            {/* Spacer for Search */}
-            <div className="w-[28px] h-[28px] shrink-0" />
-            <div className="flex-1" />
-          </div>
-
-          {/* Select all button */}
-          <button 
-            onClick={selectedBugIds.size > 0 ? clearSelectedBugs : () => selectAllBugs(filteredBugs.map(b => b.id))}
-            className={`transition-colors flex items-center gap-[10px] h-[28px] px-[8px] py-[4px] rounded-[8px] shrink-0 z-10 border ${
-              selectedBugIds.size > 0 ? 'bg-[#4F46E5] border-[#4F46E5] hover:bg-[#4338ca] text-white' : 'bg-white border-[#e9e9e9] hover:bg-[#f4f4f5] text-[#1f1f1f]'
-            }`}
-          >
-            <span className="text-[13px] font-normal">
-              {selectedBugIds.size > 0 ? 'Зняти всі' : 'Обрати всі'}
-            </span>
-            <div className={`flex items-center justify-center rounded-[50px] min-w-[16px] h-[16px] px-[4px] ${selectedBugIds.size > 0 ? 'bg-white/20' : 'bg-[#f4f4f5]'}`}>
-              <span className={`text-[11px] font-medium leading-none ${selectedBugIds.size > 0 ? 'text-white' : 'text-[#9a9a9a]'}`}>
-                {selectedBugIds.size > 0 ? selectedBugIds.size : filteredBugs.length}
+          {!searchQuery && (
+            <button 
+              onClick={selectedBugIds.size > 0 ? clearSelectedBugs : () => selectAllBugs(filteredBugs.map(b => b.id))}
+              className={`transition-colors flex items-center gap-[10px] h-[28px] px-[8px] py-[4px] rounded-full shrink-0 z-10 border-none ml-[4px] ${
+                selectedBugIds.size > 0 ? 'bg-[#4F46E5] hover:bg-[#4338ca] text-white' : 'bg-transparent hover:bg-[#e9e9e9] text-[#9a9a9a]'
+              }`}
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wider">
+                {selectedBugIds.size > 0 ? 'Зняти всі' : 'Обрати всі'}
               </span>
-            </div>
-          </button>
+              <div className={`flex items-center justify-center rounded-[2px] min-w-[16px] h-[16px] px-[4px] ${selectedBugIds.size > 0 ? 'bg-white/20' : 'bg-[#e9e9e9]'}`}>
+                <span className={`text-[11px] font-medium leading-none ${selectedBugIds.size > 0 ? 'text-white' : 'text-[#9a9a9a]'}`}>
+                  {selectedBugIds.size > 0 ? selectedBugIds.size : filteredBugs.length}
+                </span>
+              </div>
+            </button>
+          )}
         </div>
       </div>
 
