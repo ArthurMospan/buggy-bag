@@ -38,20 +38,32 @@ export default function ProjectDashboardPage() {
     if (selectedBugIds.size === 0) return;
     const ids = Array.from(selectedBugIds);
 
-    if (action === 'delete') {
-      if (!confirm(`Ви дійсно хочете видалити ${ids.length} багів?`)) return;
-      await fetch('/api/bugs', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
-    } else if (action === 'status') {
-      await fetch('/api/bugs', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, status: value }) });
-    } else if (action === 'severity') {
-      await fetch('/api/bugs', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, severity: value }) });
+    try {
+      let res;
+      if (action === 'delete') {
+        if (!confirm(`Ви дійсно хочете видалити ${ids.length} багів?`)) return;
+        res = await fetch('/api/bugs', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
+      } else if (action === 'status') {
+        res = await fetch('/api/bugs', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, status: value }) });
+      } else if (action === 'severity') {
+        res = await fetch('/api/bugs', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, severity: value }) });
+      }
+
+      if (res && !res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+        alert(`Помилка: ${err.error || res.statusText}`);
+        return;
+      }
+    } catch (err: any) {
+      alert(`Помилка: ${err.message}`);
+      return;
     }
 
     clearSelectedBugs();
     triggerRefresh();
   };
 
-  if (loading) return null;
+  if (loading) return <div className="h-full w-full bg-[#ffffff] rounded-r-[24px]" />;
 
   if (project && !project.connected_domain && bugs.length === 0) {
     return (
@@ -65,7 +77,7 @@ export default function ProjectDashboardPage() {
 
   if (selectedBugIds.size > 0) {
     return (
-      <div className="h-full w-full bg-[#ffffff]">
+      <div className="h-full w-full bg-[#2a2a2a] rounded-r-[24px] overflow-hidden">
         <PromptGenerator
           bugs={bugs}
           selectedIds={selectedBugIds}

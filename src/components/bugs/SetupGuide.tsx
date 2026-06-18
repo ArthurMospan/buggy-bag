@@ -25,11 +25,12 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
   );
 }
 
-export default function SetupGuide({ apiKey }: { apiKey: string }) {
+export default function SetupGuide({ apiKey, widgetPassword }: { apiKey: string, widgetPassword?: string | null }) {
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://your-portal.com';
   const scriptCode = `<!-- Додайте цей скрипт перед </body> -->\n<script\n  src="${origin}/buggy-bag-standalone.js"\n  data-api-key="${apiKey}"\n  data-portal-url="${origin}"\n  async\n></script>`;
   const nextJsCode = `import Script from 'next/script';\n\nexport default function RootLayout({ children }) {\n  return (\n    <html lang="en">\n      <body>\n        {children}\n        <Script\n          src="${origin}/buggy-bag-standalone.js"\n          strategy="afterInteractive"\n          data-api-key="${apiKey}"\n          data-portal-url="${origin}"\n        />\n      </body>\n    </html>\n  );\n}`;
-  const bookmarkletCode = `javascript:(function(){localStorage.setItem('BUGGY_BAG_ACCESS','active');location.reload();})();`;
+  const param = widgetPassword || 'on';
+  const bookmarkletCode = `javascript:(function(){localStorage.setItem('BUGGY_BAG_ACCESS','active');location.href=location.pathname+'?bb=${encodeURIComponent(param)}';})();`;
 
   const [copiedUrl, setCopiedUrl] = useState(false);
 
@@ -76,10 +77,10 @@ export default function SetupGuide({ apiKey }: { apiKey: string }) {
               <div className="flex-1">
                 <p className="text-[13px] font-medium text-[#1f1f1f] mb-[6px]">Додайте параметр до URL вашого сайту</p>
                 <div className="flex items-center gap-[8px]">
-                  <code className="text-[13px] font-mono font-bold text-[#4F46E5] bg-[#f0f4ff] px-[10px] py-[6px] rounded-[6px]">?bb=on</code>
+                  <code className="text-[13px] font-mono font-bold text-[#4F46E5] bg-[#f0f4ff] px-[10px] py-[6px] rounded-[6px]">?bb={param}</code>
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText('?bb=on');
+                      navigator.clipboard.writeText(`?bb=${param}`);
                       setCopiedUrl(true);
                       setTimeout(() => setCopiedUrl(false), 2000);
                     }}

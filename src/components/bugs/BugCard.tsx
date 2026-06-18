@@ -4,26 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { Check } from 'lucide-react';
 
-const STATUS_DOT: Record<BugStatus, string> = {
-  open:        '#71717a',
-  in_progress: '#fb923c',
-  resolved:    '#34d399',
-  closed:      '#71717a',
-};
-
-const STATUS_LABEL: Record<BugStatus, string> = {
-  open:        'Новий',
-  in_progress: 'В роботі',
-  resolved:    'Виправлено',
-  closed:      'Закрито',
-};
-
-const SEV_COLOR: Record<BugSeverity, string> = {
-  critical: '#dc2626',
-  high:     '#f97316',
-  medium:   '#f59e0b',
-  low:      '#9a9a9a',
-};
+import { STATUS_CFG, SEVERITY_CFG } from '@/lib/constants';
 
 interface BugCardProps {
   bug: Bug;
@@ -34,7 +15,9 @@ interface BugCardProps {
 
 export default function BugCard({ bug, selected, onClick, onSelect }: BugCardProps) {
   const timeAgo = formatDistanceToNow(new Date(bug.created_at), { addSuffix: true, locale: uk });
-  const sev = bug.severity ?? 'low';
+  const sev = bug.severity ?? '1';
+  const statusCfg = STATUS_CFG.find(s => s.value === bug.status) || STATUS_CFG[0];
+  const sevCfg = SEVERITY_CFG.find(s => s.value === sev) || SEVERITY_CFG[0];
 
   return (
     <div
@@ -68,17 +51,17 @@ export default function BugCard({ bug, selected, onClick, onSelect }: BugCardPro
             <span className="text-[11px] font-medium text-[#9a9a9a]">Без скріншота</span>
           </div>
         )}
-        <div className="absolute bottom-[8px] right-[8px] text-white text-[9px] font-bold px-[7px] py-[2px] rounded-full"
-          style={{ background: SEV_COLOR[sev] }}>
-          {sev}
+        <div className="absolute bottom-[8px] right-[8px] text-white text-[10px] font-bold px-[7px] py-[2px] rounded-full"
+          style={{ background: sevCfg.color }}>
+          {sevCfg.label}
         </div>
       </div>
 
       <div className="p-[14px] flex flex-col gap-[6px] flex-1">
         <div className="flex items-center gap-[6px]">
-          <div className="w-[8px] h-[8px] rounded-full shrink-0" style={{ background: STATUS_DOT[bug.status] }} />
-          <span className="text-[12px] font-semibold" style={{ color: STATUS_DOT[bug.status] }}>
-            {STATUS_LABEL[bug.status]}
+          <div className="w-[8px] h-[8px] rounded-full shrink-0" style={{ background: statusCfg.color }} />
+          <span className="text-[12px] font-semibold" style={{ color: statusCfg.color }}>
+            {statusCfg.label}
           </span>
           <span className="text-[11px] text-[#9a9a9a] ml-auto">{timeAgo}</span>
         </div>

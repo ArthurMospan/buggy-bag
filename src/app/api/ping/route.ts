@@ -13,13 +13,13 @@ export async function OPTIONS() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { api_key, favicon_url, favicon_color } = await req.json();
+    const { api_key, favicon_url, favicon_color, bb_param } = await req.json();
     if (!api_key) return NextResponse.json({ error: 'api_key required' }, { status: 400, headers: CORS });
 
     const supabase = createServiceClient();
     const { data: project } = await supabase
       .from('projects')
-      .select('id, name, is_active, last_seen_at, connected_domain, favicon_url')
+      .select('id, name, is_active, last_seen_at, connected_domain, favicon_url, widget_password')
       .eq('api_key', api_key)
       .single();
 
@@ -33,9 +33,7 @@ export async function POST(req: NextRequest) {
     if (domain && domain !== project.connected_domain) {
       updates.connected_domain = domain;
     }
-    // Widget reads its own favicon from the DOM and reports it here — this is
-    // the only reliable path for localhost/private dev domains, since the
-    // portal server can never reach those itself.
+    // Widget reads its own favicon from the DOM and reports it here
     if (typeof favicon_url === 'string' && favicon_url) {
       updates.favicon_url = favicon_url.slice(0, 2048);
     }
@@ -55,7 +53,22 @@ export async function POST(req: NextRequest) {
       }).then();
     }
 
-    return NextResponse.json({ ok: true, project: project.name, is_active: project.is_active, last_seen_at: project.last_seen_at }, { status: 200, headers: CORS });
+    // Check if widget launch parameter matches
+    let grant_access = false;
+    if (bb_param) {
+      const requiredPassword = project.widget_password || 'on';
+      if (bb_param === requiredPassword) {
+        grant_access = true;
+      }
+    }
+
+    return NextResponse.json({ 
+      ok: true, 
+      project: project.name, 
+      is_active: project.is_active, 
+      last_seen_at: project.last_seen_at,
+      grant_access 
+    }, { status: 200, headers: CORS });
   } catch {
     return NextResponse.json({ error: 'Server error' }, { status: 500, headers: CORS });
   }

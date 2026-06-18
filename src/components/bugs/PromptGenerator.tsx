@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Bug, BugStatus, BugSeverity, TechContext } from '@/lib/types';
-import { Sparkles, Copy, Check, Code, Terminal, MessageSquare, Bot, Trash2 } from 'lucide-react';
+import { STATUS_CFG, SEVERITY_CFG } from '@/lib/constants';
+import { Sparkles, Copy, Check, Code, Terminal, MessageSquare, Bot, Trash2, ChevronDown } from 'lucide-react';
 
 interface PromptGeneratorProps {
   bugs: Bug[];
@@ -20,10 +21,12 @@ const TEMPLATES: { id: TemplateId; label: string; icon: (selected: boolean) => R
   { id: 'github',      label: 'GitHub Issue', icon: (s) => <GithubLogo color={s ? '#1f1f1f' : 'currentColor'} /> },
 ];
 
-const SEV_ORDER: Record<BugSeverity, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-
 function sortBySev(bugs: Bug[]): Bug[] {
-  return [...bugs].sort((a, b) => (SEV_ORDER[a.severity ?? 'low'] ?? 3) - (SEV_ORDER[b.severity ?? 'low'] ?? 3));
+  return [...bugs].sort((a, b) => {
+    const sevA = parseInt(a.severity as string) || 1;
+    const sevB = parseInt(b.severity as string) || 1;
+    return sevB - sevA; // highest priority first
+  });
 }
 
 // ── Quality Score 2.0 ────────────────────────────────────────────────────────
@@ -176,7 +179,7 @@ function formatGitHub(bugs: Bug[]): string {
   const sorted = sortBySev(bugs);
   return sorted.map((bug, i) => {
     const tc = bug.tech_context;
-    const sev = (bug.severity ?? 'low').toUpperCase();
+    const sev = bug.severity ?? '1';
     const allShapes = bug.json_shapes ?? [];
     // All annotated non-eraser shapes — pins, rects, arrows, measures
     const annotatedEntries = allShapes
@@ -294,8 +297,8 @@ function formatAntigravity(bugs: Bug[]): string {
     `## Bugs (${sorted.length})`, '',
   ];
   sorted.forEach((bug, i) => {
-    const sev = bug.severity ?? 'low';
-    lines.push(`### Bug ${i + 1} [${sev.toUpperCase()}]`);
+    const sev = bug.severity ?? '1';
+    lines.push(`### Bug ${i + 1} [${sev}]`);
     if (bug.description) {
       const parts = bug.description.split('|').map(p => p.trim()).filter(Boolean);
       if (parts.length > 1) {
@@ -324,7 +327,7 @@ function formatCursor(bugs: Bug[]): string {
     ''
   ];
   sorted.forEach((bug, i) => {
-    lines.push(`--- Bug ${i + 1}/${sorted.length} [${bug.severity ?? 'low'}] ---`);
+    lines.push(`--- Bug ${i + 1}/${sorted.length} [${bug.severity ?? '1'}] ---`);
     if (bug.description) {
       const parts = bug.description.split('|').map(p => p.trim()).filter(Boolean);
       if (parts.length > 1) {
@@ -382,7 +385,7 @@ function formatClaude(bugs: Bug[]): string {
     '</rules>', '', '<bugs>',
   ];
   sorted.forEach((bug, i) => {
-    lines.push(`<bug index="${i + 1}" severity="${bug.severity ?? 'low'}">`);
+    lines.push(`<bug index="${i + 1}" severity="${bug.severity ?? '1'}">`);
     if (bug.description) {
       const parts = bug.description.split('|').map(p => p.trim()).filter(Boolean);
       if (parts.length > 1) {
@@ -449,10 +452,6 @@ const FORMATTERS: Record<TemplateId, (bugs: Bug[]) => string> = {
 
 // ── UI helpers ───────────────────────────────────────────────────────────────
 
-const STATUS_LABEL: Record<string, string> = {
-  open: 'Новий', in_progress: 'В роботі', resolved: 'Виправлено', closed: 'Закрито',
-};
-
 const TOOL_OPTIONS: { id: TemplateId; label: string; desc: string }[] = [
   { id: 'antigravity', label: 'Antigravity',   desc: 'Агент виправляє баги по черзі' },
   { id: 'claude',      label: 'Claude Code',   desc: 'Claude у терміналі' },
@@ -471,19 +470,19 @@ function QualityBar({ score, hint, factors }: { score: number; hint: string; fac
     <div className="relative">
       <button
         onClick={() => setShowDetails(v => !v)}
-        className="flex items-center gap-[8px] hover:opacity-80 transition-opacity cursor-pointer"
+        className={`flex items-center gap-[8px] px-[12px] py-[6px] rounded-[10px] transition-colors cursor-pointer border ${showDetails ? 'bg-[#f4f4f5] border-[#d4d4d8]' : 'bg-white border-[#e9e9e9] hover:bg-[#f4f4f5]'}`}
         title="Деталі якості промпту"
       >
-        <div className="w-[60px] h-[3px] bg-[#e9e9e9] rounded-full overflow-hidden">
-          <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, background: color }} />
+        <span className="text-[12px] font-medium text-[#5d5d5d]">Якість промпту:</span>
+        <div className="flex items-center gap-[6px]">
+          <span className="text-[12px] font-bold" style={{ color }}>{score}/100</span>
+          {hint && <span className="text-[10px] font-semibold px-[6px] py-[2px] rounded-[6px] bg-[#f97316]/10 text-[#f97316] leading-none">{hint}</span>}
         </div>
-        <span className="text-[11px] font-bold" style={{ color }}>{score}/100</span>
-        {hint && <span className="text-[10px] text-[#f97316]">{hint}</span>}
       </button>
 
       {showDetails && (
-        <div className="absolute right-0 top-[22px] z-10 bg-[#ffffff] border border-[#e9e9e9] rounded-[12px] shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-[12px] w-[220px]">
-          <div className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[8px]">Quality Score 2.0</div>
+        <div className="absolute right-0 top-[calc(100%+8px)] z-[100] bg-[#ffffff] border border-[#e9e9e9] rounded-[16px] shadow-[0_20px_40px_rgba(0,0,0,0.12)] p-[16px] w-[260px] animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+          <div className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[12px]">Аналіз контексту</div>
           {factors.map(f => (
             <div key={f.label} className="flex items-center justify-between py-[3px]">
               <span className="text-[11px] text-[#1f1f1f]">{f.label}</span>
@@ -492,11 +491,62 @@ function QualityBar({ score, hint, factors }: { score: number; hint: string; fac
               </span>
             </div>
           ))}
-          <div className="h-[1px] bg-[#e9e9e9] my-[6px]" />
+          <div className="h-[1px] bg-[#e9e9e9] my-[8px]" />
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-[#1f1f1f]">Total</span>
+            <span className="text-[11px] font-bold text-[#1f1f1f]">Загальний бал</span>
             <span className="text-[11px] font-bold" style={{ color }}>{score}/100</span>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Dropdown Helper ──────────────────────────────────────────────────────────
+
+function ActionDropdown({ 
+  label, 
+  options, 
+  onSelect 
+}: { 
+  label: React.ReactNode; 
+  options: { value: string, label: string }[]; 
+  onSelect: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button 
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-[6px] text-[12px] font-semibold text-[#5d5d5d] hover:text-[#1f1f1f] hover:bg-black/5 px-[8px] py-[4px] rounded-[6px] transition-colors cursor-pointer"
+      >
+        {label}
+        <ChevronDown size={14} className={`transition-transform text-[#9a9a9a] ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute top-[calc(100%+4px)] left-0 z-[100] min-w-[140px] bg-white border border-[#e9e9e9] rounded-[12px] shadow-[0_10px_30px_rgba(0,0,0,0.08)] py-[6px] animate-in fade-in zoom-in-95 duration-200">
+          {options.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => { onSelect(opt.value); setOpen(false); }}
+              className="w-full text-left px-[12px] py-[8px] text-[12px] font-medium text-[#1f1f1f] hover:bg-[#f4f4f5] transition-colors cursor-pointer"
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -520,12 +570,55 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#ffffff]">
+    <div className="flex flex-col h-full bg-[#2a2a2a] rounded-r-[24px] overflow-hidden clip-rounded">
         <div className="flex flex-1 overflow-hidden">
           {/* Main prompt area */}
-          <div className="flex-1 flex flex-col min-w-0 bg-[#ffffff]">
+          <div className="flex-1 flex flex-col min-w-0 bg-transparent rounded-br-[24px] overflow-hidden">
+            {/* Bulk Actions Toolbar */}
+            {selected.length > 0 && onBulkAction && (
+              <div className="flex items-center justify-between px-[32px] py-[12px] bg-[#ffffff] border-b border-[#e9e9e9]">
+                <div className="flex items-center bg-[#f4f4f5] rounded-[10px] p-[4px]">
+                  <div className="px-[8px] flex items-center gap-[6px]">
+                    <span className="text-[12px] font-medium text-[#9a9a9a]">Вибрано:</span>
+                    <span className="text-[12px] font-bold text-[#1f1f1f] bg-white px-[6px] py-[2px] rounded-[6px] shadow-sm">{selected.length}</span>
+                  </div>
+                  
+                  <div className="w-[1px] h-[16px] bg-[#d4d4d8] mx-[4px]" />
+                  
+                  <ActionDropdown
+                    label="Статус"
+                    options={STATUS_CFG}
+                    onSelect={(v) => onBulkAction('status', v)}
+                  />
+                  
+                  <div className="w-[1px] h-[16px] bg-[#d4d4d8] mx-[4px]" />
+                  
+                  <ActionDropdown
+                    label="Пріоритет"
+                    options={SEVERITY_CFG}
+                    onSelect={(v) => onBulkAction('severity', v)}
+                  />
+                  
+                  <div className="w-[1px] h-[16px] bg-[#d4d4d8] mx-[4px]" />
+                  
+                  <button 
+                    onClick={() => onBulkAction('delete')} 
+                    className="flex items-center gap-[4px] text-[12px] font-semibold text-red-500/80 hover:text-red-500 hover:bg-red-500/10 px-[8px] py-[4px] rounded-[6px] transition-colors cursor-pointer" 
+                    title="Видалити вибрані"
+                  >
+                    <Trash2 size={14} />
+                    Видалити
+                  </button>
+                </div>
+                
+                <div className="ml-auto">
+                  <QualityBar score={score} hint={hint} factors={factors} />
+                </div>
+              </div>
+            )}
+
             {/* Template tabs + quality */}
-            <div className="h-[52px] flex items-center gap-[24px] px-[32px] border-b border-[#e9e9e9] overflow-x-auto bg-[#ffffff] shrink-0">
+            <div className="h-[52px] flex items-center gap-[24px] px-[32px] border-b border-[#e9e9e9] bg-[#ffffff] shrink-0 relative z-20">
               {TEMPLATES.map(t => (
                 <button key={t.id} onClick={() => setTemplate(t.id)}
                   className={`relative flex items-center gap-[8px] h-[52px] text-[13px] font-medium transition-all cursor-pointer ${
@@ -540,61 +633,25 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
               ))}
               {selected.length > 0 && (
                 <div className="ml-auto">
-                  <QualityBar score={score} hint={hint} factors={factors} />
+                  <button 
+                    onClick={handleCopy} 
+                    className="flex items-center gap-[6px] text-[13px] font-bold bg-[#1f1f1f] text-white hover:bg-[#2a2a2a] transition-colors cursor-pointer px-[16px] py-[8px] rounded-[10px]"
+                  >
+                    {copied ? <Check size={16} /> : <Copy size={16} />}
+                    {copied ? 'Скопійовано' : 'Копіювати промпт'}
+                  </button>
                 </div>
               )}
             </div>
 
-            {/* Bulk Actions Toolbar */}
-            {selected.length > 0 && onBulkAction && (
-              <div className="flex items-center justify-between px-[32px] py-[12px] bg-[#ffffff] border-b border-[#e9e9e9]">
-                <div className="flex items-center gap-[16px]">
-                  <span className="text-[12px] font-medium text-[#9a9a9a]">Вибрано: <span className="font-bold text-[#1f1f1f]">{selected.length}</span></span>
-                  <div className="w-[1px] h-[16px] bg-[#e9e9e9] mx-[4px]" />
-                  
-                  <select onChange={(e) => { onBulkAction('status', e.target.value); e.target.value = ''; }} className="appearance-none text-[12px] font-semibold text-[#9a9a9a] bg-transparent outline-none cursor-pointer hover:text-[#1f1f1f] transition-colors" value="">
-                    <option value="" disabled>Змінити статус ▾</option>
-                    <option value="open">Новий</option>
-                    <option value="in_progress">В роботі</option>
-                    <option value="resolved">Виправлено</option>
-                    <option value="closed">Закрито</option>
-                  </select>
-                  
-                  <div className="w-[3px] h-[3px] rounded-full bg-[#e9e9e9]" />
-                  
-                  <select onChange={(e) => { onBulkAction('severity', e.target.value); e.target.value = ''; }} className="appearance-none text-[12px] font-semibold text-[#9a9a9a] bg-transparent outline-none cursor-pointer hover:text-[#1f1f1f] transition-colors" value="">
-                    <option value="" disabled>Змінити пріоритет ▾</option>
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="critical">Critical</option>
-                  </select>
-                  
-                  <div className="w-[3px] h-[3px] rounded-full bg-[#e9e9e9]" />
-                  
-                  <button onClick={() => onBulkAction('delete')} className="text-[12px] font-semibold text-red-500/80 hover:text-red-500 transition-colors cursor-pointer" title="Видалити вибрані">
-                    Видалити
-                  </button>
-                </div>
-                
-                <button 
-                  onClick={handleCopy} 
-                  className="flex items-center gap-[6px] text-[13px] font-bold bg-[#1f1f1f] text-white hover:bg-[#2a2a2a] transition-colors cursor-pointer px-[16px] py-[8px] rounded-[10px]"
-                >
-                  {copied ? <Check size={16} /> : <Copy size={16} />}
-                  {copied ? 'Скопійовано' : 'Копіювати промпт'}
-                </button>
-              </div>
-            )}
-
             {/* Prompt textarea / Viewer */}
-            <div className="flex-1 overflow-hidden relative bg-[#2a2a2a]">
+            <div className="flex-1 overflow-hidden relative bg-[#2a2a2a] rounded-br-[24px] clip-rounded border-l border-t border-[#3f3f46]">
               {selected.length === 0 ? (
-                <div className="w-full h-full flex items-center justify-center text-[#9a9a9a] font-medium text-[14px] bg-[#2a2a2a]">
+                <div className="w-full h-full flex items-center justify-center text-[#9a9a9a] font-medium text-[14px] bg-[#2a2a2a] rounded-br-[24px]">
                   Оберіть баги зі списку ліворуч — промпт згенерується автоматично...
                 </div>
               ) : (
-                <div className="w-full h-full font-mono text-[13px] leading-relaxed bg-[#2a2a2a] p-[32px] text-white/90 overflow-y-auto custom-scrollbar whitespace-pre-wrap select-text">
+                <div className="w-full h-full font-mono text-[13px] leading-relaxed bg-[#2a2a2a] p-[32px] text-white/90 overflow-y-auto custom-scrollbar whitespace-pre-wrap select-text rounded-br-[24px]">
                   {prompt.split('\n').map((line, i) => {
                     let className = "text-white/90";
                     if (line.startsWith('#')) className = "text-white font-bold";

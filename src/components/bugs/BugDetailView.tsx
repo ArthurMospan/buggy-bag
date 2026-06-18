@@ -7,25 +7,7 @@ import { uk } from 'date-fns/locale';
 import { ChevronDown, ChevronUp, Copy, Check, Maximize2, X, ArrowLeft, Monitor, Globe, Calendar, Terminal, Code2, ExternalLink, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-
-const STATUS_CFG: { value: BugStatus; label: string; color: string; bg: string }[] = [
-  { value: 'open',        label: 'Новий',      color: '#71717a', bg: '#f4f4f5' },
-  { value: 'in_progress', label: 'В роботі',   color: '#f97316', bg: '#fff7ed' },
-  { value: 'resolved',    label: 'Виправлено', color: '#10b981', bg: '#f0fdf4' },
-];
-
-function getSeverityColor(num: number) {
-  if (num >= 8) return { color: '#ef4444', bg: 'rgba(239,68,68,0.1)' };
-  if (num >= 5) return { color: '#f97316', bg: 'rgba(249,115,22,0.1)' };
-  if (num >= 3) return { color: '#fbbf24', bg: 'rgba(251,191,36,0.1)' };
-  return { color: '#34d399', bg: 'rgba(52,211,153,0.1)' };
-}
-
-const SEVERITY_CFG: { value: BugSeverity; label: string; color: string; bg: string }[] = Array.from({ length: 10 }, (_, i) => {
-  const num = i + 1;
-  const { color, bg } = getSeverityColor(num);
-  return { value: num.toString(), label: num.toString(), color, bg };
-});
+import { STATUS_CFG, SEVERITY_CFG } from '@/lib/constants';
 
 function pinLabel(n: number): string {
   const mod10 = n % 10;
@@ -279,16 +261,28 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
 
   const handleStatusChange = async (newStatus: BugStatus) => {
     setStatus(newStatus); setSaving(true);
-    await onStatusChange(bug.id, newStatus);
-    setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 1500);
+    try {
+      await onStatusChange(bug.id, newStatus);
+      setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 1500);
+    } catch (e: any) {
+      alert(`Помилка: ${e.message}`);
+      setStatus(bug.status);
+      setSaving(false);
+    }
   };
 
   const handleSeverityChange = async (newSev: BugSeverity) => {
     setSeverity(newSev);
     if (!onSeverityChange) return;
     setSaving(true);
-    await onSeverityChange(bug.id, newSev);
-    setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 1500);
+    try {
+      await onSeverityChange(bug.id, newSev);
+      setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 1500);
+    } catch (e: any) {
+      alert(`Помилка: ${e.message}`);
+      setSeverity(bug.severity ?? '1');
+      setSaving(false);
+    }
   };
 
   const pushToGithub = async () => {
@@ -496,19 +490,24 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
                   {tc.route}
                 </code>
                 {(() => {
+                  let domain = project?.connected_domain;
+                  if (domain && !domain.startsWith('http')) {
+                    domain = domain.includes('localhost') || domain.includes('127.0.0.1') ? `http://${domain}` : `https://${domain}`;
+                  }
                   const routeHref = tc.route.startsWith('http') 
                     ? tc.route 
-                    : project?.connected_domain 
-                      ? `${project.connected_domain}${tc.route.startsWith('/') ? '' : '/'}${tc.route}` 
+                    : domain 
+                      ? `${domain}${tc.route.startsWith('/') ? '' : '/'}${tc.route}` 
                       : undefined;
                   return routeHref ? (
                     <a
                       href={routeHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[12px] font-semibold text-[#4F46E5] hover:text-[#4338ca] transition-colors ml-1"
+                      className="flex items-center gap-[6px] px-[10px] py-[4px] bg-[#e9e9e9] hover:bg-[#d4d4d8] text-[#1f1f1f] text-[11px] font-semibold rounded-[6px] transition-colors ml-2"
                     >
-                      Перейти ↗
+                      <span>Перейти</span>
+                      <ExternalLink size={12} className="opacity-60" />
                     </a>
                   ) : null;
                 })()}
@@ -635,6 +634,82 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
               <code className="text-[13px] font-mono text-[#1f1f1f] bg-[#ffffff] border border-[#e9e9e9] px-[12px] py-[6px] rounded-[8px] inline-block font-semibold">
                 {tc.component.name}
               </code>
+            </div>
+          )}
+
+          {/* Design Audit */}
+          {tc?.designAudit && (
+            <div className="bg-[#f9f9fa] rounded-[16px] p-[24px] col-span-1 lg:col-span-2">
+              <h2 className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[12px]">Дизайн-аудит</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[24px]">
+                {/* Fonts */}
+                <div>
+                  <h3 className="text-[12px] font-bold text-[#1f1f1f] mb-[8px]">Шрифти ({tc.designAudit.fonts.length})</h3>
+                  <div className="flex flex-col gap-[6px]">
+                    {tc.designAudit.fonts.map((f, i) => (
+                      <div key={i} className="flex items-center justify-between bg-white border border-[#e9e9e9] rounded-[6px] px-[8px] py-[4px]">
+                        <span className="text-[12px] text-[#1f1f1f] truncate font-medium max-w-[140px]">{f.value}</span>
+                        <span className="text-[11px] font-mono text-[#9a9a9a] bg-[#f4f4f5] px-[4px] rounded-[4px]">{f.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Colors */}
+                <div>
+                  <h3 className="text-[12px] font-bold text-[#1f1f1f] mb-[8px]">Кольори ({tc.designAudit.colors.length})</h3>
+                  <div className="flex flex-col gap-[6px]">
+                    {tc.designAudit.colors.map((c, i) => (
+                      <div key={i} className="flex items-center justify-between bg-white border border-[#e9e9e9] rounded-[6px] px-[8px] py-[4px]">
+                        <div className="flex items-center gap-[6px]">
+                          <div className="w-[12px] h-[12px] rounded-[3px] border border-[#e9e9e9]" style={{ backgroundColor: c.value }} />
+                          <span className="text-[12px] text-[#1f1f1f] font-mono">{c.value}</span>
+                        </div>
+                        <span className="text-[11px] font-mono text-[#9a9a9a] bg-[#f4f4f5] px-[4px] rounded-[4px]">{c.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Spacing & Typography Details */}
+                <div className="flex flex-col gap-[16px]">
+                  <div>
+                    <h3 className="text-[12px] font-bold text-[#1f1f1f] mb-[8px]">Відступи ({tc.designAudit.spacings.length})</h3>
+                    <div className="flex flex-wrap gap-[6px]">
+                      {tc.designAudit.spacings.map((s, i) => (
+                        <div key={i} className="flex items-center gap-[4px] bg-white border border-[#e9e9e9] rounded-[6px] px-[6px] py-[2px]">
+                          <span className="text-[11px] text-[#1f1f1f]">{s.value}</span>
+                          <span className="text-[10px] text-[#9a9a9a] bg-[#f4f4f5] px-[3px] rounded-[4px]">{s.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-[12px] font-bold text-[#1f1f1f] mb-[8px]">Розміри шрифту ({tc.designAudit.fontSizes.length})</h3>
+                    <div className="flex flex-wrap gap-[6px]">
+                      {tc.designAudit.fontSizes.map((s, i) => (
+                        <div key={i} className="flex items-center gap-[4px] bg-white border border-[#e9e9e9] rounded-[6px] px-[6px] py-[2px]">
+                          <span className="text-[11px] text-[#1f1f1f]">{s.value}</span>
+                          <span className="text-[10px] text-[#9a9a9a] bg-[#f4f4f5] px-[3px] rounded-[4px]">{s.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-[12px] font-bold text-[#1f1f1f] mb-[8px]">Border-radius ({tc.designAudit.borderRadii.length})</h3>
+                    <div className="flex flex-wrap gap-[6px]">
+                      {tc.designAudit.borderRadii.map((b, i) => (
+                        <div key={i} className="flex items-center gap-[4px] bg-white border border-[#e9e9e9] rounded-[6px] px-[6px] py-[2px]">
+                          <span className="text-[11px] text-[#1f1f1f]">{b.value}</span>
+                          <span className="text-[10px] text-[#9a9a9a] bg-[#f4f4f5] px-[3px] rounded-[4px]">{b.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

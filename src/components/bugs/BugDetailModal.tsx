@@ -5,20 +5,7 @@ import Dialog from '@/components/ui/Dialog';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { ChevronDown, ChevronUp, Copy, Check, ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
-
-const STATUS_CFG: { value: BugStatus; label: string; color: string; bg: string }[] = [
-  { value: 'open',        label: 'Новий',      color: '#1f1f1f', bg: '#f4f4f5' },
-  { value: 'in_progress', label: 'В роботі',   color: '#f97316', bg: '#fff7ed' },
-  { value: 'resolved',    label: 'Виправлено', color: '#10b981', bg: '#f0fdf4' },
-  { value: 'closed',      label: 'Закрито',    color: '#9a9a9a', bg: '#f4f4f5' },
-];
-
-const SEVERITY_CFG: { value: BugSeverity; label: string; color: string; bg: string }[] = [
-  { value: 'low',      label: 'Low',      color: '#9a9a9a', bg: '#f4f4f5' },
-  { value: 'medium',   label: 'Medium',   color: '#f59e0b', bg: '#fffbeb' },
-  { value: 'high',     label: 'High',     color: '#f97316', bg: '#fff7ed' },
-  { value: 'critical', label: 'Critical', color: '#dc2626', bg: '#fff0f0' },
-];
+import { STATUS_CFG, SEVERITY_CFG } from '@/lib/constants';
 
 function StatusPills({ value, onChange, saving }: { value: BugStatus; onChange: (v: BugStatus) => void; saving: boolean }) {
   return (

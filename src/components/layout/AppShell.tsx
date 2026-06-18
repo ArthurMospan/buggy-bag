@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Sidebar from './Sidebar';
 
 interface AppShellProps {
@@ -12,6 +12,12 @@ interface AppShellProps {
 
 export default function AppShell({ children, userEmail = '', userName = '', userAvatar = '' }: AppShellProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('BUGGY_BAG_SIDEBAR_COLLAPSED');
+    if (saved === 'true') setIsCollapsed(true);
+  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -28,15 +34,26 @@ export default function AppShell({ children, userEmail = '', userName = '', user
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+  const toggleCollapse = (val: boolean) => {
+    setIsCollapsed(val);
+    localStorage.setItem('BUGGY_BAG_SIDEBAR_COLLAPSED', String(val));
+  };
+
   return (
     <div 
       ref={containerRef}
       className="h-screen flex overflow-hidden relative bg-[#1f1f1f]"
     >
-      <aside className="w-[284px] flex flex-col shrink-0 overflow-hidden relative z-20">
-        <Sidebar userEmail={userEmail} userName={userName} userAvatar={userAvatar} />
+      <aside className={`flex flex-col shrink-0 overflow-visible relative z-20 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-[72px]' : 'w-[284px]'}`}>
+        <Sidebar 
+          userEmail={userEmail} 
+          userName={userName} 
+          userAvatar={userAvatar} 
+          isCollapsed={isCollapsed}
+          setIsCollapsed={toggleCollapse}
+        />
       </aside>
-      <main className="flex-1 flex overflow-hidden relative z-10 bg-[#ffffff] rounded-[24px] my-[12px] mr-[12px]">
+      <main className="flex-1 flex overflow-hidden relative z-10 bg-transparent rounded-[24px] my-[12px] mr-[12px] clip-rounded border border-[#2a2a2a]">
         {children}
       </main>
     </div>

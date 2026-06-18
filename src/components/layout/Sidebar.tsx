@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
-import { Plus, LogOut, User, ChevronUp, Folder } from 'lucide-react';
+import { Plus, LogOut, User, ChevronUp, Folder, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -14,47 +14,42 @@ interface SidebarProps {
   userEmail?: string;
   userName?: string;
   userAvatar?: string;
+  isCollapsed?: boolean;
+  setIsCollapsed?: (val: boolean) => void;
 }
 
-function ProjectRow({ project, isActive, onClick }: { project: Project; isActive: boolean; onClick: () => void }) {
+function ProjectRow({ project, isActive, onClick, isCollapsed, setHoveredTooltip }: { project: Project; isActive: boolean; onClick: () => void; isCollapsed?: boolean; setHoveredTooltip?: (t: {text: string, top: number} | null) => void }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    const lastRead = localStorage.getItem(`BUGGY_BAG_LAST_READ_${project.id}`);
     fetch(`/api/bugs?project_id=${project.id}`)
       .then(res => res.json())
       .then(data => {
         if (data.bugs) {
-          const unread = lastRead
-            ? data.bugs.filter((b: any) => new Date(b.created_at) > new Date(lastRead))
-            : data.bugs;
-          setUnreadCount(unread.length);
+          const openBugs = data.bugs.filter((b: any) => b.status === 'open');
+          setUnreadCount(openBugs.length);
         }
       })
       .catch(() => {});
   }, [project.id]);
 
-  useEffect(() => {
-    if (isActive) {
-      localStorage.setItem(`BUGGY_BAG_LAST_READ_${project.id}`, new Date().toISOString());
-      // We don't strictly need to set unreadCount to 0 synchronously here,
-      // but if we do, it shouldn't cause infinite renders if we just depend on isActive/project.id
-      // A better way is to clear it and rely on the next fetch
-      setUnreadCount(0);
-    }
-  }, [isActive, project.id]);
-
   return (
     <div
-      className={`relative group w-full flex items-center gap-[10px] px-[12px] py-[12px] cursor-pointer rounded-[12px] transition-colors ${
+      className={`relative group flex items-center px-[8px] py-[8px] cursor-pointer rounded-[12px] transition-colors shrink-0 ${
         isActive ? 'bg-[#242424]' : 'bg-transparent hover:bg-[#242424]'
       }`}
       onClick={onClick}
-      title={project.name}
+      onMouseEnter={(e) => {
+        if (isCollapsed && setHoveredTooltip) {
+          const rect = e.currentTarget.getBoundingClientRect();
+          setHoveredTooltip({ text: project.name, top: rect.top + rect.height / 2 });
+        }
+      }}
+      onMouseLeave={() => setHoveredTooltip?.(null)}
     >
       {/* Icon */}
       <div 
-        className={`w-[32px] h-[32px] flex items-center justify-center rounded-[8px] shrink-0 overflow-hidden ${
+        className={`relative w-[32px] h-[32px] flex items-center justify-center rounded-[8px] shrink-0 overflow-visible transition-colors ${
           isActive ? 'bg-[#333333]' : 'bg-[#242424]'
         }`}
       >
@@ -63,29 +58,36 @@ function ProjectRow({ project, isActive, onClick }: { project: Project; isActive
         ) : (
           <Folder size={16} className={isActive ? 'text-white' : 'text-[#9a9a9a]'} />
         )}
+
+        {/* Unread Badge (Collapsed dot) */}
+        <div className={`absolute top-[-4px] right-[-4px] transition-all duration-300 ${isCollapsed && unreadCount > 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none'}`}>
+          <div className="bg-[#ef4444] text-white text-[8px] font-bold flex items-center justify-center rounded-full min-w-[14px] h-[14px] px-[3px] border-[2px] border-[#1f1f1f]">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </div>
+        </div>
       </div>
 
       {/* Name and domain */}
-      <div className="flex-1 min-w-0 flex flex-col justify-center gap-[2px]">
-        <span className={`text-[14px] leading-[20px] font-normal truncate ${isActive ? 'text-white' : 'text-[#9a9a9a]'}`}>
+      <div className={`flex flex-col justify-center overflow-hidden transition-all duration-300 whitespace-nowrap ${isCollapsed ? 'opacity-0 max-w-0 ml-0' : 'opacity-100 max-w-[200px] ml-[12px] flex-1'}`}>
+        <span className={`block text-[14px] leading-[20px] font-normal truncate ${isActive ? 'text-white' : 'text-[#9a9a9a]'}`}>
           {project.name}
         </span>
-        <span className="text-[10px] leading-[16px] text-[#666] font-normal truncate">
+        <span className="block text-[10px] leading-[16px] text-[#666] font-normal truncate">
           {project.connected_domain ? project.connected_domain : 'Не підключено'}
         </span>
       </div>
 
-      {/* Unread Badge */}
-      {unreadCount > 0 && !isActive && (
+      {/* Unread Badge (Expanded pill) */}
+      <div className={`overflow-hidden transition-all duration-300 flex items-center ${!isCollapsed && unreadCount > 0 ? 'max-w-[32px] opacity-100 ml-[8px]' : 'max-w-0 opacity-0 ml-0'}`}>
         <div className="shrink-0 bg-[#ef4444] text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full">
           {unreadCount > 9 ? '9+' : unreadCount}
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-export default function Sidebar({ userEmail = '', userName = '', userAvatar = '' }: SidebarProps) {
+export default function Sidebar({ userEmail = '', userName = '', userAvatar = '', isCollapsed = false, setIsCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -93,6 +95,7 @@ export default function Sidebar({ userEmail = '', userName = '', userAvatar = ''
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hoveredTooltip, setHoveredTooltip] = useState<{ text: string; top: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -144,55 +147,79 @@ export default function Sidebar({ userEmail = '', userName = '', userAvatar = ''
   const activeProjectId = pathname.match(/\/projects\/([^/]+)/)?.[1];
 
   return (
-    <div className="flex flex-col h-full w-full py-[12px] overflow-y-auto custom-scrollbar relative bg-transparent">
+    <>
+      <div className="flex flex-col h-full w-full relative bg-transparent">
 
-      {/* App Logo */}
-      <div className="flex flex-col px-[20px] pt-[12px] pb-[16px] shrink-0 relative">
-        <div className="flex items-center justify-between w-full">
+        {/* App Logo */}
+      <div className={`flex flex-col pt-[24px] pb-[16px] shrink-0 relative transition-all duration-300 ${isCollapsed ? 'px-[12px]' : 'px-[24px]'}`}>
+        <div className="flex items-center justify-between w-full h-[32px]">
           <div className="flex items-center min-w-0 flex-1">
-            <Link href="/" className="flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity">
+            <Link href="/" className={`flex items-center justify-center shrink-0 hover:opacity-80 transition-all duration-300 ${isCollapsed ? 'ml-[8px]' : 'ml-0'}`}>
               <Image src="/bug-logo-white.svg" alt="BuggyBag Logo" width={32} height={32} className="object-contain" />
             </Link>
-            <div className="flex min-w-0 ml-[12px] justify-center">
-              <Link href="/" className="hover:opacity-80 transition-opacity flex items-center">
+            <div className={`flex items-center min-w-0 overflow-hidden transition-all duration-300 ${isCollapsed ? 'opacity-0 max-w-0 ml-0' : 'opacity-100 max-w-[200px] ml-[12px]'}`}>
+              <Link href="/" className="hover:opacity-80 transition-opacity flex items-center whitespace-nowrap">
                  <h1 className="text-white text-[20px] font-bold tracking-tight leading-none truncate">BuggyBag</h1>
               </Link>
             </div>
           </div>
+          
+          <button 
+            onClick={() => setIsCollapsed?.(!isCollapsed)} 
+            className={`text-[#484747] hover:text-white transition-all duration-300 flex items-center justify-center shrink-0 overflow-hidden ${isCollapsed ? 'opacity-0 max-w-0 pointer-events-none' : 'opacity-100 max-w-[32px]'}`}
+            title="Згорнути"
+          >
+            <PanelLeftClose size={18} />
+          </button>
+        </div>
+
+        {/* Collapsed Open Button */}
+        <div className={`flex transition-all duration-300 overflow-hidden ${isCollapsed ? 'opacity-100 max-h-[32px] mt-[16px] ml-[8px]' : 'opacity-0 max-h-0 mt-0 ml-0'}`}>
+          <button 
+            onClick={() => setIsCollapsed?.(!isCollapsed)} 
+            className="w-[32px] h-[32px] flex items-center justify-center rounded-[8px] bg-[#242424] hover:bg-[#333] text-[#484747] hover:text-white transition-colors"
+            title="Розгорнути"
+          >
+            <PanelLeftOpen size={16} />
+          </button>
         </div>
       </div>
 
-      {/* Projects Header */}
-      <div className="flex items-center justify-between px-[20px] mt-[16px] mb-[12px]">
-        <span className="text-[10px] font-semibold text-[#666] tracking-[0.1px] uppercase leading-[16px]">
-          ПРОЄКТИ
-        </span>
-        <button
-          onClick={() => setShowNewDialog(true)}
-          className="text-[#484747] hover:text-white transition-colors flex items-center justify-center"
-          title="Додати проєкт"
-        >
-          <Plus size={16} strokeWidth={2} />
-        </button>
-      </div>
-
-      {/* Projects List */}
-      <div className="flex-1 flex flex-col gap-[2px] px-[12px] mt-0">
+      {/* Projects List (Scrollable area) */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-[2px] px-[12px] pb-[20px]">
         {projects.map(p => (
           <ProjectRow
             key={p.id}
             project={p}
             isActive={activeProjectId === p.id}
             onClick={() => router.push(`/projects/${p.id}`)}
+            isCollapsed={isCollapsed}
+            setHoveredTooltip={setHoveredTooltip}
           />
         ))}
       </div>
 
-      {/* Bottom Profile Menu */}
+      {/* Add Project Button (Fixed above user menu) */}
+      <div className={`shrink-0 flex mt-auto mb-[8px] transition-all duration-300 ${isCollapsed ? 'px-[12px]' : 'px-[24px]'}`}>
+        <button
+          onClick={() => setShowNewDialog(true)}
+          className={`flex items-center h-[32px] rounded-[8px] text-[#9a9a9a] hover:text-white bg-[#252525] hover:bg-[#2a2a2a] transition-all duration-300 overflow-hidden ${isCollapsed ? 'w-[32px] ml-[8px]' : 'w-full ml-0'}`}
+          title="Додати проєкт"
+        >
+          <div className="flex items-center justify-center shrink-0 w-[32px] h-[32px]">
+            <Plus size={14} strokeWidth={2} />
+          </div>
+          <div className={`overflow-hidden transition-all duration-300 whitespace-nowrap flex flex-col text-left justify-center ${isCollapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[200px] opacity-100 ml-[4px] flex-1'}`}>
+            <span className="text-[12px] font-medium leading-[16px]">Новий проєкт</span>
+          </div>
+        </button>
+      </div>
+
+      {/* Bottom Profile Menu (Original styling) */}
       {userEmail && (
-        <div ref={menuRef} className="px-[20px] pb-0 mt-auto shrink-0 relative">
+        <div ref={menuRef} className={`shrink-0 relative pb-[12px] transition-all duration-300 ${isCollapsed ? 'px-[12px]' : 'px-[24px]'}`}>
           {menuOpen && (
-            <div className="absolute left-[20px] right-[20px] bottom-[calc(100%+8px)] bg-[#242424] border border-[#333] rounded-[12px] shadow-xl overflow-hidden py-1 z-50">
+            <div className={`absolute bottom-[calc(100%+8px)] bg-[#242424] border border-[#333] rounded-[12px] shadow-xl overflow-hidden py-1 z-50 ${isCollapsed ? 'left-[12px] min-w-[200px]' : 'left-[12px] right-[12px]'}`}>
               <button
                 onClick={() => { setMenuOpen(false); router.push('/profile'); }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-white hover:bg-[#333] transition-colors"
@@ -210,7 +237,8 @@ export default function Sidebar({ userEmail = '', userName = '', userAvatar = ''
 
           <button
             onClick={() => setMenuOpen(v => !v)}
-            className="w-full flex items-center gap-[12px] p-[12px] bg-[#252525] rounded-[12px] hover:bg-[#2a2a2a] transition-colors"
+            className={`flex items-center p-[8px] rounded-[12px] w-full transition-colors ${isCollapsed ? 'bg-transparent hover:bg-[#2a2a2a]' : 'bg-[#252525] hover:bg-[#2a2a2a]'}`}
+            title={isCollapsed ? userName || userEmail : undefined}
           >
             {userAvatar ? (
               <div className="w-[32px] h-[32px] flex items-center justify-center rounded-full shrink-0 overflow-hidden shadow-sm">
@@ -221,7 +249,7 @@ export default function Sidebar({ userEmail = '', userName = '', userAvatar = ''
                  {userName ? userName.charAt(0).toUpperCase() : (userEmail ? userEmail.charAt(0).toUpperCase() : <User size={16} />)}
               </div>
             )}
-            <div className="flex flex-col flex-1 min-w-0 text-left gap-[2px]">
+            <div className={`flex flex-col text-left overflow-hidden transition-all duration-300 whitespace-nowrap ${isCollapsed ? 'opacity-0 max-w-0 ml-0' : 'opacity-100 max-w-[200px] ml-[12px] flex-1'}`}>
               <span className="text-[12px] font-normal text-[#9a9a9a] truncate leading-[18px]">{userName || userEmail || 'Користувач'}</span>
               <span className="text-[10px] font-normal text-[#666] truncate leading-[14px]">{userEmail}</span>
             </div>
@@ -268,5 +296,16 @@ export default function Sidebar({ userEmail = '', userName = '', userAvatar = ''
         </form>
       </Dialog>
     </div>
+    
+    {/* Portal-like Tooltip rendered outside normal flow */}
+    {hoveredTooltip && isCollapsed && (
+      <div 
+        className="fixed left-[84px] bg-[#242424] text-[#ececec] text-[12px] font-medium px-[10px] py-[6px] rounded-[8px] z-[100] shadow-xl whitespace-nowrap border border-[#333] pointer-events-none -translate-y-1/2 animate-in fade-in zoom-in-95 duration-150"
+        style={{ top: hoveredTooltip.top }}
+      >
+        {hoveredTooltip.text}
+      </div>
+    )}
+    </>
   );
 }

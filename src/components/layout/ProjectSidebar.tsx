@@ -14,24 +14,7 @@ import { uk } from 'date-fns/locale';
 import AnimatedLogo from '@/components/ui/AnimatedLogo';
 import { generateProjectZip } from '@/lib/export';
 
-const STATUS_COLOR: Record<string, string> = {
-  open: '#71717a',
-  in_progress: '#fb923c',
-  resolved: '#34d399',
-  closed: '#71717a',
-};
-const STATUS_BG: Record<string, string> = {
-  open: 'rgba(113,113,122,0.12)',
-  in_progress: 'rgba(234,88,12,0.12)',
-  resolved: 'rgba(16,185,129,0.12)',
-  closed: 'rgba(113,113,122,0.12)',
-};
-const STATUS_LABEL_UK: Record<string, string> = {
-  open: 'Новий',
-  in_progress: 'В роботі',
-  resolved: 'Виправлено',
-  closed: 'Закрито',
-};
+import { STATUS_CFG, SEVERITY_CFG } from '@/lib/constants';
 
 type FilterValue = 'active' | 'open' | 'in_progress' | 'resolved';
 
@@ -90,7 +73,7 @@ export default function ProjectSidebar() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res  = await fetch(`/api/bugs?project_id=${id}${filter && filter !== 'active' ? `&status=${filter}` : ''}`);
+      const res  = await fetch(`/api/bugs?project_id=${id}${filter && filter !== 'active' ? `&status=${filter}` : ''}&_t=${refreshTrigger}`);
       const data = await res.json();
       setBugs(data.bugs ?? []);
     } finally {
@@ -193,6 +176,10 @@ export default function ProjectSidebar() {
     const statusStr = b.status?.toLowerCase() || '';
     const file = b.tech_context?.file_path?.toLowerCase() || '';
     return desc.includes(q) || route.includes(q) || comp.includes(q) || sev.includes(q) || idStr.includes(q) || statusStr.includes(q) || file.includes(q);
+  }).sort((a, b) => {
+    if (a.status === 'open' && b.status !== 'open') return -1;
+    if (b.status === 'open' && a.status !== 'open') return 1;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
   if (pathname.includes('/bugs/') || pathname.includes('/integration')) return null;
@@ -219,7 +206,7 @@ export default function ProjectSidebar() {
           <div className="relative" ref={kebabRef}>
             <button
               onClick={() => setShowKebab(!showKebab)}
-              className={`w-[36px] h-[36px] flex items-center justify-center text-[#1f1f1f] hover:bg-[#e9e9e9] transition-colors ${!project?.connected_domain ? 'rounded-l-[10px]' : ''}`}
+              className={`w-[36px] h-[36px] flex items-center justify-center text-[#1f1f1f] hover:bg-[#e9e9e9] transition-colors rounded-r-[10px] ${!project?.connected_domain ? 'rounded-l-[10px]' : ''}`}
             >
               <MoreHorizontal size={16} />
             </button>
@@ -232,6 +219,19 @@ export default function ProjectSidebar() {
                   <HardDrive size={14} className="shrink-0" /> {exporting ? 'Генерація...' : 'Зберегти на Google Drive'}
                 </button>
                 <div className="h-[1px] bg-[#f0f0f0] my-[4px] mx-[6px]" />
+                <div className="px-[12px] py-[6px] text-[10px] font-bold text-[#9a9a9a] uppercase tracking-wider">Фільтр багів</div>
+                {FILTERS.map(f => (
+                  <button
+                    key={f.value}
+                    onClick={() => { setFilter(f.value); setShowKebab(false); }}
+                    className="w-full px-[12px] h-[32px] text-left flex items-center gap-[8px] text-[13px] font-medium transition-colors hover:bg-[#f4f4f5]"
+                    style={{ color: filter === f.value ? '#1f1f1f' : '#5d5d5d' }}
+                  >
+                    <div className={`w-[6px] h-[6px] rounded-full shrink-0 ${filter === f.value ? 'bg-[#4F46E5]' : 'bg-transparent'}`} />
+                    {f.label}
+                  </button>
+                ))}
+                <div className="h-[1px] bg-[#f0f0f0] my-[4px] mx-[6px]" />
                 <button onClick={() => { setShowKebab(false); router.push(`/projects/${id}/integration`); }} className="w-full px-[12px] h-[36px] text-left flex items-center gap-[8px] text-[13px] font-medium text-[#1f1f1f] hover:bg-[#f4f4f5] transition-colors">
                   <Settings size={14} className="shrink-0" /> Налаштування
                 </button>
@@ -241,10 +241,6 @@ export default function ProjectSidebar() {
               </div>
             )}
           </div>
-          
-          <Link href={`/projects/${id}/integration`} className="w-[36px] h-[36px] flex items-center justify-center text-[#1f1f1f] hover:bg-[#e9e9e9] transition-colors rounded-r-[10px]">
-            <Settings size={16} />
-          </Link>
         </div>
       </div>
 
@@ -276,36 +272,10 @@ export default function ProjectSidebar() {
             )}
           </div>
 
-          <div className="flex items-center gap-[8px]">
+          <div className="flex items-center gap-[8px] flex-1">
             {/* Spacer for Search */}
             <div className="w-[28px] h-[28px] shrink-0" />
-
-            {/* Status Dropdown */}
-            <div className="relative flex items-center pointer-events-auto z-10">
-            <button 
-              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              onBlur={() => setTimeout(() => setShowFilterDropdown(false), 200)}
-              className="flex gap-[10px] h-[28px] items-center justify-center py-[4px] px-[8px] rounded-[8px] hover:bg-[#e9e9e9] transition-colors"
-            >
-              <span className="text-[13px] font-medium leading-[20px] text-[#5d5d5d] whitespace-nowrap">
-                {FILTERS.find(f => f.value === filter)?.label || 'Тільки активні'}
-              </span>
-              <ChevronDown size={14} className="text-[#5d5d5d] shrink-0" strokeWidth={2.5} />
-            </button>
-            {showFilterDropdown && (
-              <div className="absolute top-[100%] right-0 mt-1 w-[120px] bg-white border border-[#e9e9e9] rounded-[8px] shadow-lg py-1 z-50">
-                {FILTERS.map(f => (
-                  <button
-                    key={f.value}
-                    onClick={() => { setFilter(f.value); setShowFilterDropdown(false); }}
-                    className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-[#f4f4f5] transition-colors"
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+            <div className="flex-1" />
           </div>
 
           {/* Select all button */}
@@ -333,9 +303,6 @@ export default function ProjectSidebar() {
           <div className="text-[13px] text-center text-[#9a9a9a] py-[24px]">Завантаження...</div>
         ) : filteredBugs.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center p-[24px] text-center">
-            <div className="mb-[16px] text-[#1f1f1f]">
-              <AnimatedLogo size={60} />
-            </div>
             <span className="text-[13px] font-medium text-[#1f1f1f]">
               {debouncedSearch ? 'Нічого не знайдено' : 'Багів не знайдено'}
             </span>
@@ -349,19 +316,8 @@ export default function ProjectSidebar() {
           filteredBugs.map(bug => {
             const isChecked = selectedBugIds.has(bug.id);
             
-            let num = parseInt(bug.severity as string, 10);
-            if (isNaN(num)) {
-              if (bug.severity === 'low') num = 2;
-              else if (bug.severity === 'medium') num = 5;
-              else if (bug.severity === 'high') num = 8;
-              else if (bug.severity === 'critical') num = 10;
-              else num = 1;
-            }
-            let color = '#94a3b8'; let bg = 'rgba(148,163,184,0.15)';
-            if (num >= 8) { color = '#ef4444'; bg = 'rgba(239,68,68,0.15)'; }
-            else if (num >= 5) { color = '#f97316'; bg = 'rgba(249,115,22,0.15)'; }
-            else if (num >= 3) { color = '#fbbf24'; bg = 'rgba(251,191,36,0.15)'; }
-            else { color = '#34d399'; bg = 'rgba(52,211,153,0.15)'; }
+            const statusCfg = STATUS_CFG.find(s => s.value === bug.status) || STATUS_CFG[0];
+            const sevCfg = SEVERITY_CFG.find(s => s.value === (bug.severity ?? '1')) || SEVERITY_CFG[0];
 
             if (viewMode === 'list') {
               return (
@@ -379,7 +335,7 @@ export default function ProjectSidebar() {
                   </div>
                   
                   {/* colored dot for severity instead of full badge */}
-                  <div className="w-[8px] h-[8px] rounded-full shrink-0" style={{ backgroundColor: color }} title={`Severity: ${num}`} />
+                  <div className="w-[8px] h-[8px] rounded-full shrink-0" style={{ backgroundColor: sevCfg.color }} title={`Severity: ${sevCfg.label}`} />
 
                   <div className="flex-1 min-w-0 flex items-center gap-[10px]">
                     <span className="text-[12px] text-[#1f1f1f] truncate leading-tight flex-1">
@@ -437,14 +393,13 @@ export default function ProjectSidebar() {
                     isChecked ? 'bg-[#4F46E5]/5' : 'bg-transparent'
                   }`} />
 
-                  {/* Badges Overlay (Top-Right) */}
                   <div className="absolute top-[16px] right-[16px] flex items-center gap-[4px] z-10">
                     <div className="bg-[#1f1f1f]/90 backdrop-blur-sm border border-white/10 h-[22px] px-[8px] rounded-[6px] flex items-center justify-center shadow-sm">
-                      <span className="text-white text-[10px] font-bold">{STATUS_LABEL_UK[bug.status] ?? bug.status}</span>
+                      <span className="text-white text-[10px] font-bold">{statusCfg.label}</span>
                     </div>
                     <div className="bg-[#1f1f1f]/90 backdrop-blur-sm border border-white/10 h-[22px] px-[8px] rounded-[6px] flex items-center justify-center gap-[4px] shadow-sm">
-                      <div className="w-[6px] h-[6px] rounded-full" style={{ backgroundColor: color }} />
-                      <span className="text-white text-[10px] font-bold">{num}</span>
+                      <div className="w-[6px] h-[6px] rounded-full" style={{ backgroundColor: sevCfg.color }} />
+                      <span className="text-white text-[10px] font-bold">{sevCfg.label}</span>
                     </div>
                   </div>
 

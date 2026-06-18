@@ -9,6 +9,10 @@
     scrollbar-width: none;
   }
 
+  .clip-rounded {
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+  }
+
   /* Global Scrollbar Settings */
   *::-webkit-scrollbar {
     width: 2px;
@@ -26,6 +30,18 @@
   
   *::-webkit-scrollbar-thumb:hover {
     background-color: #a1a1aa;
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #4b5563;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #71717a;
   }
 
   /* Firefox Support */

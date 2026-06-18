@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { Bug, Project } from '@/lib/types';
 import BugDetailView from '@/components/bugs/BugDetailView';
 import LoadingSpinner from '@/components/ui/Feedback/LoadingSpinner';
+import { useProjectContext } from '@/components/layout/ProjectContext';
 
 export default function BugPage() {
   const { id, bugId } = useParams<{ id: string; bugId: string }>();
@@ -11,6 +12,7 @@ export default function BugPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [allBugs, setAllBugs] = useState<Bug[]>([]);
+  const { triggerRefresh } = useProjectContext();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -37,20 +39,32 @@ export default function BugPage() {
 
   const handleStatusChange = async (bugId: string, status: any) => {
     const res = await fetch('/api/bugs', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: bugId, status }) });
-    if (res.ok) setBug(prev => prev ? { ...prev, status } : prev);
+    if (res.ok) {
+      setBug(prev => prev ? { ...prev, status } : prev);
+      triggerRefresh();
+    } else {
+      const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(err.error || res.statusText);
+    }
   };
 
   const handleSeverityChange = async (bugId: string, severity: any) => {
     const res = await fetch('/api/bugs', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: bugId, severity }) });
-    if (res.ok) setBug(prev => prev ? { ...prev, severity } : prev);
+    if (res.ok) {
+      setBug(prev => prev ? { ...prev, severity } : prev);
+      triggerRefresh();
+    } else {
+      const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(err.error || res.statusText);
+    }
   };
 
   if (loading) {
-    return <div className="flex h-full items-center justify-center"><LoadingSpinner size="lg" /></div>;
+    return <div className="flex h-full items-center justify-center bg-[#f4f4f5]"><LoadingSpinner size="lg" /></div>;
   }
 
   if (!bug) {
-    return <div className="flex h-full items-center justify-center text-[#9a9a9a]">Баг не знайдено</div>;
+    return <div className="flex h-full items-center justify-center text-[#9a9a9a] bg-[#f4f4f5]">Баг не знайдено</div>;
   }
 
   return (

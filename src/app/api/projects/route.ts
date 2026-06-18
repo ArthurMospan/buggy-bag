@@ -117,15 +117,16 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json() as { id: string; is_active?: boolean; name?: string; regenerate_api_key?: boolean; github_repo?: string; github_token?: string };
-    const { id, is_active, name, regenerate_api_key, github_repo, github_token } = body;
+    const body = await req.json() as { id: string; is_active?: boolean; name?: string; regenerate_api_key?: boolean; github_repo?: string; github_token?: string; widget_password?: string };
+    const { id, is_active, name, regenerate_api_key, github_repo, github_token, widget_password } = body;
     if (!id) return NextResponse.json({ error: 'Project id is required' }, { status: 400 });
 
-    const updateData: { is_active?: boolean; name?: string; api_key?: string; github_repo?: string; github_token?: string | null } = {};
+    const updateData: { is_active?: boolean; name?: string; api_key?: string; github_repo?: string; github_token?: string | null; widget_password?: string | null } = {};
     if (typeof is_active === 'boolean') updateData.is_active = is_active;
     if (name?.trim()) updateData.name = name.trim();
     if (regenerate_api_key) updateData.api_key = crypto.randomUUID();
     if (github_repo !== undefined) updateData.github_repo = github_repo;
+    if (widget_password !== undefined) updateData.widget_password = widget_password ? widget_password.trim() : null;
     if (github_token !== undefined) {
       updateData.github_token = github_token ? encrypt(github_token) : null;
     }

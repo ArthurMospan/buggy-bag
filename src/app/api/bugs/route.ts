@@ -104,7 +104,7 @@ export async function PATCH(req: NextRequest) {
       updates.status = status;
     }
     if (severity) {
-      const validSeverities: BugSeverity[] = ['low', 'medium', 'high', 'critical'];
+      const validSeverities: BugSeverity[] = ['low', 'medium', 'high', 'critical', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
       if (!validSeverities.includes(severity)) return NextResponse.json({ error: `Invalid severity` }, { status: 400 });
       updates.severity = severity;
     }

@@ -97,7 +97,7 @@ function IntegrationSection({ project, onUpdate }: { project: Project, onUpdate:
       </div>
 
       <div className="pt-[8px]">
-        <SetupGuide apiKey={project.api_key} />
+        <SetupGuide apiKey={project.api_key} widgetPassword={project.widget_password} />
       </div>
     </div>
   );
@@ -105,7 +105,9 @@ function IntegrationSection({ project, onUpdate }: { project: Project, onUpdate:
 
 function GeneralSection({ project, onUpdate }: { project: Project, onUpdate: (p: Project) => void }) {
   const [name, setName] = useState(project.name);
+  const [password, setPassword] = useState(project.widget_password || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingPass, setIsSavingPass] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const router = useRouter();
@@ -125,6 +127,23 @@ function GeneralSection({ project, onUpdate }: { project: Project, onUpdate: (p:
         router.refresh();
       }
     } catch (e) { console.error(e); } finally { setIsSaving(false); }
+  };
+
+  const handleSavePassword = async () => {
+    if (password === (project.widget_password || '')) return;
+    setIsSavingPass(true);
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: project.id, widget_password: password }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        onUpdate(updated.project ?? { ...project, widget_password: password });
+        router.refresh();
+      }
+    } catch (e) { console.error(e); } finally { setIsSavingPass(false); }
   };
 
   const handleDelete = async () => {
@@ -177,7 +196,31 @@ function GeneralSection({ project, onUpdate }: { project: Project, onUpdate: (p:
         </div>
       </div>
 
-      <div className="py-[32px]">
+      <div className="py-[32px] border-t border-[#e9e9e9]">
+        <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Пароль віджета</h2>
+        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">
+          Замість стандартного параметра <code className="bg-[#f4f4f5] px-1 py-0.5 rounded text-[#1f1f1f]">?bb=on</code>, ви можете задати свій секретний пароль (напр. <code className="bg-[#f4f4f5] px-1 py-0.5 rounded text-[#1f1f1f]">?bb=my_secret</code>). Залиште порожнім, щоб використовувати значення за замовчуванням.
+        </p>
+        
+        <div className="flex flex-col sm:flex-row gap-[12px]">
+          <input
+            type="text"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="on"
+            className="flex-1 max-w-[400px] bg-[#ffffff] border border-[#e9e9e9] rounded-[8px] px-[14px] py-[10px] text-[13px] text-[#1f1f1f] font-bold outline-none focus:border-[#1f1f1f] transition-colors placeholder:text-[#9a9a9a]"
+          />
+          <button
+            onClick={handleSavePassword}
+            disabled={isSavingPass || password === (project.widget_password || '')}
+            className="bg-[#1f1f1f] hover:bg-[#303030] text-white text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50 shrink-0"
+          >
+            {isSavingPass ? 'Збереження...' : 'Зберегти'}
+          </button>
+        </div>
+      </div>
+
+      <div className="py-[32px] border-t border-[#e9e9e9]">
         <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px] flex items-center gap-[8px]">
           <Power size={18} /> Керування збором
         </h2>

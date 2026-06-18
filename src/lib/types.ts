@@ -46,6 +46,14 @@ export interface ComponentInfo {
   lineNumber?: number;
 }
 
+export interface DesignAuditResult {
+  fonts: { value: string; count: number }[];
+  fontSizes: { value: string; count: number }[];
+  colors: { value: string; count: number }[];
+  spacings: { value: string; count: number }[];
+  borderRadii: { value: string; count: number }[];
+}
+
 /**
  * DOM context captured when a pin is placed on a specific element.
  * Provides developers exact element info without guessing.
@@ -104,6 +112,7 @@ export interface TechContext {
   consoleErrors: ConsoleEntry[];
   eventLog: EventLogEntry[];
   autoSeverity: BugSeverity;
+  designAudit?: DesignAuditResult | null;
 }
 
 export interface Bug {
@@ -151,6 +160,7 @@ export interface Project {
   google_access_token?: string | null;
   google_refresh_token?: string | null;
   google_token_expiry?: string | null;
+  widget_password?: string | null;
 }
 
 export interface ProjectMember {

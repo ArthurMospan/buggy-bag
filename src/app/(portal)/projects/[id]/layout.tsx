@@ -6,7 +6,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
     <ProjectProvider>
       <div className="flex w-full h-full">
         <ProjectSidebar />
-        <div className="flex-1 overflow-auto bg-[#f4f4f5] relative">
+        <div className="flex-1 overflow-auto bg-transparent relative rounded-r-[24px]">
           {children}
         </div>
       </div>
