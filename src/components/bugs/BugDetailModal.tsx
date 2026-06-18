@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Bug, BugStatus, BugSeverity, DrawShape, PinElementContext, Project } from '@/lib/types';
 import Dialog from '@/components/ui/Dialog';
+import BugScreenshot from './BugScreenshot';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { ChevronDown, ChevronUp, Copy, Check, ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
@@ -235,14 +236,7 @@ export default function BugDetailModal({ bug, project, onClose, onStatusChange, 
 
           {/* ── 2. Screenshot (clickable → lightbox) ────────────────── */}
           {bug.image_url && (
-            <div className="relative bg-[#f4f4f5] rounded-[12px] overflow-hidden group">
-              <img
-                src={bug.image_url}
-                alt="Screenshot"
-                crossOrigin="anonymous"
-                className="w-full object-contain max-h-[340px] cursor-zoom-in"
-                onClick={() => setLightbox(true)}
-              />
+            <BugScreenshot bug={bug} variant="modal" onClick={() => setLightbox(true)}>
               {/* Expand button — appears on hover */}
               <button
                 onClick={() => setLightbox(true)}
@@ -251,7 +245,7 @@ export default function BugDetailModal({ bug, project, onClose, onStatusChange, 
               >
                 <Maximize2 size={14} />
               </button>
-            </div>
+            </BugScreenshot>
           )}
 
           {/* ── 3. Pins list with DOM context ────────────────────────── */}

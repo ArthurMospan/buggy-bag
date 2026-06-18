@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Bug, BugStatus, BugSeverity, DrawShape, PinElementContext, Project, Annotation } from '@/lib/types';
+import BugScreenshot from './BugScreenshot';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { ChevronDown, ChevronUp, Copy, Check, Maximize2, X, ArrowLeft, Monitor, Globe, Calendar, Terminal, Code2, ExternalLink, Plus, Link as LinkIcon } from 'lucide-react';
@@ -462,14 +463,7 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
         <div className="w-full shrink-0 border-b border-[#e9e9e9] bg-[#ffffff]">
           <div className="flex items-center justify-center min-h-[300px]">
             {bug.image_url ? (
-              <div className="relative inline-block group w-full">
-                <img
-                  src={bug.image_url}
-                  alt="Screenshot"
-                  crossOrigin="anonymous"
-                  className="w-full h-auto object-cover block"
-                />
-                
+              <BugScreenshot bug={bug} variant="page">
                 {/* Pin Overlays */}
                 <div className="absolute inset-0 pointer-events-none">
                   {annotations.map((ann, i) => {
@@ -495,7 +489,7 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
                 >
                   <Maximize2 size={18} />
                 </button>
-              </div>
+              </BugScreenshot>
             ) : (
               <div className="text-[#9a9a9a] text-[14px]">Без скріншоту</div>
             )}

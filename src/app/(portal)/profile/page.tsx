@@ -176,7 +176,7 @@ function ConnectionsSection({ githubIdentity, handleConnectGitHub }: any) {
   );
 }
 
-function SecuritySection({ newPwd, setNewPwd, handleChangePwd, savingPwd, pwdMsg }: any) {
+function SecuritySection({ oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, setConfirmPwd, handleChangePwd, savingPwd, pwdMsg }: any) {
   return (
     <div className="flex flex-col">
       <div className="pb-[32px]">
@@ -184,6 +184,18 @@ function SecuritySection({ newPwd, setNewPwd, handleChangePwd, savingPwd, pwdMsg
         <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Керуйте своїм паролем та безпекою входу.</p>
 
         <form onSubmit={handleChangePwd} className="flex flex-col gap-[16px] max-w-[400px]">
+          <div className="flex flex-col gap-[8px]">
+            <span className="text-[13px] font-bold text-[#1f1f1f]">Поточний пароль</span>
+            <input
+              type="password"
+              placeholder="Введіть старий пароль"
+              value={oldPwd}
+              onChange={e => setOldPwd(e.target.value)}
+              required
+              className="bg-[#ffffff] border border-[#e9e9e9] rounded-[8px] px-[14px] py-[10px] text-[13px] text-[#1f1f1f] font-bold outline-none focus:border-[#1f1f1f] transition-colors placeholder:text-[#9a9a9a]"
+            />
+          </div>
+
           <div className="flex flex-col gap-[8px]">
             <span className="text-[13px] font-bold text-[#1f1f1f]">Новий пароль</span>
             <input
@@ -197,6 +209,19 @@ function SecuritySection({ newPwd, setNewPwd, handleChangePwd, savingPwd, pwdMsg
               className="bg-[#ffffff] border border-[#e9e9e9] rounded-[8px] px-[14px] py-[10px] text-[13px] text-[#1f1f1f] font-bold outline-none focus:border-[#1f1f1f] transition-colors placeholder:text-[#9a9a9a]"
             />
           </div>
+
+          <div className="flex flex-col gap-[8px]">
+            <span className="text-[13px] font-bold text-[#1f1f1f]">Підтвердіть новий пароль</span>
+            <input
+              type="password"
+              placeholder="Повторіть новий пароль"
+              value={confirmPwd}
+              onChange={e => setConfirmPwd(e.target.value)}
+              required
+              minLength={6}
+              className="bg-[#ffffff] border border-[#e9e9e9] rounded-[8px] px-[14px] py-[10px] text-[13px] text-[#1f1f1f] font-bold outline-none focus:border-[#1f1f1f] transition-colors placeholder:text-[#9a9a9a]"
+            />
+          </div>
           
           {pwdMsg && (
             <p className={`text-[12px] flex items-center gap-[5px] mt-[-4px] ${pwdMsg.ok ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
@@ -207,7 +232,7 @@ function SecuritySection({ newPwd, setNewPwd, handleChangePwd, savingPwd, pwdMsg
 
           <button
             type="submit"
-            disabled={savingPwd || !newPwd}
+            disabled={savingPwd || !oldPwd || !newPwd || !confirmPwd}
             className="bg-[#1f1f1f] hover:bg-[#303030] text-white text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50 w-fit flex items-center gap-[6px]"
           >
             {savingPwd && <Loader2 size={14} className="animate-spin" />}
@@ -235,7 +260,9 @@ export default function ProfilePage() {
   const [avatarUrl,  setAvatarUrl]  = useState('');
   const [savingName, setSavingName] = useState(false);
   const [nameSaved,  setNameSaved]  = useState(false);
+  const [oldPwd,     setOldPwd]     = useState('');
   const [newPwd,     setNewPwd]     = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
   const [savingPwd,  setSavingPwd]  = useState(false);
   const [pwdMsg,     setPwdMsg]     = useState<{ ok: boolean; text: string } | null>(null);
   const [globalErr,  setGlobalErr]  = useState('');
@@ -272,14 +299,39 @@ export default function ProfilePage() {
 
   const handleChangePwd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!newPwd || savingPwd) return;
+    if (!oldPwd || !newPwd || !confirmPwd || savingPwd) return;
+    
+    if (newPwd !== confirmPwd) {
+      setPwdMsg({ ok: false, text: 'Нові паролі не збігаються' });
+      return;
+    }
+
     setSavingPwd(true);
     setPwdMsg(null);
     const supabase = createClient();
+
+    if (user?.email) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: oldPwd,
+      });
+      if (signInError) {
+        setSavingPwd(false);
+        setPwdMsg({ ok: false, text: 'Неправильний старий пароль' });
+        return;
+      }
+    }
+
     const { error } = await supabase.auth.updateUser({ password: newPwd });
     setSavingPwd(false);
-    if (error) setPwdMsg({ ok: false, text: error.message });
-    else { setPwdMsg({ ok: true, text: 'Пароль успішно змінено' }); setNewPwd(''); }
+    if (error) {
+      setPwdMsg({ ok: false, text: error.message });
+    } else { 
+      setPwdMsg({ ok: true, text: 'Пароль успішно змінено' }); 
+      setOldPwd('');
+      setNewPwd(''); 
+      setConfirmPwd('');
+    }
   };
 
   const handleConnectGitHub = async () => {
@@ -388,8 +440,12 @@ export default function ProfilePage() {
           )}
           {activeNav === 'security' && (
             <SecuritySection
+              oldPwd={oldPwd}
+              setOldPwd={setOldPwd}
               newPwd={newPwd}
               setNewPwd={setNewPwd}
+              confirmPwd={confirmPwd}
+              setConfirmPwd={setConfirmPwd}
               handleChangePwd={handleChangePwd}
               savingPwd={savingPwd}
               pwdMsg={pwdMsg}
