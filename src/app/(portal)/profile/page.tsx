@@ -244,6 +244,84 @@ function SecuritySection({ oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, set
   );
 }
 
+function GeneralSkeleton() {
+  return (
+    <div className="flex flex-col animate-pulse">
+      <div className="pb-[32px]">
+        <div className="h-[20px] w-[140px] bg-zinc-200 rounded mb-[6px]" />
+        <div className="h-[14px] w-[240px] bg-zinc-100 rounded mb-[20px]" />
+        
+        <div className="flex items-center gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] mb-[24px]">
+          <div className="w-[48px] h-[48px] rounded-full bg-zinc-200 shrink-0" />
+          <div className="flex flex-col gap-[8px] flex-1">
+            <div className="h-[16px] w-[140px] bg-zinc-200 rounded" />
+            <div className="h-[12px] w-[200px] bg-zinc-100 rounded" />
+          </div>
+        </div>
+      </div>
+
+      <div className="py-[32px] border-t border-[#e9e9e9]">
+        <div className="h-[20px] w-[100px] bg-zinc-200 rounded mb-[6px]" />
+        <div className="h-[14px] w-[180px] bg-zinc-100 rounded mb-[20px]" />
+        
+        <div className="flex flex-col sm:flex-row gap-[12px]">
+          <div className="flex-1 max-w-[400px] h-[38px] bg-zinc-100 rounded-[8px] border border-[#e9e9e9]" />
+          <div className="w-[100px] h-[38px] bg-zinc-200 rounded-[8px]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConnectionsSkeleton() {
+  return (
+    <div className="flex flex-col animate-pulse">
+      <div className="pb-[32px]">
+        <div className="h-[20px] w-[120px] bg-zinc-200 rounded mb-[6px]" />
+        <div className="h-[14px] w-[280px] bg-zinc-100 rounded mb-[24px]" />
+
+        <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center gap-[12px]">
+            <div className="w-[36px] h-[36px] rounded-[8px] bg-zinc-200 shrink-0" />
+            <div className="flex flex-col gap-[8px]">
+              <div className="h-[14px] w-[130px] bg-zinc-200 rounded" />
+              <div className="h-[12px] w-[180px] bg-zinc-100 rounded" />
+            </div>
+          </div>
+          <div className="w-[90px] h-[28px] bg-zinc-200 rounded-[6px]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SecuritySkeleton() {
+  return (
+    <div className="flex flex-col animate-pulse">
+      <div className="pb-[32px]">
+        <div className="h-[20px] w-[100px] bg-zinc-200 rounded mb-[6px]" />
+        <div className="h-[14px] w-[240px] bg-zinc-100 rounded mb-[20px]" />
+
+        <div className="flex flex-col gap-[18px] max-w-[400px]">
+          <div className="flex flex-col gap-[8px]">
+            <div className="h-[14px] w-[120px] bg-zinc-200 rounded" />
+            <div className="h-[38px] bg-zinc-100 rounded-[8px] border border-[#e9e9e9]" />
+          </div>
+          <div className="flex flex-col gap-[8px]">
+            <div className="h-[14px] w-[100px] bg-zinc-200 rounded" />
+            <div className="h-[38px] bg-zinc-100 rounded-[8px] border border-[#e9e9e9]" />
+          </div>
+          <div className="flex flex-col gap-[8px]">
+            <div className="h-[14px] w-[160px] bg-zinc-200 rounded" />
+            <div className="h-[38px] bg-zinc-100 rounded-[8px] border border-[#e9e9e9]" />
+          </div>
+          <div className="w-[140px] h-[38px] bg-zinc-200 rounded-[8px] mt-[4px]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const NAV_ITEMS = [
   { id: 'general', label: 'Загальні', icon: <UserIcon size={16} /> },
   { id: 'connections', label: 'Інтеграції', icon: <LinkIcon size={16} /> },
@@ -348,14 +426,6 @@ export default function ProfilePage() {
   const isEmailAuth    = user?.app_metadata?.provider === 'email' || (user?.identities?.some(i => i.provider === 'email') ?? false);
   const githubIdentity = user?.identities?.find(i => i.provider === 'github');
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full bg-[#f4f4f5]">
-        <Loader2 size={24} className="text-[#9a9a9a] animate-spin" />
-      </div>
-    );
-  }
-
   const getNavDescription = (id: string) => {
     switch (id) {
       case 'general': return 'Ваша інформація та ім\'я';
@@ -365,8 +435,8 @@ export default function ProfilePage() {
     }
   };
 
-  // Only show security tab if email auth is used
-  const visibleNavItems = isEmailAuth ? NAV_ITEMS : NAV_ITEMS.filter(n => n.id !== 'security');
+  // Only show security tab if email auth is used (always show during loading to prevent sidebar shifts)
+  const visibleNavItems = (loading || isEmailAuth) ? NAV_ITEMS : NAV_ITEMS.filter(n => n.id !== 'security');
 
   return (
     <div className="h-full w-full flex flex-row bg-[#f4f4f5]">
@@ -419,37 +489,47 @@ export default function ProfilePage() {
 
         {/* Content */}
         <div className="px-[32px] py-[32px] max-w-[800px]">
-          {activeNav === 'general' && (
-            <GeneralSection
-              user={user}
-              name={name}
-              setName={setName}
-              handleSaveName={handleSaveName}
-              savingName={savingName}
-              nameSaved={nameSaved}
-              globalErr={globalErr}
-              avatarUrl={avatarUrl}
-              setAvatarUrl={setAvatarUrl}
-            />
-          )}
-          {activeNav === 'connections' && (
-            <ConnectionsSection
-              githubIdentity={githubIdentity}
-              handleConnectGitHub={handleConnectGitHub}
-            />
-          )}
-          {activeNav === 'security' && (
-            <SecuritySection
-              oldPwd={oldPwd}
-              setOldPwd={setOldPwd}
-              newPwd={newPwd}
-              setNewPwd={setNewPwd}
-              confirmPwd={confirmPwd}
-              setConfirmPwd={setConfirmPwd}
-              handleChangePwd={handleChangePwd}
-              savingPwd={savingPwd}
-              pwdMsg={pwdMsg}
-            />
+          {loading ? (
+            <>
+              {activeNav === 'general' && <GeneralSkeleton />}
+              {activeNav === 'connections' && <ConnectionsSkeleton />}
+              {activeNav === 'security' && <SecuritySkeleton />}
+            </>
+          ) : (
+            <>
+              {activeNav === 'general' && (
+                <GeneralSection
+                  user={user}
+                  name={name}
+                  setName={setName}
+                  handleSaveName={handleSaveName}
+                  savingName={savingName}
+                  nameSaved={nameSaved}
+                  globalErr={globalErr}
+                  avatarUrl={avatarUrl}
+                  setAvatarUrl={setAvatarUrl}
+                />
+              )}
+              {activeNav === 'connections' && (
+                <ConnectionsSection
+                  githubIdentity={githubIdentity}
+                  handleConnectGitHub={handleConnectGitHub}
+                />
+              )}
+              {activeNav === 'security' && (
+                <SecuritySection
+                  oldPwd={oldPwd}
+                  setOldPwd={setOldPwd}
+                  newPwd={newPwd}
+                  setNewPwd={setNewPwd}
+                  confirmPwd={confirmPwd}
+                  setConfirmPwd={setConfirmPwd}
+                  handleChangePwd={handleChangePwd}
+                  savingPwd={savingPwd}
+                  pwdMsg={pwdMsg}
+                />
+              )}
+            </>
           )}
         </div>
       </div>

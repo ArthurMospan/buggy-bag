@@ -33,11 +33,12 @@ export async function POST(req: NextRequest) {
       base64_image?: string;
       shapes?: DrawShape[];
       annotations?: Record<string, string>;
+      shape_attachments?: Record<string, { name: string; type: string; base64: string }[]>;
       description?: string;
       tech_context?: TechContext;
     };
 
-    const { api_key, base64_image, shapes = [], annotations = {}, description, tech_context } = body;
+    const { api_key, base64_image, shapes = [], annotations = {}, shape_attachments = {}, description, tech_context } = body;
     const severity = tech_context?.autoSeverity ?? 'low';
 
     if (!api_key) {
@@ -47,31 +48,6 @@ export async function POST(req: NextRequest) {
     if (!checkRateLimit(api_key)) {
       return NextResponse.json({ error: 'Rate limit exceeded (30/hour)' }, { status: 429, headers: CORS });
     }
-
-    // Parse viewport dimensions for coordinate conversion
-    const viewport = tech_context?.viewport ?? '1280x800';
-    const [vw, vh] = viewport.split('x').map(Number);
-    const screenW = vw || 1280;
-    const screenH = vh || 800;
-
-    // Convert shapes + annotations into Annotation[] with percentage coordinates
-    const json_annotations: Annotation[] = shapes.map((shape, idx) => {
-      let cx = shape.x;
-      let cy = shape.y;
-      if (shape.type === 'rect') {
-        cx = shape.x + (shape.width ?? 0) / 2;
-        cy = shape.y + (shape.height ?? 0) / 2;
-      } else if ((shape.type === 'arrow' || shape.type === 'measure') && shape.points) {
-        cx = (shape.points[0] + shape.points[2]) / 2;
-        cy = (shape.points[1] + shape.points[3]) / 2;
-      }
-      return {
-        x: Math.round((cx / screenW) * 1000) / 10,
-        y: Math.round((cy / screenH) * 1000) / 10,
-        text: annotations[shape.id] ?? '',
-        index: idx + 1,
-      };
-    });
 
     const supabase = createServiceClient();
 
@@ -90,6 +66,61 @@ export async function POST(req: NextRequest) {
     }
 
     const project_id: string = project.id;
+
+    // Parse viewport dimensions for coordinate conversion
+    const viewport = tech_context?.viewport ?? '1280x800';
+    const [vw, vh] = viewport.split('x').map(Number);
+    const screenW = vw || 1280;
+    const screenH = vh || 800;
+
+    // Convert shapes + annotations into Annotation[] with percentage coordinates and attachments
+    const json_annotations: Annotation[] = await Promise.all(shapes.map(async (shape, idx) => {
+      let cx = shape.x;
+      let cy = shape.y;
+      if (shape.type === 'rect') {
+        cx = shape.x + (shape.width ?? 0) / 2;
+        cy = shape.y + (shape.height ?? 0) / 2;
+      } else if ((shape.type === 'arrow' || shape.type === 'measure') && shape.points) {
+        cx = (shape.points[0] + shape.points[2]) / 2;
+        cy = (shape.points[1] + shape.points[3]) / 2;
+      }
+
+      const rawAtts = shape_attachments[shape.id] || [];
+      const uploadedAtts = [];
+
+      for (const att of rawAtts) {
+        const match = att.base64.match(/^data:(.+);base64,(.+)$/);
+        if (match) {
+          const [, mimeType, b64data] = match;
+          const safeName = att.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+          const fileName = `${project_id}/attachments/${Date.now()}_${idx}_${safeName}`;
+          const binary = atob(b64data);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+          const { data: upload, error: uploadErr } = await supabase.storage
+            .from('bug-screenshots')
+            .upload(fileName, bytes, { contentType: mimeType, upsert: false });
+
+          if (!uploadErr && upload) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('bug-screenshots')
+              .getPublicUrl(upload.path);
+            uploadedAtts.push({ name: att.name, type: att.type, url: publicUrl });
+          } else if (uploadErr) {
+            console.error('[buggy-bag] attachment upload error:', uploadErr.message);
+          }
+        }
+      }
+
+      return {
+        x: Math.round((cx / screenW) * 1000) / 10,
+        y: Math.round((cy / screenH) * 1000) / 10,
+        text: annotations[shape.id] ?? '',
+        index: idx + 1,
+        ...(uploadedAtts.length > 0 ? { attachments: uploadedAtts } : {})
+      };
+    }));
     let image_url: string | null = null;
 
     if (base64_image) {

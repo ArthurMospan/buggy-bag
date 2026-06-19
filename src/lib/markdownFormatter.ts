@@ -60,8 +60,15 @@ export function formatBugMarkdown(bug: Bug): string {
       const ann = annotations[shapeIdx];
       const pinNum = ann?.index ?? (shapeIdx + 1);
       const note = ann?.text ? ` — "${ann.text}"` : '';
+      
+      const attachmentsMd = ann?.attachments?.length 
+        ? ' ' + ann.attachments.map(att => att.type.startsWith('image/') ? `![${att.name}](${att.url})` : `[${att.name}](${att.url})`).join(' ')
+        : '';
+        
+      const finalNote = note + attachmentsMd;
+
       if (ctx?.selector) {
-        lines.push(`- **Pin #${pinNum}** on \`${ctx.selector}\`${note}`);
+        lines.push(`- **Pin #${pinNum}** on \`${ctx.selector}\`${finalNote}`);
         if (ctx.reactComponent?.filePath) {
           lines.push(`  - Component: \`${ctx.reactComponent.name}\` in \`${ctx.reactComponent.filePath}${ctx.reactComponent.lineNumber ? `:${ctx.reactComponent.lineNumber}` : ''}\``);
         } else if (ctx.reactComponent?.name) {
@@ -71,9 +78,9 @@ export function formatBugMarkdown(bug: Bug): string {
           lines.push(`  - Data sources: \`${ctx.dataSources.join('`, `')}\``);
         }
       } else if (ann) {
-        lines.push(`- **Pin #${pinNum}** at ${ann.x}%×${ann.y}%${note}`);
+        lines.push(`- **Pin #${pinNum}** at ${ann.x}%×${ann.y}%${finalNote}`);
       } else {
-        lines.push(`- **Pin #${pinNum}**${note}`);
+        lines.push(`- **Pin #${pinNum}**${finalNote}`);
       }
     });
     lines.push('');

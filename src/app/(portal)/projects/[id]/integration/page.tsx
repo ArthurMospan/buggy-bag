@@ -125,6 +125,7 @@ function GeneralSection({ project, onUpdate }: { project: Project, onUpdate: (p:
       if (res.ok) {
         const updated = await res.json();
         onUpdate(updated.project ?? { ...project, name });
+        window.dispatchEvent(new CustomEvent('projects-updated'));
         router.refresh();
       }
     } catch (e) { console.error(e); } finally { setIsSaving(false); }
@@ -156,7 +157,10 @@ function GeneralSection({ project, onUpdate }: { project: Project, onUpdate: (p:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: project.id }),
       });
-      if (res.ok) window.location.href = '/';
+      if (res.ok) {
+        window.dispatchEvent(new CustomEvent('projects-updated'));
+        router.push('/');
+      }
     } catch (e) { console.error(e); } finally { setIsDeleting(false); }
   };
 

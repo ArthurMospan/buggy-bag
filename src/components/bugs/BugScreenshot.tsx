@@ -6,7 +6,7 @@ import { Bug } from '@/lib/types';
  * Parses tech_context.viewport (e.g. "390x844") and decides whether the
  * screenshot was taken on a narrow/portrait (mobile-shaped) viewport.
  */
-function isMobileShaped(bug: Bug): boolean {
+export function isMobileShaped(bug: Bug): boolean {
   const vp = bug.tech_context?.viewport;
   if (!vp) return false;
   const m = /^(\d+)x(\d+)$/.exec(vp.trim());
@@ -80,7 +80,7 @@ export default function BugScreenshot({ bug, variant, onClick, className, childr
         borderRadius: 28,
         outline: '6px solid #1c1c1e',
         outlineOffset: '-6px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
         overflow: 'hidden',
       }}
     >

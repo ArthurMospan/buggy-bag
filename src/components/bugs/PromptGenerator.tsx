@@ -29,55 +29,7 @@ function sortBySev(bugs: Bug[]): Bug[] {
   });
 }
 
-// ── Quality Score 2.0 ────────────────────────────────────────────────────────
 
-interface QualityFactor {
-  label: string;
-  points: number;
-  earned: number;
-}
-
-function calcQuality(bugs: Bug[]): { score: number; hint: string; factors: QualityFactor[] } {
-  if (bugs.length === 0) return { score: 0, hint: '', factors: [] };
-
-  // Per-bug scoring, then average
-  const perBug = bugs.map(bug => {
-    const tc = bug.tech_context;
-    const hasPinCtx = bug.json_shapes?.some(s => s.type === 'pin' && s.elementContext);
-    const hasSourceFile = bug.json_shapes?.some(s => s.type === 'pin' && s.elementContext?.sourceFile);
-    const hasDataSrc = bug.json_shapes?.some(s => s.type === 'pin' && s.elementContext?.dataSources?.length);
-    const hasFilePath = tc?.component?.filePath || bug.json_shapes?.some(s => s.elementContext?.reactComponent?.filePath);
-    const hasNetOrConsole = (tc?.networkRequests?.some(r => r.isError) || tc?.consoleErrors?.some(e => e.level === 'error'));
-    const hasStoreDiff = tc?.storeDiff && Object.keys(tc.storeDiff).length > 0;
-
-    const factors: QualityFactor[] = [
-      { label: 'Опис',              points: 20, earned: bug.description ? 20 : 0 },
-      { label: 'Скріншот',          points: 20, earned: bug.image_url    ? 20 : 0 },
-      { label: 'Source file',       points: 15, earned: hasSourceFile     ? 15 : 0 },
-      { label: 'DOM selector (pin)', points: 15, earned: hasPinCtx        ? 15 : 0 },
-      { label: 'Кроки відтворення', points: 15, earned: (tc?.eventLog?.length ?? 0) > 0 ? 15 : 0 },
-      { label: 'Файл компонента',   points: 10, earned: hasFilePath       ? 10 : 0 },
-      { label: 'Мережа/консоль',    points: 10, earned: hasNetOrConsole   ? 10 : 0 },
-      { label: 'Store diff',        points:  5, earned: hasStoreDiff      ?  5 : 0 },
-      { label: 'Data sources',      points:  5, earned: hasDataSrc        ?  5 : 0 },
-    ];
-    return factors;
-  });
-
-  // Average across bugs
-  const totalPoints = perBug[0].reduce((s, f) => s + f.points, 0);
-  const avgFactors = perBug[0].map((f, i) => ({
-    ...f,
-    earned: Math.round(perBug.reduce((s, b) => s + b[i].earned, 0) / perBug.length),
-  }));
-  const score = Math.min(100, avgFactors.reduce((s, f) => s + f.earned, 0));
-
-  // Find the most impactful missing factor
-  const missing = avgFactors.filter(f => f.earned < f.points).sort((a, b) => (b.points - b.earned) - (a.points - a.earned));
-  const hint = missing[0] ? `+${missing[0].points - missing[0].earned}pt: ${missing[0].label}` : '';
-
-  return { score, hint, factors: avgFactors };
-}
 
 // ── Prompt formatters ────────────────────────────────────────────────────────
 
@@ -147,7 +99,8 @@ function pinContextSummary(jsonShapes: Bug['json_shapes'], annotations: Bug['jso
     const ctx = shape.elementContext;
     const ann = annotations[shapeIdx];
     const pinNum = ann?.index ?? (shapeIdx + 1);
-    const label = ann?.text ? `"${ann.text}"` : `Pin ${pinNum}`;
+    const attachmentsText = ann?.attachments?.length ? ` [Attachments: ${ann.attachments.map(a => a.url).join(', ')}]` : '';
+    const label = ann?.text ? `"${ann.text}"${attachmentsText}` : `Pin ${pinNum}${attachmentsText}`;
     lines.push(`  ${label}:`);
     if (ctx) {
       lines.push(`    Element: ${ctx.selector}`);
@@ -225,9 +178,16 @@ function formatGitHub(bugs: Bug[]): string {
         const ctx = shape.elementContext;
         const ann = bug.json_annotations[shapeIdx];
         const pinNum = ann?.index ?? (shapeIdx + 1);
+        
+        const attachmentsMd = ann?.attachments?.length 
+          ? ' ' + ann.attachments.map(att => att.type.startsWith('image/') ? `![${att.name}](${att.url})` : `[${att.name}](${att.url})`).join(' ')
+          : '';
+          
         const note = ann?.text ? ` — "${ann.text}"` : '';
+        const finalNote = note + attachmentsMd;
+        
         if (ctx?.selector) {
-          lines.push(`Pin #${pinNum} on \`${ctx.selector}\`${note}`);
+          lines.push(`Pin #${pinNum} on \`${ctx.selector}\`${finalNote}`);
           if (ctx.reactComponent?.filePath) {
             lines.push(`→ \`${ctx.reactComponent.name}\` in \`${ctx.reactComponent.filePath}${ctx.reactComponent.lineNumber ? `:${ctx.reactComponent.lineNumber}` : ''}\``);
           }
@@ -235,9 +195,9 @@ function formatGitHub(bugs: Bug[]): string {
             lines.push(`→ Data: \`${ctx.dataSources.join('`, `')}\``);
           }
         } else if (ann) {
-          lines.push(`Pin #${pinNum} at ${ann.x}%×${ann.y}%${note}`);
+          lines.push(`Pin #${pinNum} at ${ann.x}%×${ann.y}%${finalNote}`);
         } else {
-          lines.push(`Pin #${pinNum}${note}`);
+          lines.push(`Pin #${pinNum}${finalNote}`);
         }
       });
       lines.push('');
@@ -426,6 +386,15 @@ function formatClaude(bugs: Bug[]): string {
       const ann = bug.json_annotations[shapeIdx];
       const pinNum = ann?.index ?? (shapeIdx + 1);
       lines.push(`  <pin index="${pinNum}"${ann?.text ? ` annotation="${ann.text}"` : ''}>`);
+      
+      if (ann?.attachments?.length) {
+        lines.push(`    <attachments>`);
+        ann.attachments.forEach(att => {
+          lines.push(`      <attachment type="${att.type}" url="${att.url}" name="${att.name}" />`);
+        });
+        lines.push(`    </attachments>`);
+      }
+
       if (ctx?.selector) {
         lines.push(`    <element>${ctx.selector}</element>`);
       } else if (ann) {
@@ -460,47 +429,7 @@ const TOOL_OPTIONS: { id: TemplateId; label: string; desc: string }[] = [
 ];
 
 
-// ── Quality Score bar ────────────────────────────────────────────────────────
 
-function QualityBar({ score, hint, factors }: { score: number; hint: string; factors: ReturnType<typeof calcQuality>['factors'] }) {
-  const [showDetails, setShowDetails] = useState(false);
-  const color = score >= 80 ? '#10b981' : score >= 50 ? '#f97316' : '#ef4444';
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setShowDetails(v => !v)}
-        className={`flex items-center gap-[8px] px-[12px] py-[6px] rounded-[10px] transition-colors cursor-pointer border ${showDetails ? 'bg-[#f4f4f5] border-[#d4d4d8]' : 'bg-white border-[#e9e9e9] hover:bg-[#f4f4f5]'}`}
-        title="Деталі якості промпту"
-      >
-        <span className="text-[12px] font-medium text-[#5d5d5d]">Якість промпту:</span>
-        <div className="flex items-center gap-[6px]">
-          <span className="text-[12px] font-bold" style={{ color }}>{score}/100</span>
-          {hint && <span className="text-[10px] font-semibold px-[6px] py-[2px] rounded-[6px] bg-[#f97316]/10 text-[#f97316] leading-none">{hint}</span>}
-        </div>
-      </button>
-
-      {showDetails && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-[100] bg-[#ffffff] border border-[#e9e9e9] rounded-[16px] shadow-[0_20px_40px_rgba(0,0,0,0.12)] p-[16px] w-[260px] animate-in fade-in zoom-in-95 duration-200 origin-top-right">
-          <div className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[12px]">Аналіз контексту</div>
-          {factors.map(f => (
-            <div key={f.label} className="flex items-center justify-between py-[3px]">
-              <span className="text-[11px] text-[#1f1f1f]">{f.label}</span>
-              <span className="text-[11px] font-bold" style={{ color: f.earned === f.points ? '#10b981' : '#f97316' }}>
-                {f.earned}/{f.points}
-              </span>
-            </div>
-          ))}
-          <div className="h-[1px] bg-[#e9e9e9] my-[8px]" />
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-[#1f1f1f]">Загальний бал</span>
-            <span className="text-[11px] font-bold" style={{ color }}>{score}/100</span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Dropdown Helper ──────────────────────────────────────────────────────────
 
@@ -561,7 +490,6 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
 
   const selected = sortBySev(bugs.filter(b => selectedIds.has(b.id)));
   const prompt   = selected.length > 0 ? FORMATTERS[template](selected) : '';
-  const { score, hint, factors } = calcQuality(selected);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(prompt);
@@ -609,10 +537,6 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
                     <Trash2 size={14} />
                     Видалити
                   </button>
-                </div>
-                
-                <div className="ml-auto">
-                  <QualityBar score={score} hint={hint} factors={factors} />
                 </div>
               </div>
             )}

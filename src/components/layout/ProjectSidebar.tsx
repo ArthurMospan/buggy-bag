@@ -13,6 +13,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import AnimatedLogo from '@/components/ui/AnimatedLogo';
 import { generateProjectZip } from '@/lib/export';
+import BugCard from '@/components/bugs/BugCard';
 
 import { STATUS_CFG, SEVERITY_CFG } from '@/lib/constants';
 
@@ -53,10 +54,7 @@ export default function ProjectSidebar() {
   const { selectedBugIds, toggleSelectBug, clearSelectedBugs, selectAllBugs, refreshTrigger } = useProjectContext();
   const kebabRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const v = localStorage.getItem(`BUGGY_BAG_VIEW_${id}`);
-    if (v === 'list') setViewMode('list');
-    
+  const fetchProjectInfo = useCallback(() => {
     fetch('/api/projects')
       .then(res => res.json())
       .then(data => {
@@ -64,6 +62,18 @@ export default function ProjectSidebar() {
          setProject(p);
       });
   }, [id]);
+
+  useEffect(() => {
+    const v = localStorage.getItem(`BUGGY_BAG_VIEW_${id}`);
+    if (v === 'list') setViewMode('list');
+    
+    fetchProjectInfo();
+
+    window.addEventListener('projects-updated', fetchProjectInfo);
+    return () => {
+      window.removeEventListener('projects-updated', fetchProjectInfo);
+    };
+  }, [id, fetchProjectInfo]);
 
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearch(searchQuery), 150);
@@ -82,6 +92,20 @@ export default function ProjectSidebar() {
   }, [id, filter, refreshTrigger]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleInlineUpdate = async (bugId: string, field: 'status' | 'severity', value: string) => {
+    setBugs(prev => prev.map(b => b.id === bugId ? { ...b, [field]: value } : b));
+    try {
+      await fetch('/api/bugs', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [bugId], [field]: value })
+      });
+    } catch (e) {
+      alert('Помилка оновлення');
+      fetchData();
+    }
+  };
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
@@ -146,12 +170,17 @@ export default function ProjectSidebar() {
     if (!confirm('Видалити проєкт назавжди?')) return;
     setShowKebab(false);
     try {
-      await fetch('/api/projects', {
+      const res = await fetch('/api/projects', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })
       });
-      router.push('/');
+      if (res.ok) {
+        window.dispatchEvent(new CustomEvent('projects-updated'));
+        router.push('/');
+      } else {
+        alert('Помилка видалення');
+      }
     } catch (e) {
       alert('Помилка видалення');
     }
@@ -291,7 +320,7 @@ export default function ProjectSidebar() {
 
       {/* ── Bug list ── */}
       <div className="flex-1 overflow-y-auto flex flex-col custom-scrollbar pb-[20px] bg-[#ffffff]">
-        {loading ? (
+        {bugs.length === 0 && loading ? (
           <div className="text-[13px] text-center text-[#9a9a9a] py-[24px]">Завантаження...</div>
         ) : filteredBugs.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center p-[24px] text-center">
@@ -310,6 +339,18 @@ export default function ProjectSidebar() {
             
             const statusCfg = STATUS_CFG.find(s => s.value === bug.status) || STATUS_CFG[0];
             const sevCfg = SEVERITY_CFG.find(s => s.value === (bug.severity ?? '1')) || SEVERITY_CFG[0];
+
+            let hasPin = false;
+            let pinX = 50;
+            let pinY = 50;
+            if (bug.json_annotations && bug.json_annotations.length > 0) {
+              const ann = bug.json_annotations[0];
+              if (typeof ann.x === 'number' && typeof ann.y === 'number') {
+                pinX = Math.max(0, Math.min(100, ann.x));
+                pinY = Math.max(0, Math.min(100, ann.y));
+                hasPin = true;
+              }
+            }
 
             if (viewMode === 'list') {
               return (
@@ -342,108 +383,15 @@ export default function ProjectSidebar() {
             }
 
             return (
-              <div
+              <BugCard
                 key={bug.id}
-                onClick={() => toggleSelectBug(bug.id)}
-                className={`group/card shrink-0 cursor-pointer transition-colors duration-300 ease-out ml-[24px] mr-[22px] mb-[12px] rounded-[14px] h-[193px] p-[2px] ${
-                  isChecked ? 'bg-[#4F46E5]' : 'bg-transparent hover:bg-[#e9e9e9]'
-                }`}
-              >
-                {/* Content Container (clips everything else) */}
-                <div className="relative w-full h-full rounded-[12px] overflow-hidden isolate bg-[#2a2a2a] shadow-sm">
-                  {/* Background Image */}
-                  <div className="absolute inset-0 overflow-hidden">
-                    {bug.image_url ? (
-                      <img
-                        src={bug.image_url}
-                        alt="Screenshot"
-                        crossOrigin="anonymous"
-                        className="w-full h-full object-cover object-left-top"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[#9a9a9a] text-[12px]">Без скріншоту</div>
-                    )}
-                  </div>
-
-                  {/* Dark Hover-Reveal Overlay */}
-                  <div className="absolute inset-0 bg-black/30 transition-opacity duration-300 group-hover/card:opacity-0 pointer-events-none" />
-
-                  {/* Smooth Gradient Background */}
-                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-transparent to-black/70 transition-all duration-300 group-hover/card:opacity-0" />
-
-                  {/* High-Quality Bottom Blur */}
-                  <div 
-                    className="absolute bottom-0 left-0 right-0 h-[75%] pointer-events-none transition-all duration-300 backdrop-blur-[8px] group-hover/card:backdrop-blur-none rounded-b-[9px]" 
-                    style={{
-                      WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.013) 8.1%, rgba(0,0,0,0.049) 15.5%, rgba(0,0,0,0.104) 22.5%, rgba(0,0,0,0.175) 29%, rgba(0,0,0,0.259) 35.3%, rgba(0,0,0,0.352) 41.2%, rgba(0,0,0,0.45) 47.1%, rgba(0,0,0,0.55) 52.9%, rgba(0,0,0,0.648) 58.8%, rgba(0,0,0,0.741) 64.7%, rgba(0,0,0,0.825) 71%, rgba(0,0,0,0.896) 77.5%, rgba(0,0,0,0.951) 84.5%, rgba(0,0,0,0.987) 91.9%, black 100%)',
-                      maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.013) 8.1%, rgba(0,0,0,0.049) 15.5%, rgba(0,0,0,0.104) 22.5%, rgba(0,0,0,0.175) 29%, rgba(0,0,0,0.259) 35.3%, rgba(0,0,0,0.352) 41.2%, rgba(0,0,0,0.45) 47.1%, rgba(0,0,0,0.55) 52.9%, rgba(0,0,0,0.648) 58.8%, rgba(0,0,0,0.741) 64.7%, rgba(0,0,0,0.825) 71%, rgba(0,0,0,0.896) 77.5%, rgba(0,0,0,0.951) 84.5%, rgba(0,0,0,0.987) 91.9%, black 100%)'
-                    }} 
-                  />
-
-                  {/* Selection Overlay Tint */}
-                  <div className={`absolute inset-0 transition-all duration-200 pointer-events-none ${
-                    isChecked ? 'bg-[#4F46E5]/5' : 'bg-transparent'
-                  }`} />
-
-                  <div className="absolute top-[16px] right-[16px] flex items-center gap-[4px] z-10">
-                    <div className="bg-[#1f1f1f]/90 backdrop-blur-sm border border-white/10 h-[22px] px-[8px] rounded-[6px] flex items-center justify-center shadow-sm">
-                      <span className="text-white text-[10px] font-bold">{statusCfg.label}</span>
-                    </div>
-                    <div className="bg-[#1f1f1f]/90 backdrop-blur-sm border border-white/10 h-[22px] px-[8px] rounded-[6px] flex items-center justify-center gap-[4px] shadow-sm">
-                      <div className="w-[6px] h-[6px] rounded-full" style={{ backgroundColor: sevCfg.color }} />
-                      <span className="text-white text-[10px] font-bold">{sevCfg.label}</span>
-                    </div>
-                  </div>
-
-                  {/* Checkbox Overlay (Top-Left) */}
-                  <div className={`absolute top-[16px] left-[16px] w-[20px] h-[20px] rounded-[6px] flex items-center justify-center transition-all duration-300 z-10 ${
-                    isChecked ? 'bg-[#4F46E5] border-none' : 'bg-white/30 border border-white/50 backdrop-blur-md group-hover/card:bg-white group-hover/card:border-white group-hover/card:scale-110'
-                  }`}>
-                    {isChecked ? (
-                      <Check size={12} strokeWidth={3} className="text-white" />
-                    ) : (
-                      <Check size={12} strokeWidth={3} className="text-black/0 group-hover/card:text-black/30 transition-colors duration-300" />
-                    )}
-                  </div>
-
-                  {/* Route Pill (Middle-Left) */}
-                  {bug.tech_context?.route && (
-                    <div className="absolute bottom-[52px] left-[16px] bg-black/20 backdrop-blur-md rounded-[4px] px-[6px] py-[2px] z-10 max-w-[80%] flex overflow-hidden border border-white/10">
-                      <span 
-                        className="text-white/80 text-[10px] font-medium leading-[16px] truncate" 
-                        style={{ direction: 'rtl', textAlign: 'left' }}
-                      >
-                        <bdi dir="ltr">
-                          {bug.tech_context.route.length > 15 
-                            ? '...' + bug.tech_context.route.slice(-15) 
-                            : bug.tech_context.route}
-                        </bdi>
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Bottom Details Section */}
-                  <div className="absolute bottom-[16px] left-[16px] right-[16px] flex items-end justify-between z-10">
-                    <div className="flex flex-col min-w-0 pr-[8px]">
-                      <p className="text-white text-[13px] font-medium leading-[20px] truncate drop-shadow-md" title={bug.description || 'Без опису'}>
-                        {bug.description || 'Без опису'}
-                      </p>
-                      <p className="text-white/60 text-[10px] leading-[14px] truncate drop-shadow-sm mt-[2px]">
-                        {formatDistanceToNow(new Date(bug.created_at), { addSuffix: true, locale: uk })}
-                      </p>
-                    </div>
-
-                    <Link
-                      href={`/projects/${id}/bugs/${bug.id}`}
-                      onClick={e => e.stopPropagation()}
-                      className="shrink-0 bg-black/30 hover:bg-black/50 backdrop-blur-md transition-colors h-[22px] px-[6px] rounded-[4px] flex items-center gap-[4px]"
-                    >
-                      <span className="text-white text-[11px] font-semibold">Деталі</span>
-                      <ArrowRight size={12} className="text-white" />
-                    </Link>
-                  </div>
-                </div>
-              </div>
+                bug={bug}
+                isChecked={isChecked}
+                toggleSelectBug={toggleSelectBug}
+                handleInlineUpdate={handleInlineUpdate}
+                projectId={id}
+                className="ml-[24px] mr-[22px] mb-[12px]"
+              />
             );
           })
         )}
@@ -451,3 +399,5 @@ export default function ProjectSidebar() {
     </div>
   );
 }
+
+

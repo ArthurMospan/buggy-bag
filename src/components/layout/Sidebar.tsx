@@ -98,10 +98,19 @@ export default function Sidebar({ userEmail = '', userName = '', userAvatar = ''
   const [hoveredTooltip, setHoveredTooltip] = useState<{ text: string; top: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const fetchProjects = () => {
     fetch('/api/projects')
       .then(r => r.json())
       .then(d => setProjects(d.projects ?? []));
+  };
+
+  useEffect(() => {
+    fetchProjects();
+
+    window.addEventListener('projects-updated', fetchProjects);
+    return () => {
+      window.removeEventListener('projects-updated', fetchProjects);
+    };
   }, []);
 
   // Close the profile menu on outside click

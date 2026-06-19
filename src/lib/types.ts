@@ -6,6 +6,7 @@ export interface Annotation {
   y: number;        // percentage 0–100 of image height
   text: string;
   index?: number;
+  attachments?: { name: string; url: string; type: string }[];
 }
 
 // Technical context captured by the widget
@@ -136,7 +137,8 @@ export interface SubmitBugPayload {
   api_key: string;
   base64_image: string;
   shapes?: DrawShape[];
-  annotations: Annotation[];
+  annotations?: Record<string, string>;
+  shape_attachments?: Record<string, { name: string; type: string; base64: string }[]>;
   description?: string;
   tech_context?: TechContext;
 }

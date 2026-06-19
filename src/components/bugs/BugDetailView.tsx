@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Bug, BugStatus, BugSeverity, DrawShape, PinElementContext, Project, Annotation } from '@/lib/types';
-import BugScreenshot from './BugScreenshot';
+import BugScreenshot, { isMobileShaped } from './BugScreenshot';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { ChevronDown, ChevronUp, Copy, Check, Maximize2, X, ArrowLeft, Monitor, Globe, Calendar, Terminal, Code2, ExternalLink, Plus, Link as LinkIcon } from 'lucide-react';
@@ -118,7 +118,7 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
   const [severity,  setSeverity] = useState<BugSeverity>('low');
   const [saving,    setSaving]   = useState(false);
   const [saved,     setSaved]    = useState(false);
-  const [lightbox,  setLightbox] = useState(false);
+  const [lightbox,  setLightbox] = useState<string | null>(null);
   const { copy, copied } = useCopyMarkdown(bug ?? ({} as Bug));
 
   const [issueUrl,  setIssueUrl]  = useState<string | null>(null);
@@ -224,7 +224,7 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
 
   return (
     <div className="h-full w-full flex flex-row bg-[#f4f4f5]">
-      {lightbox && bug.image_url && <Lightbox src={bug.image_url} onClose={() => setLightbox(false)} />}
+      {lightbox && <Lightbox src={lightbox} onClose={() => setLightbox(null)} />}
 
       {/* ── Left Sidebar (Pins) ── */}
       <div className="w-[360px] shrink-0 bg-[#ffffff] border-r border-[#e9e9e9] flex flex-col h-full z-20">
@@ -261,6 +261,23 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
                     {ann.text || <em className="text-[#9a9a9a] not-italic font-normal">Без тексту</em>}
                   </p>
                   
+                  {ann.attachments && ann.attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-[8px] mt-[4px]">
+                      {ann.attachments.map((att, attIdx) => {
+                        const isImage = att.type.startsWith('image/');
+                        return isImage ? (
+                          <div key={attIdx} onClick={(e) => { e.stopPropagation(); setLightbox(att.url); }} className="w-[48px] h-[48px] rounded-[6px] overflow-hidden border border-[#e9e9e9] cursor-pointer hover:opacity-80 transition-opacity">
+                            <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <a key={attIdx} href={att.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="flex items-center justify-center w-[48px] h-[48px] rounded-[6px] bg-[#f0f4ff] border border-[#e0e7ff] text-[#4F46E5] hover:bg-[#e0e7ff] transition-colors" title={att.name}>
+                            <span className="text-[10px] font-bold tracking-wider">{att.name.split('.').pop()?.toUpperCase() || 'FILE'}</span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {el && (
                     <div className="flex flex-col gap-[4px]">
                       <div className="flex flex-wrap gap-[6px]">
@@ -398,7 +415,7 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
         </div>
 
         {/* Metadata Strip */}
-        <div className="flex flex-wrap items-center gap-[16px] px-[32px] py-[10px] bg-[#f9f9fa] border-b border-[#e9e9e9] shrink-0">
+        <div className="flex flex-wrap items-center gap-[16px] px-[32px] py-[10px] bg-[#ffffff] border-y border-[#e9e9e9] shrink-0">
           <div className="flex items-center gap-[8px] shrink-0">
             <span className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest">Статус:</span>
             <CustomDropdown value={status} options={STATUS_CFG} onChange={handleStatusChange} saving={saving} type="status" />
@@ -460,8 +477,8 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
         </div>
 
         {/* Screenshot Container */}
-        <div className="w-full shrink-0 border-b border-[#e9e9e9] bg-[#ffffff]">
-          <div className="flex items-center justify-center min-h-[300px]">
+        <div className={`w-full shrink-0 border-b border-[#e9e9e9] ${isMobileShaped(bug) ? 'bg-[#f8f8f9]' : 'bg-[#ffffff]'}`}>
+          <div className={`flex items-center justify-center min-h-[300px] ${isMobileShaped(bug) ? 'py-[32px] px-[24px]' : 'py-0 px-0'}`}>
             {bug.image_url ? (
               <BugScreenshot bug={bug} variant="page">
                 {/* Pin Overlays */}
@@ -483,7 +500,7 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
                 </div>
 
                 <button
-                  onClick={() => setLightbox(true)}
+                  onClick={() => { if (bug.image_url) setLightbox(bug.image_url); }}
                   className="absolute bottom-[24px] right-[24px] w-[40px] h-[40px] rounded-[10px] bg-black/60 hover:bg-black/80 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md shadow-lg pointer-events-auto"
                   title="На весь екран"
                 >
@@ -573,81 +590,7 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
             </div>
           )}
 
-          {/* Design Audit */}
-          {tc?.designAudit && (
-            <div className="bg-[#f9f9fa] rounded-[16px] p-[24px] col-span-1 lg:col-span-2">
-              <h2 className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-widest mb-[12px]">Дизайн-аудит</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[24px]">
-                {/* Fonts */}
-                <div>
-                  <h3 className="text-[12px] font-bold text-[#1f1f1f] mb-[8px]">Шрифти ({tc.designAudit.fonts.length})</h3>
-                  <div className="flex flex-col gap-[6px]">
-                    {tc.designAudit.fonts.map((f, i) => (
-                      <div key={i} className="flex items-center justify-between bg-white border border-[#e9e9e9] rounded-[6px] px-[8px] py-[4px]">
-                        <span className="text-[12px] text-[#1f1f1f] truncate font-medium max-w-[140px]">{f.value}</span>
-                        <span className="text-[11px] font-mono text-[#9a9a9a] bg-[#f4f4f5] px-[4px] rounded-[4px]">{f.count}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
-                {/* Colors */}
-                <div>
-                  <h3 className="text-[12px] font-bold text-[#1f1f1f] mb-[8px]">Кольори ({tc.designAudit.colors.length})</h3>
-                  <div className="flex flex-col gap-[6px]">
-                    {tc.designAudit.colors.map((c, i) => (
-                      <div key={i} className="flex items-center justify-between bg-white border border-[#e9e9e9] rounded-[6px] px-[8px] py-[4px]">
-                        <div className="flex items-center gap-[6px]">
-                          <div className="w-[12px] h-[12px] rounded-[3px] border border-[#e9e9e9]" style={{ backgroundColor: c.value }} />
-                          <span className="text-[12px] text-[#1f1f1f] font-mono">{c.value}</span>
-                        </div>
-                        <span className="text-[11px] font-mono text-[#9a9a9a] bg-[#f4f4f5] px-[4px] rounded-[4px]">{c.count}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Spacing & Typography Details */}
-                <div className="flex flex-col gap-[16px]">
-                  <div>
-                    <h3 className="text-[12px] font-bold text-[#1f1f1f] mb-[8px]">Відступи ({tc.designAudit.spacings.length})</h3>
-                    <div className="flex flex-wrap gap-[6px]">
-                      {tc.designAudit.spacings.map((s, i) => (
-                        <div key={i} className="flex items-center gap-[4px] bg-white border border-[#e9e9e9] rounded-[6px] px-[6px] py-[2px]">
-                          <span className="text-[11px] text-[#1f1f1f]">{s.value}</span>
-                          <span className="text-[10px] text-[#9a9a9a] bg-[#f4f4f5] px-[3px] rounded-[4px]">{s.count}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-[12px] font-bold text-[#1f1f1f] mb-[8px]">Розміри шрифту ({tc.designAudit.fontSizes.length})</h3>
-                    <div className="flex flex-wrap gap-[6px]">
-                      {tc.designAudit.fontSizes.map((s, i) => (
-                        <div key={i} className="flex items-center gap-[4px] bg-white border border-[#e9e9e9] rounded-[6px] px-[6px] py-[2px]">
-                          <span className="text-[11px] text-[#1f1f1f]">{s.value}</span>
-                          <span className="text-[10px] text-[#9a9a9a] bg-[#f4f4f5] px-[3px] rounded-[4px]">{s.count}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-[12px] font-bold text-[#1f1f1f] mb-[8px]">Border-radius ({tc.designAudit.borderRadii.length})</h3>
-                    <div className="flex flex-wrap gap-[6px]">
-                      {tc.designAudit.borderRadii.map((b, i) => (
-                        <div key={i} className="flex items-center gap-[4px] bg-white border border-[#e9e9e9] rounded-[6px] px-[6px] py-[2px]">
-                          <span className="text-[11px] text-[#1f1f1f]">{b.value}</span>
-                          <span className="text-[10px] text-[#9a9a9a] bg-[#f4f4f5] px-[3px] rounded-[4px]">{b.count}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

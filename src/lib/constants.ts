@@ -1,7 +1,7 @@
 import { BugStatus, BugSeverity } from './types';
 
 export const STATUS_CFG: { value: BugStatus; label: string; color: string; bg: string }[] = [
-  { value: 'open',        label: 'Новий',      color: '#71717a', bg: '#f4f4f5' },
+  { value: 'open',        label: 'Новий',      color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
   { value: 'in_progress', label: 'В роботі',   color: '#f97316', bg: '#fff7ed' },
   { value: 'resolved',    label: 'Виправлено', color: '#10b981', bg: '#f0fdf4' },
 ];
