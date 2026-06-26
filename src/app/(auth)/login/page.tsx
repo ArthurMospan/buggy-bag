@@ -81,9 +81,10 @@ function LoginForm() {
     setError('');
     const redirect = searchParams.get('redirect') || '/';
     const clientId = process.env.NEXT_PUBLIC_ONEB_CLIENT_ID || 'dummy_client_id';
-    const redirectUri = `${window.location.origin}/auth/oneb/callback?redirect=${encodeURIComponent(redirect)}`;
-    const state = Math.random().toString(36).substring(7);
-    const authUrl = `https://account.oneb.app/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=profile&state=${state}`;
+    const redirectUri = `${window.location.origin}/oauth2/result`;
+    // Encode redirect destination inside state so redirect_uri stays clean (exact match with registered URI)
+    const state = JSON.stringify({ r: redirect, n: Math.random().toString(36).substring(7) });
+    const authUrl = `https://account.oneb.app/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=profile&state=${encodeURIComponent(state)}`;
     window.location.href = authUrl;
   };
 

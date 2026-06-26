@@ -554,7 +554,7 @@ export default function ProfilePage() {
 
   const handleConnectOneB = async () => {
     const clientId = process.env.NEXT_PUBLIC_ONEB_CLIENT_ID || 'dummy_client_id';
-    const redirectUri = `${window.location.origin}/auth/oneb/callback`;
+    const redirectUri = `${window.location.origin}/oauth2/result`;
     const state = Math.random().toString(36).substring(7);
     const authUrl = `https://account.oneb.app/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=profile&state=${state}`;
     window.location.href = authUrl;
