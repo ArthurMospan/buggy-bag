@@ -5,8 +5,9 @@ import { Project, ActivityLog } from '@/lib/types';
 import LoadingSpinner from '@/components/ui/Feedback/LoadingSpinner';
 
 import SetupGuide from '@/components/bugs/SetupGuide';
-import { Copy, Check, Terminal, Code2, Play, Circle, CheckCircle2, RefreshCw, Eye, EyeOff, AlertTriangle, Link as LinkIcon, Users, Settings, Activity, ShieldAlert, X, ArrowLeft, Power } from 'lucide-react';
+import { Copy, Check, Terminal, Code2, Play, Circle, CheckCircle2, RefreshCw, Eye, EyeOff, AlertTriangle, Link as LinkIcon, Users, Settings, Activity, ShieldAlert, X, ArrowLeft, Power, Globe, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/components/ui/ToastContext';
 import { formatDistanceToNow } from 'date-fns';
 import { uk } from 'date-fns/locale';
 
@@ -57,7 +58,7 @@ function IntegrationSection({ project, onUpdate }: { project: Project, onUpdate:
       subText = `Активно ${formatDistanceToNow(new Date(project.last_seen_at!), { addSuffix: true, locale: uk })}`;
     } else {
       dotColor = '#9a9a9a';
-      statusText = 'Немає активності / Відключено';
+      statusText = 'Неактивний';
       subText = `Останній сигнал ${formatDistanceToNow(new Date(project.last_seen_at!), { addSuffix: true, locale: uk })}`;
     }
   }
@@ -68,30 +69,46 @@ function IntegrationSection({ project, onUpdate }: { project: Project, onUpdate:
         <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Статус віджета</h2>
         <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Поточний стан інтеграції вашого проєкту.</p>
         
-        <div className="flex flex-col gap-[16px]">
-          <div className="flex items-center justify-between bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center gap-[12px]">
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-              <div>
-                <span className="text-[14px] font-bold text-[#1f1f1f] block">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[20px] bg-[#ffffff] border border-[#e9e9e9] rounded-[12px] p-[24px]">
+          <div className="flex items-center gap-[16px]">
+            {project.connected_domain ? (
+              <div className="w-[48px] h-[48px] bg-[#f8f8f9] border border-[#e9e9e9] rounded-[12px] flex items-center justify-center shrink-0 overflow-hidden">
+                {project.favicon_url ? (
+                  <img src={project.favicon_url} alt="Favicon" className="w-[24px] h-[24px] rounded-[4px] object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                ) : (
+                  <Globe size={24} className="text-[#9a9a9a]" />
+                )}
+              </div>
+            ) : (
+              <div className="w-[48px] h-[48px] bg-[#f4f4f5] border border-[#e9e9e9] rounded-[12px] flex items-center justify-center shrink-0">
+                <Globe size={24} className="text-[#d4d4d8]" />
+              </div>
+            )}
+            <div>
+              <div className="flex items-center gap-[8px] mb-[4px]">
+                <div className="relative flex items-center justify-center w-[10px] h-[10px]">
+                  {isOnline && project.is_active && <div className="absolute inset-0 rounded-full animate-ping opacity-50" style={{ background: dotColor }} />}
+                  <div className="w-[8px] h-[8px] rounded-full relative z-10" style={{ background: dotColor }} />
+                </div>
+                <span className="text-[15px] font-bold text-[#1f1f1f] leading-tight">
                   {statusText}
                 </span>
-                <span className="text-[12px] font-medium text-[#9a9a9a] mt-[2px] block">
-                  {subText}
-                </span>
               </div>
+              <span className="text-[13px] font-medium text-[#71717a] block">
+                {subText}
+              </span>
             </div>
           </div>
           
           {project.connected_domain && (
-            <div className="flex items-center gap-[12px] bg-[#f0fdf4] border border-[#bbf7d0] rounded-[10px] p-[16px]">
-              <CheckCircle2 size={20} className="text-[#10b981]" />
-              <div>
-                <span className="text-[13px] font-bold text-[#10b981] block">Підключено до домену</span>
-                <a href={project.connected_domain} target="_blank" rel="noreferrer" className="text-[14px] font-medium text-[#1f1f1f] hover:underline mt-[2px] block">
-                  {project.connected_domain}
-                </a>
+            <div className="flex flex-col sm:items-end gap-[4px] shrink-0">
+              <div className="flex items-center gap-[6px] text-[13px] font-medium text-[#9a9a9a]">
+                Підключений домен:
               </div>
+              <a href={project.connected_domain.startsWith('http') ? project.connected_domain : `https://${project.connected_domain}`} target="_blank" rel="noreferrer" className="flex items-center gap-[6px] text-[14px] font-bold text-[#1f1f1f] hover:text-[#4F46E5] transition-colors mt-[2px] pr-[2px]">
+                {project.connected_domain}
+                <ExternalLink size={14} className="opacity-50" />
+              </a>
             </div>
           )}
         </div>
@@ -108,44 +125,34 @@ function GeneralSection({ project, onUpdate }: { project: Project, onUpdate: (p:
   const [name, setName] = useState(project.name);
   const [password, setPassword] = useState(project.widget_password || '');
   const [isSaving, setIsSaving] = useState(false);
-  const [isSavingPass, setIsSavingPass] = useState(false);
+  const [successStatus, setSuccessStatus] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const router = useRouter();
+  const { success, error } = useToast();
 
-  const handleSaveName = async () => {
-    if (!name.trim() || name === project.name) return;
+  const handleSaveSettings = async () => {
+    if ((name === project.name && password === (project.widget_password || '')) || !name.trim()) return;
     setIsSaving(true);
+    setSuccessStatus(false);
     try {
       const res = await fetch('/api/projects', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: project.id, name }),
+        body: JSON.stringify({ id: project.id, name, widget_password: password }),
       });
       if (res.ok) {
         const updated = await res.json();
-        onUpdate(updated.project ?? { ...project, name });
+        onUpdate(updated.project ?? { ...project, name, widget_password: password });
         window.dispatchEvent(new CustomEvent('projects-updated'));
         router.refresh();
+        setSuccessStatus(true);
+        success('Налаштування збережено');
+        setTimeout(() => setSuccessStatus(false), 3000);
+      } else {
+        error('Помилка збереження');
       }
-    } catch (e) { console.error(e); } finally { setIsSaving(false); }
-  };
-
-  const handleSavePassword = async () => {
-    if (password === (project.widget_password || '')) return;
-    setIsSavingPass(true);
-    try {
-      const res = await fetch('/api/projects', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: project.id, widget_password: password }),
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        onUpdate(updated.project ?? { ...project, widget_password: password });
-        router.refresh();
-      }
-    } catch (e) { console.error(e); } finally { setIsSavingPass(false); }
+    } catch (e) { console.error(e); error('Помилка збереження'); } finally { setIsSaving(false); }
   };
 
   const handleDelete = async () => {
@@ -159,9 +166,12 @@ function GeneralSection({ project, onUpdate }: { project: Project, onUpdate: (p:
       });
       if (res.ok) {
         window.dispatchEvent(new CustomEvent('projects-updated'));
+        success('Проєкт видалено');
         router.push('/');
+      } else {
+        error('Помилка видалення');
       }
-    } catch (e) { console.error(e); } finally { setIsDeleting(false); }
+    } catch (e) { console.error(e); error('Помилка видалення'); } finally { setIsDeleting(false); }
   };
 
   const toggleActive = async () => {
@@ -174,54 +184,63 @@ function GeneralSection({ project, onUpdate }: { project: Project, onUpdate: (p:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: project.id, is_active: newVal }),
       });
-      if (res.ok) onUpdate({ ...project, is_active: newVal });
-    } catch (e) { console.error(e); } finally { setIsUpdatingStatus(false); }
+      if (res.ok) {
+        onUpdate({ ...project, is_active: newVal });
+        success(`Віджет ${newVal ? 'увімкнено' : 'вимкнено'}`);
+      } else {
+        error('Помилка зміни статусу');
+      }
+    } catch (e) { console.error(e); error('Помилка зміни статусу'); } finally { setIsUpdatingStatus(false); }
   };
 
   return (
     <div className="flex flex-col">
       <div className="pb-[32px]">
-        <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Назва проєкту</h2>
-        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Змініть назву, яка відображається в списку ваших проєктів на порталі.</p>
+        <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Основні налаштування</h2>
+        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Керуйте назвою проєкту та паролем для віджета.</p>
         
-        <div className="flex flex-col sm:flex-row gap-[12px]">
-          <input
-            type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            className="flex-1 max-w-[400px] bg-[#ffffff] border border-[#e9e9e9] rounded-[8px] px-[14px] py-[10px] text-[13px] text-[#1f1f1f] font-bold outline-none focus:border-[#1f1f1f] transition-colors placeholder:text-[#9a9a9a]"
-          />
-          <button
-            onClick={handleSaveName}
-            disabled={isSaving || name === project.name}
-            className="bg-[#1f1f1f] hover:bg-[#303030] text-white text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50 shrink-0"
-          >
-            {isSaving ? 'Збереження...' : 'Зберегти'}
-          </button>
-        </div>
-      </div>
+        <div className="flex flex-col gap-[16px]">
+          <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
+            <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+              <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Назва проєкту</span>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+              />
+            </div>
+            <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+              <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Пароль віджета</span>
+              <input
+                type="text"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="on (за замовчуванням)"
+                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+              />
+            </div>
+          </div>
 
-      <div className="py-[32px] border-t border-[#e9e9e9]">
-        <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Пароль віджета</h2>
-        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">
-          Замість стандартного параметра <code className="bg-[#f4f4f5] px-1 py-0.5 rounded text-[#1f1f1f]">?bb=on</code>, ви можете задати свій секретний пароль (напр. <code className="bg-[#f4f4f5] px-1 py-0.5 rounded text-[#1f1f1f]">?bb=my_secret</code>). Залиште порожнім, щоб використовувати значення за замовчуванням.
-        </p>
-        
-        <div className="flex flex-col sm:flex-row gap-[12px]">
-          <input
-            type="text"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="on"
-            className="flex-1 max-w-[400px] bg-[#ffffff] border border-[#e9e9e9] rounded-[8px] px-[14px] py-[10px] text-[13px] text-[#1f1f1f] font-bold outline-none focus:border-[#1f1f1f] transition-colors placeholder:text-[#9a9a9a]"
-          />
-          <button
-            onClick={handleSavePassword}
-            disabled={isSavingPass || password === (project.widget_password || '')}
-            className="bg-[#1f1f1f] hover:bg-[#303030] text-white text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50 shrink-0"
-          >
-            {isSavingPass ? 'Збереження...' : 'Зберегти'}
-          </button>
+          <div className="flex items-end justify-between mt-[4px]">
+            <div className="text-[12px] font-medium text-[#9a9a9a] max-w-[400px]">
+              Замість стандартного параметра <code className="bg-[#f4f4f5] px-1 py-0.5 rounded text-[#1f1f1f]">?bb=on</code>, ви можете задати свій секретний пароль (напр. <code className="bg-[#f4f4f5] px-1 py-0.5 rounded text-[#1f1f1f]">?bb=my_secret</code>). Залиште порожнім, щоб використовувати значення за замовчуванням.
+            </div>
+            <div className="flex items-center gap-[12px] shrink-0 pb-[2px]">
+              {successStatus && (
+                <span className="flex items-center gap-[6px] text-[13px] font-bold text-emerald-600">
+                  <Check size={14} /> Збережено
+                </span>
+              )}
+              <button
+                onClick={handleSaveSettings}
+                disabled={isSaving || (name === project.name && password === (project.widget_password || ''))}
+                className="bg-[#1f1f1f] hover:bg-[#303030] text-[#ffffff] text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50"
+              >
+                {isSaving ? 'Збереження...' : 'Зберегти'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -269,6 +288,7 @@ function GeneralSection({ project, onUpdate }: { project: Project, onUpdate: (p:
 function InviteModal({ project, onUpdate, onClose }: { project: Project, onUpdate: (p: Project) => void, onClose: () => void }) {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const { success, error } = useToast();
 
   const inviteUrl = project.invite_token ? `${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${project.invite_token}` : '';
 
@@ -290,11 +310,12 @@ function InviteModal({ project, onUpdate, onClose }: { project: Project, onUpdat
       if (res.ok) {
         const data = await res.json();
         onUpdate({ ...project, invite_token: data.invite_token });
+        success('Посилання згенеровано');
       } else {
         const err = await res.json();
-        alert('Помилка генерації: ' + (err.error || 'Невідома помилка'));
+        error('Помилка генерації: ' + (err.error || 'Невідома помилка'));
       }
-    } catch (e) { console.error(e); } finally { setIsRegenerating(false); }
+    } catch (e) { console.error(e); error('Помилка генерації'); } finally { setIsRegenerating(false); }
   };
 
   return (
@@ -384,6 +405,7 @@ function GithubSection({ project, onUpdate }: { project: Project, onUpdate: (p: 
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showToken, setShowToken] = useState(false);
+  const { success: toastSuccess, error } = useToast();
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -399,9 +421,10 @@ function GithubSection({ project, onUpdate }: { project: Project, onUpdate: (p: 
         const updated = await res.json();
         onUpdate(updated.project ?? { ...project, github_repo: repo, github_token: token });
         setSuccess(true);
+        toastSuccess('Налаштування збережено');
         setTimeout(() => setSuccess(false), 3000);
-      } else { alert('Помилка збереження'); }
-    } catch (e) { console.error(e); alert('Помилка збереження'); } finally { setIsSaving(false); }
+      } else { error('Помилка збереження'); }
+    } catch (e) { console.error(e); error('Помилка збереження'); } finally { setIsSaving(false); }
   };
 
   return (
@@ -409,7 +432,7 @@ function GithubSection({ project, onUpdate }: { project: Project, onUpdate: (p: 
       <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Інтеграція з GitHub</h2>
       <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Підключіть свій GitHub репозиторій, щоб генерувати повноцінні Issues прямо з порталу в один клік.</p>
 
-      <form onSubmit={handleSave} className="flex flex-col gap-[16px] max-w-[560px]">
+      <form onSubmit={handleSave} className="flex flex-col gap-[16px]">
         <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
           <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
             <span className="text-[13px] font-bold text-[#9a9a9a] w-[120px] shrink-0">Репозиторій</span>
@@ -475,6 +498,7 @@ function YoutrackSection({ project, onUpdate }: { project: Project, onUpdate: (p
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showToken, setShowToken] = useState(false);
+  const { success: toastSuccess, error } = useToast();
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -490,9 +514,10 @@ function YoutrackSection({ project, onUpdate }: { project: Project, onUpdate: (p
         const updated = await res.json();
         onUpdate(updated.project ?? { ...project, youtrack_url: url, youtrack_token: token, youtrack_project: ytProject });
         setSuccess(true);
+        toastSuccess('Налаштування збережено');
         setTimeout(() => setSuccess(false), 3000);
-      } else { alert('Помилка збереження'); }
-    } catch (e) { console.error(e); alert('Помилка збереження'); } finally { setIsSaving(false); }
+      } else { error('Помилка збереження'); }
+    } catch (e) { console.error(e); error('Помилка збереження'); } finally { setIsSaving(false); }
   };
 
   return (
@@ -500,7 +525,7 @@ function YoutrackSection({ project, onUpdate }: { project: Project, onUpdate: (p
       <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Інтеграція з YouTrack</h2>
       <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Підключіть свій YouTrack інстанс, щоб генерувати повноцінні Issues прямо з порталу в один клік.</p>
 
-      <form onSubmit={handleSave} className="flex flex-col gap-[16px] max-w-[560px]">
+      <form onSubmit={handleSave} className="flex flex-col gap-[16px]">
         <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
           <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
             <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">URL інстансу</span>
@@ -637,7 +662,12 @@ export default function IntegrationPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeNav, setActiveNav] = useState<NavId>('integration');
+  // On mobile: start with null so the nav list is shown first.
+  // On desktop: default to 'integration'.
+  const [activeNav, setActiveNav] = useState<NavId | null>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return null;
+    return 'integration';
+  });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -672,12 +702,16 @@ export default function IntegrationPage() {
   };
 
   return (
-    <div className="h-full w-full flex flex-row bg-[#f4f4f5]">
-      {/* ── Left Sidebar (Settings Nav) ── */}
-      <div className="w-[360px] shrink-0 bg-[#ffffff] border-r border-[#e9e9e9] flex flex-col h-full z-20">
+    <div className="h-full w-full flex flex-col md:flex-row bg-[#f4f4f5]">
+
+      {/* ── Left Sidebar (Settings Nav) — desktop always visible, mobile only when no section selected ── */}
+      <div className={`md:w-[360px] md:shrink-0 bg-[#ffffff] md:border-r md:border-[#e9e9e9] flex flex-col h-full z-20 w-full ${
+        // On mobile: hide nav when a section is active (user tapped into a section)
+        activeNav ? 'hidden md:flex' : 'flex'
+      }`}>
         <div className="pt-[24px] pb-[16px] px-[24px] shrink-0 flex items-center gap-[12px]">
           <Link
-            href={`/projects/${project.id}`}
+            href={`/projects/${id}`}
             className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[8px] -ml-[8px] rounded-[8px] hover:bg-[#f4f4f5]"
           >
             <ArrowLeft size={20} strokeWidth={1.5} />
@@ -711,17 +745,25 @@ export default function IntegrationPage() {
         </div>
       </div>
 
-      {/* ── Right Content Area ── */}
-      <div className="flex-1 flex flex-col h-full bg-[#ffffff] overflow-y-auto custom-scrollbar relative">
+      {/* ── Right Content Area — desktop always visible, mobile only when section selected ── */}
+      <div className={`flex-1 flex flex-col h-full bg-[#ffffff] overflow-y-auto custom-scrollbar relative ${
+        !activeNav ? 'hidden md:flex' : 'flex'
+      }`}>
         {/* Header */}
-        <div className="pt-[24px] pb-[16px] shrink-0 flex items-center justify-between px-[32px] sticky top-0 z-50 bg-[#ffffff] border-b border-[#e9e9e9]">
+        <div className="pt-[24px] pb-[16px] shrink-0 flex items-center gap-[12px] px-[24px] md:px-[32px] sticky top-0 z-50 bg-[#ffffff] border-b border-[#e9e9e9]">
+          <button 
+            className="md:hidden p-[8px] -ml-[8px] rounded-[8px] hover:bg-[#f4f4f5] text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors"
+            onClick={() => setActiveNav(null)}
+          >
+            <ArrowLeft size={20} strokeWidth={1.5} />
+          </button>
           <h1 className="text-[24px] font-bold text-[#1f1f1f] tracking-tight">
              {NAV_ITEMS.find(n => n.id === activeNav)?.label}
           </h1>
         </div>
 
         {/* Content */}
-        <div className="px-[32px] py-[32px] max-w-[800px]">
+        <div className="px-[16px] md:px-[32px] py-[32px] max-w-[800px]">
           {activeNav === 'integration' && <IntegrationSection project={project} onUpdate={setProject} />}
           {activeNav === 'general' && <GeneralSection project={project} onUpdate={setProject} />}
           {activeNav === 'team' && <TeamSection project={project} onUpdate={setProject} />}

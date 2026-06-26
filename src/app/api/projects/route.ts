@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAuthClient, createServiceClient } from '@/lib/supabase-server';
 import { encrypt } from '@/lib/crypto';
 
+export const dynamic = 'force-dynamic';
+
 // GET — list the current user's projects (owned + member)
 export async function GET() {
   try {

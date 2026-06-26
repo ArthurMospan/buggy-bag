@@ -1,15 +1,12 @@
-import ProjectSidebar from '@/components/layout/ProjectSidebar';
 import { ProjectProvider } from '@/components/layout/ProjectContext';
+import ClientProjectLayout from '@/components/layout/ClientProjectLayout';
 
 export default function ProjectLayout({ children }: { children: React.ReactNode }) {
   return (
     <ProjectProvider>
-      <div className="flex w-full h-full">
-        <ProjectSidebar />
-        <div className="flex-1 overflow-auto bg-transparent relative rounded-r-[24px]">
-          {children}
-        </div>
-      </div>
+      <ClientProjectLayout>
+        {children}
+      </ClientProjectLayout>
     </ProjectProvider>
   );
 }

@@ -1,4 +1,4 @@
-export type BugStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+export type BugStatus = 'open' | 'in_progress' | 'resolved';
 export type BugSeverity = 'low' | 'medium' | 'high' | 'critical' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | string;
 
 export interface Annotation {
@@ -119,6 +119,7 @@ export interface TechContext {
 export interface Bug {
   id: string;
   project_id: string;
+  human_id?: string;
   image_url: string | null;
   json_annotations: Annotation[];
   /** Raw shapes including elementContext with DOM info per pin — stored in json_shapes column */

@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
+import logoWhite from '../../../../public/bug-logo-white.svg';
 
 type State = 'loading' | 'preview' | 'joining' | 'success' | 'already' | 'error';
 
@@ -59,96 +61,123 @@ export default function InvitePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f9f9f9] flex items-center justify-center p-[24px]">
-      <div className="bg-white rounded-[20px] border border-[#e9e9e9] shadow-sm w-full max-w-[440px] overflow-hidden">
-        {/* Header */}
-        <div className="bg-zinc-950 px-[32px] py-[28px] flex items-center gap-[14px]">
-          <img src="/bug-logo.svg" alt="BuggyBag" width={32} height={32} className="brightness-125" />
-          <span className="text-white font-bold text-[20px] tracking-tight">BuggyBag</span>
+    <div className="min-h-screen bg-[#141419] flex items-center justify-center p-[24px]">
+      <div className="w-full max-w-sm animate-fade-in-up">
+        {/* Logo / Brand */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center mb-6">
+            <Image src={logoWhite} alt="BuggyBag" width={80} height={80} className="w-20 h-20" />
+          </div>
+          
+          {(state === 'loading' || state === 'joining') && (
+            <>
+              <h1 className="text-2xl font-semibold text-white tracking-tight">Зачекайте</h1>
+              <p className="mt-2 text-sm text-white/70">Обробляємо інформацію...</p>
+            </>
+          )}
+
+          {state === 'preview' && (
+            <>
+              <h1 className="text-2xl font-semibold text-white tracking-tight">Запрошення до проєкту</h1>
+              <p className="mt-2 text-sm text-white/70">BuggyBag Portal</p>
+            </>
+          )}
+
+          {(state === 'success' || state === 'already') && (
+            <>
+              <h1 className="text-2xl font-semibold text-white tracking-tight">
+                {state === 'already' ? 'Ви вже учасник!' : 'Ласкаво просимо!'}
+              </h1>
+              <p className="mt-2 text-sm text-white/70">BuggyBag Portal</p>
+            </>
+          )}
+
+          {state === 'error' && (
+            <>
+              <h1 className="text-2xl font-semibold text-[#f87171] tracking-tight">Помилка</h1>
+              <p className="mt-2 text-sm text-white/70">Щось пішло не так</p>
+            </>
+          )}
         </div>
 
-        <div className="p-[32px]">
-          {state === 'loading' && (
-            <div className="text-center py-[20px]">
-              <div className="w-[32px] h-[32px] border-[3px] border-zinc-200 border-t-zinc-800 rounded-full animate-spin mx-auto mb-[16px]" />
-              <p className="text-[14px] text-[#9a9a9a]">Перевіряємо посилання...</p>
+        <div className="flex flex-col items-center animate-fade-in-up gap-4">
+          {(state === 'loading' || state === 'joining') && (
+            <div className="text-center py-4">
+              <div className="w-8 h-8 border-[3px] border-white/10 border-t-white/80 rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-sm text-white/70">
+                {state === 'loading' ? 'Перевіряємо посилання...' : 'Приєднуємось до проєкту...'}
+              </p>
             </div>
           )}
 
           {state === 'preview' && (
-            <div className="flex flex-col gap-[20px]">
-              <div>
-                <div className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[6px]">Запрошення до проєкту</div>
-                <h1 className="text-[22px] font-bold text-[#1f1f1f]">{projectName}</h1>
-                <p className="text-[14px] text-[#9a9a9a] mt-[8px]">
+            <>
+              <div className="text-center mb-4">
+                <h2 className="text-xl font-bold text-white mb-2">{projectName}</h2>
+                <p className="text-sm text-white/70 leading-relaxed px-2">
                   Вас запрошено долучитися до проєкту як член команди. Ви матимете доступ до всіх багів та налаштувань.
                 </p>
               </div>
 
               <button
                 onClick={handleJoin}
-                className="w-full bg-[#1f1f1f] hover:bg-[#303030] text-white py-[14px] rounded-[12px] text-[15px] font-bold transition-colors"
+                className="w-full flex items-center justify-center gap-3 rounded-full bg-white px-6 py-4 text-sm font-semibold text-gray-900 transition-all hover:bg-gray-100 active:scale-[0.98] focus-ring cursor-pointer shadow-sm"
               >
                 Прийняти запрошення
               </button>
 
-              <p className="text-[12px] text-[#9a9a9a] text-center">
-                Потрібен акаунт BuggyBag.{' '}
-                <Link href={`/login?redirect=/invite/${token}`} className="text-[#6366f1] font-semibold hover:underline">
+              <p className="mt-4 text-center text-[13px] text-white/60">
+                Потрібен акаунт BuggyBag?{' '}
+                <Link href={`/login?redirect=/invite/${token}`} className="text-white font-semibold hover:text-white/80 transition-colors">
                   Увійдіть або зареєструйтесь
                 </Link>
               </p>
-            </div>
-          )}
-
-          {state === 'joining' && (
-            <div className="text-center py-[20px]">
-              <div className="w-[32px] h-[32px] border-[3px] border-zinc-200 border-t-zinc-800 rounded-full animate-spin mx-auto mb-[16px]" />
-              <p className="text-[14px] text-[#9a9a9a]">Приєднуємось до проєкту...</p>
-            </div>
+            </>
           )}
 
           {(state === 'success' || state === 'already') && projectId && (
-            <div className="flex flex-col items-center gap-[20px] text-center py-[8px]">
-              <div className="w-[64px] h-[64px] bg-[#f0fdf4] rounded-full flex items-center justify-center">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-[20px] font-bold text-[#1f1f1f] mb-[6px]">
-                  {state === 'already' ? 'Ви вже учасник!' : 'Ласкаво просимо!'}
-                </h2>
-                <p className="text-[14px] text-[#9a9a9a]">
+            <>
+              <div className="text-center mb-4">
+                <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <p className="text-sm text-white/70 leading-relaxed px-2">
                   {state === 'already'
                     ? `Ви вже маєте доступ до проєкту «${projectName}»`
                     : `Тепер ви — член команди проєкту «${projectName}»`}
                 </p>
               </div>
+
               <Link
                 href={`/projects/${projectId}`}
-                className="w-full bg-[#1f1f1f] hover:bg-[#303030] text-white py-[14px] rounded-[12px] text-[15px] font-bold transition-colors text-center"
+                className="w-full flex items-center justify-center gap-3 rounded-full bg-white px-6 py-4 text-sm font-semibold text-gray-900 transition-all hover:bg-gray-100 active:scale-[0.98] focus-ring cursor-pointer shadow-sm"
               >
                 Відкрити проєкт
               </Link>
-            </div>
+            </>
           )}
 
           {state === 'error' && (
-            <div className="flex flex-col items-center gap-[16px] text-center py-[8px]">
-              <div className="w-[64px] h-[64px] bg-[#fff1f2] rounded-full flex items-center justify-center">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
+            <>
+              <div className="text-center mb-4">
+                <div className="w-16 h-16 bg-[#f87171]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-white mb-2">Посилання недійсне</h2>
+                <p className="text-sm text-white/70 leading-relaxed px-2">{errorMsg}</p>
               </div>
-              <div>
-                <h2 className="text-[20px] font-bold text-[#1f1f1f] mb-[6px]">Посилання недійсне</h2>
-                <p className="text-[14px] text-[#9a9a9a]">{errorMsg}</p>
-              </div>
-              <Link href="/" className="text-[#6366f1] font-bold text-[14px] hover:underline">
+
+              <Link
+                href="/"
+                className="w-full flex items-center justify-center gap-3 rounded-full bg-white/10 px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-white/20 active:scale-[0.98] border border-white/10 focus-ring cursor-pointer shadow-sm"
+              >
                 На головну
               </Link>
-            </div>
+            </>
           )}
         </div>
       </div>

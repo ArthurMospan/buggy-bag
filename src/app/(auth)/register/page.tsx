@@ -17,6 +17,11 @@ function GitHubIcon() {
 
 import Image from 'next/image';
 import logoWhite from '../../../../public/bug-logo-white.svg';
+import onebLogo from '../../../../public/oneb-logo.png';
+
+function OneBLogo() {
+  return <Image src={onebLogo} alt="OneB" width={18} height={18} className="object-contain rounded-[4px]" />;
+}
 
 function RegisterForm() {
   const searchParams = useSearchParams();
@@ -68,6 +73,15 @@ function RegisterForm() {
     }
   };
 
+  const handleOneB = async () => {
+    setError('');
+    const clientId = process.env.NEXT_PUBLIC_ONEB_CLIENT_ID || 'dummy_client_id';
+    const redirectUri = `${window.location.origin}/auth/oneb/callback`;
+    const state = Math.random().toString(36).substring(7);
+    const authUrl = `https://account.oneb.app/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=profile&state=${state}`;
+    window.location.href = authUrl;
+  };
+
   return (
     <div className="w-full max-w-sm animate-fade-in-up">
       {/* Logo / Brand */}
@@ -115,6 +129,16 @@ function RegisterForm() {
             >
               <GitHubIcon />
               {ghLoading ? 'Перенаправлення...' : 'Зареєструватися з GitHub'}
+            </button>
+
+            {/* OneB OAuth */}
+            <button
+              onClick={handleOneB}
+              disabled={ghLoading || loading}
+              className="w-full flex items-center justify-center gap-3 rounded-full bg-white px-6 py-3 text-sm font-semibold text-gray-900 transition-all hover:bg-gray-100 active:scale-[0.98] focus-ring cursor-pointer shadow-sm"
+            >
+              <OneBLogo />
+              Зареєструватися з OneB
             </button>
 
             <div className="flex items-center gap-3 w-full my-2">

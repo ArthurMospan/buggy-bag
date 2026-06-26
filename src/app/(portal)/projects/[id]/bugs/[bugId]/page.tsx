@@ -59,6 +59,36 @@ export default function BugPage() {
     }
   };
 
+  const handleDelete = async (bugId: string) => {
+    const res = await fetch(`/api/bugs`, { 
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: [bugId] })
+    });
+    if (res.ok) {
+      triggerRefresh();
+      window.location.href = `/projects/${id}`;
+    } else {
+      const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(err.error || res.statusText);
+    }
+  };
+
+  const handleUpdate = async (bugId: string, updates: Partial<Bug>) => {
+    const res = await fetch('/api/bugs', { 
+      method: 'PATCH', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify({ id: bugId, ...updates }) 
+    });
+    if (res.ok) {
+      setBug(prev => prev ? { ...prev, ...updates } : prev);
+      triggerRefresh();
+    } else {
+      const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(err.error || res.statusText);
+    }
+  };
+
   if (loading) {
     return <div className="flex h-full items-center justify-center bg-[#f4f4f5]"><LoadingSpinner size="lg" /></div>;
   }
@@ -74,6 +104,8 @@ export default function BugPage() {
       allBugs={allBugs}
       onStatusChange={handleStatusChange} 
       onSeverityChange={handleSeverityChange} 
+      onDelete={handleDelete}
+      onUpdate={handleUpdate}
     />
   );
 }

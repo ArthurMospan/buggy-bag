@@ -1,7 +1,8 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist } from 'next/font/google';
 import './globals.css';
 import Script from 'next/script';
+import { ToastProvider } from '@/components/ui/ToastContext';
 
 const geist = Geist({ subsets: ['latin'] });
 
@@ -13,11 +14,21 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#1f1f1f',
+  interactiveWidget: 'resizes-content',
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="uk" className="h-full">
       <body className={`${geist.className} h-full`}>
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
         <Script
           src="/buggy-bag-standalone.js"
           strategy="afterInteractive"
@@ -28,3 +39,4 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+

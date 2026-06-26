@@ -12,12 +12,12 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
   return (
     <div className="flex flex-col gap-[8px]">
       {label && <div className="text-[11px] font-bold text-[#9a9a9a] uppercase tracking-widest">{label}</div>}
-      <div className="relative bg-[#ffffff] rounded-[10px] border border-[#e9e9e9] overflow-hidden group shadow-sm">
-        <pre className="text-[13px] font-mono text-[#1f1f1f] p-[16px] pr-[110px] overflow-x-auto leading-relaxed whitespace-pre-wrap">{code}</pre>
+      <div className="relative bg-[#18181b] rounded-[10px] border border-[#27272a] overflow-hidden group">
+        <pre className="text-[13px] font-mono text-[#f4f4f5] p-[16px] pr-[110px] overflow-x-auto leading-relaxed whitespace-pre-wrap">{code}</pre>
         <button
           onClick={handleCopy}
-          className="absolute top-[12px] right-[12px] flex items-center gap-[6px] bg-[#f4f4f5] border border-[#e9e9e9] text-[#1f1f1f] hover:text-[#000000] hover:bg-[#e9e9e9] text-[12px] font-bold px-[10px] py-[6px] rounded-[8px] transition-all opacity-0 group-hover:opacity-100">
-          {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+          className="absolute top-[12px] right-[12px] flex items-center gap-[6px] bg-[#27272a] border border-[#3f3f46] text-[#e4e4e7] hover:text-[#ffffff] hover:bg-[#3f3f46] text-[12px] font-bold px-[10px] py-[6px] rounded-[8px] transition-all opacity-0 group-hover:opacity-100">
+          {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
           {copied ? 'Скопійовано' : 'Копіювати'}
         </button>
       </div>
@@ -57,7 +57,7 @@ export default function SetupGuide({ apiKey, widgetPassword }: { apiKey: string,
           </summary>
           <div className="flex flex-col gap-[16px] p-[16px] bg-[#f9f9fa] border-t border-[#e9e9e9]">
             <p className="text-[13px] text-[#9a9a9a] leading-relaxed m-0">
-              Використовуйте <code className="bg-[#ffffff] border border-[#e9e9e9] px-[6px] py-[2px] rounded text-[#1f1f1f] font-mono text-[11px]">next/script</code> для підключення, щоб завжди отримувати найсвіжіші оновлення віджета.
+              Використовуйте <code className="bg-[#18181b] border border-[#27272a] px-[6px] py-[2px] rounded text-[#f4f4f5] font-mono text-[11px]">next/script</code> для підключення, щоб завжди отримувати найсвіжіші оновлення віджета.
             </p>
             <CodeBlock code={nextJsCode} label="Додавання у Root Layout" />
           </div>
@@ -77,7 +77,7 @@ export default function SetupGuide({ apiKey, widgetPassword }: { apiKey: string,
               <div className="flex-1">
                 <p className="text-[13px] font-medium text-[#1f1f1f] mb-[6px]">Додайте параметр до URL вашого сайту</p>
                 <div className="flex items-center gap-[8px]">
-                  <code className="text-[13px] font-mono font-bold text-[#4F46E5] bg-[#f0f4ff] px-[10px] py-[6px] rounded-[6px]">?bb={param}</code>
+                  <code className="text-[13px] font-mono font-bold text-[#f4f4f5] bg-[#18181b] border border-[#27272a] px-[10px] py-[6px] rounded-[6px]">?bb={param}</code>
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(`?bb=${param}`);

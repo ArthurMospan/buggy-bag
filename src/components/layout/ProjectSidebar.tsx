@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { useParams, usePathname, useRouter } from 'next/navigation';
-import { Settings, Check, ArrowRight, ExternalLink, Search, MoreHorizontal, LayoutGrid, List as ListIcon, Download, HardDrive, Trash, ChevronDown } from 'lucide-react';
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Settings, Check, ArrowRight, ExternalLink, Search, MoreHorizontal, LayoutGrid, List as ListIcon, Download, HardDrive, Trash, ChevronDown, ArrowLeft } from 'lucide-react';
 import Tabs from '@/components/ui/Tabs';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -14,6 +14,8 @@ import { uk } from 'date-fns/locale';
 import AnimatedLogo from '@/components/ui/AnimatedLogo';
 import { generateProjectZip } from '@/lib/export';
 import BugCard from '@/components/bugs/BugCard';
+import { createClient } from '@/lib/supabase';
+import { useToast } from '@/components/ui/ToastContext';
 
 import { STATUS_CFG, SEVERITY_CFG } from '@/lib/constants';
 
@@ -53,6 +55,7 @@ export default function ProjectSidebar() {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const { selectedBugIds, toggleSelectBug, clearSelectedBugs, selectAllBugs, refreshTrigger } = useProjectContext();
   const kebabRef = useRef<HTMLDivElement>(null);
+  const { success, error } = useToast();
 
   const fetchProjectInfo = useCallback(() => {
     fetch('/api/projects')
@@ -80,18 +83,39 @@ export default function ProjectSidebar() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
-      const res  = await fetch(`/api/bugs?project_id=${id}${filter && filter !== 'active' ? `&status=${filter}` : ''}&_t=${refreshTrigger}`);
+      const res  = await fetch(`/api/bugs?project_id=${id}${filter && filter !== 'active' ? `&status=${filter}` : ''}&_t=${refreshTrigger}&_nocache=${Date.now()}`);
       const data = await res.json();
       setBugs(data.bugs ?? []);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, [id, filter, refreshTrigger]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { 
+    fetchData(); 
+    
+    // Polling fallback: fetch new bugs every 5 seconds in case postgres_changes 
+    // doesn't fire due to RLS policies or missing realtime publication
+    const pollInterval = setInterval(() => {
+      fetchData(false);
+    }, 5000);
+
+    const supabase = createClient();
+    const channelId = `bugs_sidebar_${id}_${Math.random()}`;
+    const channel = supabase.channel(channelId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bugs', filter: `project_id=eq.${id}` }, () => {
+        fetchData(false);
+      })
+      .subscribe();
+      
+    return () => {
+      clearInterval(pollInterval);
+      supabase.removeChannel(channel);
+    };
+  }, [fetchData, id]);
 
   const handleInlineUpdate = async (bugId: string, field: 'status' | 'severity', value: string) => {
     setBugs(prev => prev.map(b => b.id === bugId ? { ...b, [field]: value } : b));
@@ -101,9 +125,10 @@ export default function ProjectSidebar() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: [bugId], [field]: value })
       });
+      success(field === 'status' ? 'Статус оновлено' : 'Критичність оновлено');
     } catch (e) {
-      alert('Помилка оновлення');
-      fetchData();
+      error('Помилка оновлення');
+      fetchData(false);
     }
   };
 
@@ -129,6 +154,7 @@ export default function ProjectSidebar() {
       a.download = `buggy-bag-${project.name.replace(/[^a-z0-9]/gi, '_')}.zip`;
       a.click();
       URL.revokeObjectURL(url);
+      success('Архів успішно завантажено');
     } finally {
       setExporting(false);
     }
@@ -153,10 +179,10 @@ export default function ProjectSidebar() {
       });
       const data = await res.json();
       if (data.webViewLink) {
-         alert('Збережено на Google Drive!');
+         success('Збережено на Google Drive!');
          window.open(data.webViewLink, '_blank');
       } else {
-         alert('Помилка завантаження: ' + data.error);
+         error('Помилка завантаження: ' + data.error);
          if (data.error.includes('unauthorized') || data.error.includes('invalid_grant')) {
            window.location.href = `/api/auth/google?project_id=${project.id}`;
          }
@@ -166,25 +192,6 @@ export default function ProjectSidebar() {
     }
   };
 
-  const handleDeleteProject = async () => {
-    if (!confirm('Видалити проєкт назавжди?')) return;
-    setShowKebab(false);
-    try {
-      const res = await fetch('/api/projects', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      });
-      if (res.ok) {
-        window.dispatchEvent(new CustomEvent('projects-updated'));
-        router.push('/');
-      } else {
-        alert('Помилка видалення');
-      }
-    } catch (e) {
-      alert('Помилка видалення');
-    }
-  };
 
   const toggleView = () => {
     const n = viewMode === 'grid' ? 'list' : 'grid';
@@ -206,19 +213,20 @@ export default function ProjectSidebar() {
     const file = b.tech_context?.component?.filePath?.toLowerCase() || '';
     return desc.includes(q) || route.includes(q) || comp.includes(q) || sev.includes(q) || idStr.includes(q) || statusStr.includes(q) || file.includes(q);
   }).sort((a, b) => {
-    if (a.status === 'open' && b.status !== 'open') return -1;
-    if (b.status === 'open' && a.status !== 'open') return 1;
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
   if (pathname.includes('/bugs/') || pathname.includes('/integration')) return null;
 
   return (
-    <div className="w-[360px] bg-[#ffffff] flex flex-col shrink-0 relative z-20 border-r border-[#e9e9e9]">
+    <div className="w-full md:w-[360px] bg-[#ffffff] flex flex-col shrink-0 relative z-20 md:border-r md:border-[#e9e9e9]">
 
       {/* ── Header ── */}
-      <div className="pt-[24px] pb-[16px] flex items-center justify-between px-[24px] shrink-0 bg-[#ffffff]">
+      <div className="pt-[16px] md:pt-[24px] pb-[16px] flex flex-row items-center justify-between px-[16px] md:px-[24px] shrink-0 bg-[#ffffff] gap-[12px] md:gap-0">
         <div className="flex items-center gap-[10px] min-w-0 flex-1">
+          <Link href="/" className="md:hidden text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[4px] -ml-[4px] rounded-[8px] hover:bg-[#f4f4f5]">
+            <ArrowLeft size={20} strokeWidth={1.5} />
+          </Link>
           <span className="text-[20px] font-bold text-[#1f1f1f] truncate">
             {project?.name || 'Завантаження...'}
           </span>
@@ -264,9 +272,6 @@ export default function ProjectSidebar() {
                 <button onClick={() => { setShowKebab(false); router.push(`/projects/${id}/integration`); }} className="w-full px-[12px] h-[36px] text-left flex items-center gap-[8px] text-[13px] font-medium text-[#1f1f1f] hover:bg-[#f4f4f5] transition-colors">
                   <Settings size={14} className="shrink-0" /> Налаштування
                 </button>
-                <button onClick={handleDeleteProject} className="w-full px-[12px] h-[36px] text-left flex items-center gap-[8px] text-[13px] font-medium text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors">
-                  <Trash size={14} className="shrink-0" /> Видалити проєкт
-                </button>
               </div>
             )}
           </div>
@@ -274,7 +279,7 @@ export default function ProjectSidebar() {
       </div>
 
       {/* ── New Bugs Header ── */}
-      <div className="px-[24px] pb-[16px] shrink-0 bg-[#ffffff] relative z-20">
+      <div className="px-[16px] md:px-[24px] pb-[16px] shrink-0 bg-[#ffffff] relative z-20">
         <div className="bg-[#f4f4f5] flex items-center h-[36px] px-[4px] py-[4px] rounded-full w-full relative transition-all">
           
           <div className="flex items-center flex-1 h-[28px] relative transition-all">
@@ -308,7 +313,7 @@ export default function ProjectSidebar() {
               <span className="text-[10px] font-bold uppercase tracking-wider">
                 {selectedBugIds.size > 0 ? 'Зняти всі' : 'Обрати всі'}
               </span>
-              <div className={`flex items-center justify-center rounded-[2px] min-w-[16px] h-[16px] px-[4px] ${selectedBugIds.size > 0 ? 'bg-white/20' : 'bg-[#e9e9e9]'}`}>
+              <div className={`flex items-center justify-center rounded-[6px] min-w-[16px] h-[16px] px-[2px] ${selectedBugIds.size > 0 ? 'bg-white/20' : 'bg-[#e9e9e9]'}`}>
                 <span className={`text-[11px] font-medium leading-none ${selectedBugIds.size > 0 ? 'text-white' : 'text-[#9a9a9a]'}`}>
                   {selectedBugIds.size > 0 ? selectedBugIds.size : filteredBugs.length}
                 </span>
@@ -390,14 +395,30 @@ export default function ProjectSidebar() {
                 toggleSelectBug={toggleSelectBug}
                 handleInlineUpdate={handleInlineUpdate}
                 projectId={id}
-                className="ml-[24px] mr-[22px] mb-[12px]"
+                className="mx-[8px] md:mx-[24px] mb-[12px]"
               />
             );
           })
         )}
       </div>
+
+      {/* ── Mobile Floating Prompt Button ── */}
+      {selectedBugIds.size > 0 && (
+        <div className="md:hidden absolute bottom-[20px] left-[16px] right-[16px] z-30">
+          <button 
+            onClick={() => router.push(`${pathname}?prompt=1`)}
+            className="w-full h-[52px] bg-[#1f1f1f] text-white rounded-[16px] shadow-[0_8px_32px_rgba(0,0,0,0.25)] flex items-center justify-center gap-[10px] active:scale-[0.98] transition-transform cursor-pointer"
+          >
+            <span className="text-[14px] font-bold">Генерувати промпт</span>
+            <span className="bg-white/20 text-white text-[12px] font-bold px-[8px] py-[2px] rounded-[6px]">
+              {selectedBugIds.size}
+            </span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
+
 
 

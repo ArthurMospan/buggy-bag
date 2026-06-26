@@ -14,6 +14,12 @@ function GitHubLogo() {
   );
 }
 
+function OneBLogo() {
+  return (
+    <img src="/oneb-logo.png" alt="OneB" className="w-[20px] h-[20px] object-contain rounded-[4px]" />
+  );
+}
+
 function GeneralSection({ user, name, setName, handleSaveName, savingName, nameSaved, globalErr, avatarUrl, setAvatarUrl }: any) {
   const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
@@ -69,7 +75,7 @@ function GeneralSection({ user, name, setName, handleSaveName, savingName, nameS
         <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Обліковий запис</h2>
         <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Ваша основна інформація в системі.</p>
         
-        <div className="flex items-center gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] mb-[24px]">
+        <div className="flex items-center gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px] mb-[24px]">
           <div className="relative group w-[48px] h-[48px] shrink-0">
             {avatarUrl ? (
               <img src={avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover border border-[#e9e9e9]" />
@@ -100,16 +106,24 @@ function GeneralSection({ user, name, setName, handleSaveName, savingName, nameS
         <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Ім'я</h2>
         <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Як ми маємо до вас звертатися.</p>
         
-        <div className="flex flex-col gap-[8px]">
-          <div className="flex flex-col sm:flex-row gap-[12px]">
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleSaveName(); }}
-              placeholder="Ваше ім'я"
-              className="flex-1 max-w-[400px] bg-[#ffffff] border border-[#e9e9e9] rounded-[8px] px-[14px] py-[10px] text-[13px] text-[#1f1f1f] font-bold outline-none focus:border-[#1f1f1f] transition-colors placeholder:text-[#9a9a9a]"
-            />
+        <div className="flex flex-col gap-[16px]">
+          <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
+            <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+              <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Повне ім'я</span>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSaveName(); }}
+                placeholder="Введіть ім'я"
+                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="text-[12px] text-[#ef4444] flex items-center gap-[5px]">
+              {globalErr && <><AlertCircle size={12} />{globalErr}</>}
+            </div>
             <button
               onClick={handleSaveName}
               disabled={savingName || !name.trim()}
@@ -119,10 +133,88 @@ function GeneralSection({ user, name, setName, handleSaveName, savingName, nameS
               {nameSaved ? 'Збережено' : 'Зберегти'}
             </button>
           </div>
-          {globalErr && (
-            <p className="text-[12px] text-[#ef4444] mt-[4px] flex items-center gap-[5px]">
-              <AlertCircle size={12} />{globalErr}
-            </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConnectionsSection({ githubIdentity, handleConnectGitHub, onebIdentity, handleConnectOneB }: any) {
+  return (
+    <div className="flex flex-col">
+      <div className="pb-[32px]">
+        <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Інтеграції</h2>
+        <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Підключені сервіси та соціальні мережі.</p>
+
+        <div className="flex flex-col gap-[16px]">
+          {githubIdentity ? (
+            <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px]">
+              <div className="flex items-center gap-[12px]">
+                <div className="w-[36px] h-[36px] rounded-[8px] bg-[#f4f4f5] flex items-center justify-center shrink-0 border border-[#e9e9e9] text-[#1f1f1f]">
+                  <GitHubLogo />
+                </div>
+                <div>
+                  <span className="text-[14px] font-bold text-[#1f1f1f] block">GitHub підключено</span>
+                  <span className="text-[13px] font-medium text-[#9a9a9a] mt-[2px] block">
+                    як <strong className="text-[#1f1f1f] font-bold">{githubIdentity.identity_data?.user_name ?? 'GitHub'}</strong>
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+                <Check size={14} /> Активно
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[24px]">
+              <div>
+                <span className="text-[14px] font-bold text-[#1f1f1f] block mb-[4px]">GitHub не підключено</span>
+                <p className="text-[13px] text-[#9a9a9a] leading-relaxed">
+                  Підключіть свій обліковий запис GitHub, щоб легко створювати Issues з репортів та керувати інтеграціями з репозиторіями.
+                </p>
+              </div>
+              <button
+                onClick={handleConnectGitHub}
+                className="inline-flex items-center justify-center gap-[8px] px-[20px] py-[10px] bg-[#1f1f1f] text-white text-[13px] font-bold rounded-[8px] hover:bg-[#303030] transition-colors w-fit"
+              >
+                <GitHubLogo />
+                Підключити GitHub
+              </button>
+            </div>
+          )}
+
+          {onebIdentity ? (
+            <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px]">
+              <div className="flex items-center gap-[12px]">
+                <div className="w-[36px] h-[36px] rounded-[8px] bg-[#f4f4f5] flex items-center justify-center shrink-0 border border-[#e9e9e9] text-[#1f1f1f]">
+                  <OneBLogo />
+                </div>
+                <div>
+                  <span className="text-[14px] font-bold text-[#1f1f1f] block">OneB підключено</span>
+                  <span className="text-[13px] font-medium text-[#9a9a9a] mt-[2px] block">
+                    як <strong className="text-[#1f1f1f] font-bold">{onebIdentity.identity_data?.name ?? 'OneB Account'}</strong>
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+                <Check size={14} /> Активно
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[24px]">
+              <div>
+                <span className="text-[14px] font-bold text-[#1f1f1f] block mb-[4px]">OneB не підключено</span>
+                <p className="text-[13px] text-[#9a9a9a] leading-relaxed">
+                  Підключіть свій обліковий запис OneB для інтеграції з екосистемою 1B.
+                </p>
+              </div>
+              <button
+                onClick={handleConnectOneB}
+                className="inline-flex items-center justify-center gap-[8px] px-[20px] py-[10px] bg-transparent border border-[#e9e9e9] text-[#1f1f1f] text-[13px] font-bold rounded-[8px] hover:bg-[#f4f4f5] transition-colors w-fit"
+              >
+                <OneBLogo />
+                Підключити OneB
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -130,116 +222,115 @@ function GeneralSection({ user, name, setName, handleSaveName, savingName, nameS
   );
 }
 
-function ConnectionsSection({ githubIdentity, handleConnectGitHub }: any) {
-  return (
-    <div className="flex flex-col">
-      <div className="pb-[32px]">
-        <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Інтеграції</h2>
-        <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Підключені сервіси та соціальні мережі.</p>
-
-        {githubIdentity ? (
-          <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px]">
-            <div className="flex items-center gap-[12px]">
-              <div className="w-[36px] h-[36px] rounded-[8px] bg-[#f4f4f5] flex items-center justify-center shrink-0 border border-[#e9e9e9] text-[#1f1f1f]">
-                <GitHubLogo />
-              </div>
-              <div>
-                <span className="text-[14px] font-bold text-[#1f1f1f] block">GitHub підключено</span>
-                <span className="text-[13px] font-medium text-[#9a9a9a] mt-[2px] block">
-                  як <strong className="text-[#1f1f1f] font-bold">{githubIdentity.identity_data?.user_name ?? 'GitHub'}</strong>
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
-              <Check size={14} /> Активно
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[24px]">
-            <div>
-              <span className="text-[14px] font-bold text-[#1f1f1f] block mb-[4px]">GitHub не підключено</span>
-              <p className="text-[13px] text-[#9a9a9a] leading-relaxed">
-                Підключіть свій обліковий запис GitHub, щоб легко створювати Issues з репортів та керувати інтеграціями з репозиторіями.
-              </p>
-            </div>
-            <button
-              onClick={handleConnectGitHub}
-              className="inline-flex items-center justify-center gap-[8px] px-[20px] py-[10px] bg-[#1f1f1f] text-white text-[13px] font-bold rounded-[8px] hover:bg-[#303030] transition-colors w-fit"
-            >
-              <GitHubLogo />
-              Підключити GitHub
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SecuritySection({ oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, setConfirmPwd, handleChangePwd, savingPwd, pwdMsg }: any) {
+function SecuritySection({ oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, setConfirmPwd, handleChangePwd, savingPwd, pwdMsg, handleDeleteAccount, isDeleting, showDeleteModal, setShowDeleteModal }: any) {
   return (
     <div className="flex flex-col">
       <div className="pb-[32px]">
         <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Безпека</h2>
         <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Керуйте своїм паролем та безпекою входу.</p>
 
-        <form onSubmit={handleChangePwd} className="flex flex-col gap-[16px] max-w-[400px]">
-          <div className="flex flex-col gap-[8px]">
-            <span className="text-[13px] font-bold text-[#1f1f1f]">Поточний пароль</span>
-            <input
-              type="password"
-              placeholder="Введіть старий пароль"
-              value={oldPwd}
-              onChange={e => setOldPwd(e.target.value)}
-              required
-              className="bg-[#ffffff] border border-[#e9e9e9] rounded-[8px] px-[14px] py-[10px] text-[13px] text-[#1f1f1f] font-bold outline-none focus:border-[#1f1f1f] transition-colors placeholder:text-[#9a9a9a]"
-            />
-          </div>
-
-          <div className="flex flex-col gap-[8px]">
-            <span className="text-[13px] font-bold text-[#1f1f1f]">Новий пароль</span>
-            <input
-              type="password"
-              placeholder="Мінімум 6 символів"
-              value={newPwd}
-              onChange={e => setNewPwd(e.target.value)}
-              required
-              minLength={6}
-              autoComplete="new-password"
-              className="bg-[#ffffff] border border-[#e9e9e9] rounded-[8px] px-[14px] py-[10px] text-[13px] text-[#1f1f1f] font-bold outline-none focus:border-[#1f1f1f] transition-colors placeholder:text-[#9a9a9a]"
-            />
-          </div>
-
-          <div className="flex flex-col gap-[8px]">
-            <span className="text-[13px] font-bold text-[#1f1f1f]">Підтвердіть новий пароль</span>
-            <input
-              type="password"
-              placeholder="Повторіть новий пароль"
-              value={confirmPwd}
-              onChange={e => setConfirmPwd(e.target.value)}
-              required
-              minLength={6}
-              className="bg-[#ffffff] border border-[#e9e9e9] rounded-[8px] px-[14px] py-[10px] text-[13px] text-[#1f1f1f] font-bold outline-none focus:border-[#1f1f1f] transition-colors placeholder:text-[#9a9a9a]"
-            />
+        <form onSubmit={handleChangePwd} className="flex flex-col gap-[16px]">
+          <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
+            <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+              <span className="text-[13px] font-bold text-[#9a9a9a] w-[180px] shrink-0">Поточний пароль</span>
+              <input
+                type="password"
+                placeholder="Введіть старий пароль"
+                value={oldPwd}
+                onChange={e => setOldPwd(e.target.value)}
+                required
+                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+              />
+            </div>
+            <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+              <span className="text-[13px] font-bold text-[#9a9a9a] w-[180px] shrink-0">Новий пароль</span>
+              <input
+                type="password"
+                placeholder="Мінімум 6 символів"
+                value={newPwd}
+                onChange={e => setNewPwd(e.target.value)}
+                required
+                minLength={6}
+                autoComplete="new-password"
+                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+              />
+            </div>
+            <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+              <span className="text-[13px] font-bold text-[#9a9a9a] w-[180px] shrink-0">Підтвердіть пароль</span>
+              <input
+                type="password"
+                placeholder="Повторіть новий пароль"
+                value={confirmPwd}
+                onChange={e => setConfirmPwd(e.target.value)}
+                required
+                minLength={6}
+                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+              />
+            </div>
           </div>
           
-          {pwdMsg && (
-            <p className={`text-[12px] flex items-center gap-[5px] mt-[-4px] ${pwdMsg.ok ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
-              {pwdMsg.ok ? <Check size={12} /> : <AlertCircle size={12} />}
-              {pwdMsg.text}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={savingPwd || !oldPwd || !newPwd || !confirmPwd}
-            className="bg-[#1f1f1f] hover:bg-[#303030] text-white text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50 w-fit flex items-center gap-[6px]"
-          >
-            {savingPwd && <Loader2 size={14} className="animate-spin" />}
-            Зберегти пароль
-          </button>
+          <div className="flex items-center justify-between">
+            <div className="text-[12px] font-medium text-[#9a9a9a]">
+              {pwdMsg && (
+                <p className={`flex items-center gap-[5px] ${pwdMsg.ok ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
+                  {pwdMsg.ok ? <Check size={12} /> : <AlertCircle size={12} />}
+                  {pwdMsg.text}
+                </p>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={savingPwd || !oldPwd || !newPwd || !confirmPwd}
+              className="bg-[#1f1f1f] hover:bg-[#303030] text-white text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50 shrink-0 flex items-center justify-center gap-[6px]"
+            >
+              {savingPwd && <Loader2 size={14} className="animate-spin" />}
+              Зберегти пароль
+            </button>
+          </div>
         </form>
       </div>
+
+      <div className="py-[32px] border-t border-[#e9e9e9]">
+        <h2 className="text-[16px] font-bold text-[#ef4444] mb-[6px]">Видалення облікового запису</h2>
+        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">
+          Після видалення облікового запису всі ваші дані будуть назавжди втрачені. Цю дію неможливо скасувати.
+        </p>
+        
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className="bg-transparent border border-[#ef4444] text-[#ef4444] hover:bg-[#fef2f2] text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors shrink-0 w-fit"
+        >
+          Видалити акаунт назавжди
+        </button>
+      </div>
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-[#1f1f1f]/40 flex items-center justify-center z-50 p-[20px]">
+          <div className="bg-white rounded-[16px] p-[24px] max-w-[400px] w-full shadow-lg border border-[#e9e9e9]">
+            <h3 className="text-[18px] font-bold text-[#1f1f1f] mb-[8px]">Ви впевнені?</h3>
+            <p className="text-[14px] text-[#9a9a9a] mb-[24px] leading-relaxed">
+              Видалення облікового запису є незворотною дією. Всі ваші проєкти, репорти та налаштування будуть видалені назавжди.
+            </p>
+            <div className="flex items-center gap-[12px] justify-end">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-[16px] py-[8px] text-[13px] font-bold text-[#1f1f1f] hover:bg-[#f4f4f5] rounded-[8px] transition-colors"
+                disabled={isDeleting}
+              >
+                Скасувати
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="bg-[#ef4444] hover:bg-[#dc2626] text-white text-[13px] font-bold px-[16px] py-[8px] rounded-[8px] transition-colors flex items-center gap-[6px]"
+              >
+                {isDeleting && <Loader2 size={14} className="animate-spin" />}
+                Видалити
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -280,15 +371,27 @@ function ConnectionsSkeleton() {
         <div className="h-[20px] w-[120px] bg-zinc-200 rounded mb-[6px]" />
         <div className="h-[14px] w-[280px] bg-zinc-100 rounded mb-[24px]" />
 
-        <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center gap-[12px]">
-            <div className="w-[36px] h-[36px] rounded-[8px] bg-zinc-200 shrink-0" />
-            <div className="flex flex-col gap-[8px]">
-              <div className="h-[14px] w-[130px] bg-zinc-200 rounded" />
-              <div className="h-[12px] w-[180px] bg-zinc-100 rounded" />
+        <div className="flex flex-col gap-[16px]">
+          <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center gap-[12px]">
+              <div className="w-[36px] h-[36px] rounded-[8px] bg-zinc-200 shrink-0" />
+              <div className="flex flex-col gap-[8px]">
+                <div className="h-[14px] w-[130px] bg-zinc-200 rounded" />
+                <div className="h-[12px] w-[180px] bg-zinc-100 rounded" />
+              </div>
             </div>
+            <div className="w-[90px] h-[28px] bg-zinc-200 rounded-[6px]" />
           </div>
-          <div className="w-[90px] h-[28px] bg-zinc-200 rounded-[6px]" />
+          <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center gap-[12px]">
+              <div className="w-[36px] h-[36px] rounded-[8px] bg-zinc-200 shrink-0" />
+              <div className="flex flex-col gap-[8px]">
+                <div className="h-[14px] w-[130px] bg-zinc-200 rounded" />
+                <div className="h-[12px] w-[180px] bg-zinc-100 rounded" />
+              </div>
+            </div>
+            <div className="w-[90px] h-[28px] bg-zinc-200 rounded-[6px]" />
+          </div>
         </div>
       </div>
     </div>
@@ -344,7 +447,13 @@ export default function ProfilePage() {
   const [savingPwd,  setSavingPwd]  = useState(false);
   const [pwdMsg,     setPwdMsg]     = useState<{ ok: boolean; text: string } | null>(null);
   const [globalErr,  setGlobalErr]  = useState('');
-  const [activeNav,  setActiveNav]  = useState<NavId>('general');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const [activeNav, setActiveNav] = useState<NavId | null>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return null;
+    return 'general';
+  });
 
   useEffect(() => {
     const supabase = createClient();
@@ -412,6 +521,26 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch('/api/auth/delete-account', {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete account');
+      }
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push('/login');
+    } catch (err) {
+      console.error(err);
+      alert('Сталася помилка під час видалення акаунту. Спробуйте пізніше.');
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   const handleConnectGitHub = async () => {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
@@ -423,8 +552,17 @@ export default function ProfilePage() {
     });
   };
 
+  const handleConnectOneB = async () => {
+    const clientId = process.env.NEXT_PUBLIC_ONEB_CLIENT_ID || 'dummy_client_id';
+    const redirectUri = `${window.location.origin}/auth/oneb/callback`;
+    const state = Math.random().toString(36).substring(7);
+    const authUrl = `https://account.oneb.app/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=profile&state=${state}`;
+    window.location.href = authUrl;
+  };
+
   const isEmailAuth    = user?.app_metadata?.provider === 'email' || (user?.identities?.some(i => i.provider === 'email') ?? false);
   const githubIdentity = user?.identities?.find(i => i.provider === 'github');
+  const onebIdentity   = user?.identities?.find(i => i.provider === 'oneb');
 
   const getNavDescription = (id: string) => {
     switch (id) {
@@ -435,13 +573,14 @@ export default function ProfilePage() {
     }
   };
 
-  // Only show security tab if email auth is used (always show during loading to prevent sidebar shifts)
   const visibleNavItems = (loading || isEmailAuth) ? NAV_ITEMS : NAV_ITEMS.filter(n => n.id !== 'security');
 
   return (
-    <div className="h-full w-full flex flex-row bg-[#f4f4f5]">
+    <div className="h-full w-full flex flex-col md:flex-row bg-[#f4f4f5]">
       {/* ── Left Sidebar (Settings Nav) ── */}
-      <div className="w-[360px] shrink-0 bg-[#ffffff] border-r border-[#e9e9e9] flex flex-col h-full z-20">
+      <div className={`md:w-[360px] md:shrink-0 bg-[#ffffff] md:border-r md:border-[#e9e9e9] flex flex-col h-full z-20 w-full ${
+        activeNav ? 'hidden md:flex' : 'flex'
+      }`}>
         <div className="pt-[24px] pb-[16px] px-[24px] shrink-0 flex items-center gap-[12px]">
           <Link
             href="/"
@@ -479,16 +618,24 @@ export default function ProfilePage() {
       </div>
 
       {/* ── Right Content Area ── */}
-      <div className="flex-1 flex flex-col h-full bg-[#ffffff] overflow-y-auto custom-scrollbar relative">
+      <div className={`flex-1 flex flex-col h-full bg-[#ffffff] overflow-y-auto custom-scrollbar relative ${
+        !activeNav ? 'hidden md:flex' : 'flex'
+      }`}>
         {/* Header */}
-        <div className="pt-[24px] pb-[16px] shrink-0 flex items-center justify-between px-[32px] sticky top-0 z-50 bg-[#ffffff] border-b border-[#e9e9e9]">
+        <div className="pt-[24px] pb-[16px] shrink-0 flex items-center gap-[12px] px-[24px] md:px-[32px] sticky top-0 z-50 bg-[#ffffff] border-b border-[#e9e9e9]">
+          <button 
+            className="md:hidden p-[8px] -ml-[8px] rounded-[8px] hover:bg-[#f4f4f5] text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors"
+            onClick={() => setActiveNav(null)}
+          >
+            <ArrowLeft size={20} strokeWidth={1.5} />
+          </button>
           <h1 className="text-[24px] font-bold text-[#1f1f1f] tracking-tight">
              {visibleNavItems.find(n => n.id === activeNav)?.label}
           </h1>
         </div>
 
         {/* Content */}
-        <div className="px-[32px] py-[32px] max-w-[800px]">
+        <div className="px-[24px] md:px-[32px] py-[24px] md:py-[32px] max-w-[800px] w-full">
           {loading ? (
             <>
               {activeNav === 'general' && <GeneralSkeleton />}
@@ -514,6 +661,8 @@ export default function ProfilePage() {
                 <ConnectionsSection
                   githubIdentity={githubIdentity}
                   handleConnectGitHub={handleConnectGitHub}
+                  onebIdentity={onebIdentity}
+                  handleConnectOneB={handleConnectOneB}
                 />
               )}
               {activeNav === 'security' && (
@@ -527,6 +676,10 @@ export default function ProfilePage() {
                   handleChangePwd={handleChangePwd}
                   savingPwd={savingPwd}
                   pwdMsg={pwdMsg}
+                  handleDeleteAccount={handleDeleteAccount}
+                  isDeleting={isDeleting}
+                  showDeleteModal={showDeleteModal}
+                  setShowDeleteModal={setShowDeleteModal}
                 />
               )}
             </>

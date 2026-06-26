@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Bug, BugStatus, BugSeverity, DrawShape, PinElementContext, Project } from '@/lib/types';
 import Dialog from '@/components/ui/Dialog';
 import BugScreenshot from './BugScreenshot';
@@ -7,37 +7,115 @@ import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { ChevronDown, ChevronUp, Copy, Check, ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
 import { STATUS_CFG, SEVERITY_CFG } from '@/lib/constants';
+import { formatBugMarkdown } from '@/lib/markdownFormatter';
 
-function StatusPills({ value, onChange, saving }: { value: BugStatus; onChange: (v: BugStatus) => void; saving: boolean }) {
-  return (
-    <div className="flex gap-[4px] flex-wrap">
-      {STATUS_CFG.map(s => {
-        const active = value === s.value;
-        return (
-          <button key={s.value} onClick={() => !saving && onChange(s.value)} disabled={saving}
-            className="px-[10px] py-[5px] rounded-[8px] text-[12px] font-bold transition-all border cursor-pointer"
-            style={active ? { background: s.color, color: 'white', borderColor: s.color } : { background: 'transparent', color: '#9a9a9a', borderColor: '#e9e9e9' }}>
-            {s.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+const STATUS_COLORS: Record<string, string> = {
+  open: 'rgba(255, 96, 75, 0.8)',
+  in_progress: 'rgba(249, 115, 22, 0.8)',
+  resolved: 'rgba(100, 227, 94, 0.8)',
+};
 
-function SeverityPills({ value, onChange, saving }: { value: BugSeverity; onChange: (v: BugSeverity) => void; saving: boolean }) {
+const SEVERITY_COLORS: Record<number, string> = {
+  1: 'rgba(52, 211, 153, 0.85)',
+  2: 'rgba(16, 185, 129, 0.85)',
+  3: 'rgba(14, 165, 233, 0.85)',
+  4: 'rgba(59, 130, 246, 0.85)',
+  5: 'rgba(99, 102, 241, 0.85)',
+  6: 'rgba(168, 85, 247, 0.85)',
+  7: 'rgba(236, 72, 153, 0.85)',
+  8: 'rgba(245, 158, 11, 0.85)',
+  9: 'rgba(249, 115, 22, 0.85)',
+  10: 'rgba(255, 96, 75, 0.85)',
+};
+
+function CustomDropdown<T extends string>({ 
+  value, 
+  options, 
+  onChange, 
+  saving, 
+  type = 'status' 
+}: { 
+  value: T; 
+  options: { value: T; label: string; color: string; bg: string }[]; 
+  onChange: (v: T) => void; 
+  saving: boolean; 
+  type?: 'status' | 'severity' 
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const current = options.find(o => o.value === value) || options[0];
+
   return (
-    <div className="flex gap-[4px] flex-wrap">
-      {SEVERITY_CFG.map(s => {
-        const active = value === s.value;
-        return (
-          <button key={s.value} onClick={() => !saving && onChange(s.value)} disabled={saving}
-            className="px-[10px] py-[5px] rounded-[8px] text-[12px] font-bold transition-all border cursor-pointer"
-            style={active ? { background: s.bg, color: s.color, borderColor: s.color } : { background: 'transparent', color: '#9a9a9a', borderColor: '#e9e9e9' }}>
-            {s.label}
-          </button>
-        );
-      })}
+    <div className="relative" ref={ref}>
+      {type === 'status' ? (
+        <button
+          onClick={() => setOpen(!open)}
+          disabled={saving}
+          className="h-[20px] px-[6px] rounded-[6px] flex items-center justify-center text-[10px] font-semibold text-white backdrop-blur-[4px] border border-black/10 transition-transform hover:scale-105 active:scale-95 cursor-pointer disabled:cursor-default"
+          style={{ 
+            backgroundColor: current.color 
+          }}
+          title="Змінити статус"
+        >
+          {current.label}
+        </button>
+      ) : (
+        <button
+          onClick={() => setOpen(!open)}
+          disabled={saving}
+          className="w-[20px] h-[20px] rounded-[6px] flex items-center justify-center text-[10px] font-bold text-white backdrop-blur-[4px] border border-black/10 transition-transform hover:scale-105 active:scale-95 cursor-pointer disabled:cursor-default"
+          style={{ backgroundColor: SEVERITY_COLORS[parseInt(value as string) || 1] || 'rgba(52, 211, 153, 0.85)' }}
+          title={`Змінити критичність. Поточна: ${value}/10`}
+        >
+          {value}
+        </button>
+      )}
+      
+      {open && (
+        type === 'status' ? (
+          <div className="absolute top-[calc(100%+6px)] left-0 z-[1000] min-w-[140px] bg-[#1f1f1f] border border-[#3f3f46] rounded-[8px] shadow-xl py-[4px]">
+            {options.map(o => {
+              return (
+                <button
+                  key={o.value}
+                  onClick={() => { onChange(o.value); setOpen(false); }}
+                  className="w-full text-left px-[12px] py-[6px] text-[12px] font-medium text-white hover:bg-[#3f3f46] transition-colors flex items-center gap-[8px] cursor-pointer"
+                >
+                  <div className="w-[8px] h-[8px] rounded-full" style={{ backgroundColor: o.color }} />
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="absolute top-[calc(100%+6px)] left-0 z-[1000] w-[148px] bg-[#1f1f1f] border border-[#3f3f46] rounded-[10px] shadow-xl p-[6px] grid grid-cols-5 gap-[4px]">
+            {Array.from({ length: 10 }, (_, i) => {
+              const num = i + 1;
+              return (
+                <button
+                  key={num}
+                  onClick={() => { onChange(num.toString() as T); setOpen(false); }}
+                  className="w-[24px] h-[24px] rounded-[4px] text-[10px] font-bold text-white flex items-center justify-center hover:scale-115 active:scale-90 transition-transform cursor-pointer"
+                  style={{ backgroundColor: SEVERITY_COLORS[num] }}
+                >
+                  {num}
+                </button>
+              );
+            })}
+          </div>
+        )
+      )}
     </div>
   );
 }
@@ -72,6 +150,29 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
   );
 }
 
+function formatSmartDescription(desc: string | null) {
+  if (!desc) return <span className="text-[#9a9a9a]">Без опису</span>;
+  const parts = desc.split(/[|\n]/).map(p => p.trim()).filter(Boolean);
+  if (parts.length <= 1) {
+    return <p className="text-[13px] text-[#1f1f1f] leading-relaxed whitespace-pre-wrap font-medium">{desc}</p>;
+  }
+  return (
+    <div className="flex flex-col gap-[8px] mt-[4px]">
+      {parts.map((part, index) => {
+        const cleanPart = part.replace(/^[-•*\d+.]\s*/, '');
+        return (
+          <div key={index} className="flex items-start gap-[10px] py-[8px] bg-white border border-[#e9e9e9] px-[12px] rounded-[8px] shadow-sm">
+            <span className="flex items-center justify-center w-[20px] h-[20px] rounded-full bg-[#f4f4f5] text-[10px] font-bold text-[#71717a] shrink-0 mt-[1px]">
+              {index + 1}
+            </span>
+            <span className="flex-1 text-[12px] leading-relaxed font-medium text-[#1f1f1f]">{cleanPart}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function Section({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -88,21 +189,7 @@ function Section({ title, children, defaultOpen = false }: { title: string; chil
 function useCopyMarkdown(bug: Bug) {
   const [copied, setCopied] = useState(false);
   const copy = useCallback(() => {
-    const tc = bug.tech_context;
-    const steps = tc?.eventLog?.map((e, i) => `${i + 1}. ${e.description}`).join('\n') ?? 'N/A';
-    const consoleErrs = tc?.consoleErrors?.map(e => `- [${e.level.toUpperCase()}] ${e.message}`).join('\n') ?? 'None';
-    const netErrs = tc?.networkRequests?.filter(r => r.isError).map(r => `- ${r.method} ${r.url} -> ${r.status || 'ERR'}`).join('\n') ?? 'None';
-    const md = [
-      `## Bug: ${bug.description || 'Без опису'}`, '',
-      `| | |`, `|---|---|`,
-      `| **Status** | ${STATUS_CFG.find(s => s.value === bug.status)?.label ?? bug.status} |`,
-      `| **Severity** | ${SEVERITY_CFG.find(s => s.value === (bug.severity ?? 'low'))?.label ?? bug.severity} |`,
-      `| **Route** | \`${tc?.route ?? '-'}\` |`,
-      `| **Viewport** | ${tc?.viewport ?? '-'} |`,
-      `| **Date** | ${format(new Date(bug.created_at), 'dd MMM yyyy, HH:mm', { locale: uk })} |`, '',
-      '### Steps', steps, '', '### Console', consoleErrs, '', '### Network', netErrs,
-      ...(bug.image_url ? ['', `### Screenshot`, `![](${bug.image_url})`] : []),
-    ].join('\n');
+    const md = formatBugMarkdown(bug);
     navigator.clipboard.writeText(md).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   }, [bug]);
   return { copy, copied };
@@ -209,16 +296,17 @@ export default function BugDetailModal({ bug, project, onClose, onStatusChange, 
 
           {/* ── 1. Status / Severity / Meta ─────────────────────────── */}
           <div className="bg-[#f4f4f5] rounded-[12px] p-[14px] flex flex-col gap-[14px]">
-            <div>
-              <div className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[8px]">Статус</div>
-              <StatusPills value={status} onChange={handleStatusChange} saving={saving} />
+            <div className="flex flex-wrap items-center gap-[16px]">
+              <div className="flex items-center gap-[8px] shrink-0">
+                <span className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest">Статус:</span>
+                <CustomDropdown value={status} options={STATUS_CFG} onChange={handleStatusChange} saving={saving} type="status" />
+              </div>
+              <div className="w-px h-[16px] bg-[#e9e9e9] shrink-0" />
+              <div className="flex items-center gap-[8px] shrink-0">
+                <span className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-widest">Severity:</span>
+                <CustomDropdown value={severity} options={SEVERITY_CFG} onChange={handleSeverityChange} saving={saving} type="severity" />
+              </div>
             </div>
-            <div className="h-[1px] bg-[#e9e9e9]" />
-            <div>
-              <div className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[8px]">Severity</div>
-              <SeverityPills value={severity} onChange={handleSeverityChange} saving={saving} />
-            </div>
-            <div className="h-[1px] bg-[#e9e9e9]" />
             <div className="flex items-center justify-between text-[12px]">
               <span className="text-[#9a9a9a]">{format(new Date(bug.created_at), 'dd MMM yyyy, HH:mm', { locale: uk })}</span>
               {tc?.route && (
@@ -345,7 +433,7 @@ export default function BugDetailModal({ bug, project, onClose, onStatusChange, 
           {bug.description && (
             <div className="bg-[#f4f4f5] rounded-[10px] p-[12px]">
               <div className="text-[10px] font-bold text-[#9a9a9a] uppercase tracking-wider mb-[6px]">Опис</div>
-              <p className="text-[13px] text-[#1f1f1f] leading-relaxed whitespace-pre-wrap">{bug.description}</p>
+              {formatSmartDescription(bug.description)}
             </div>
           )}
 

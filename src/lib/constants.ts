@@ -1,9 +1,9 @@
 import { BugStatus, BugSeverity } from './types';
 
 export const STATUS_CFG: { value: BugStatus; label: string; color: string; bg: string }[] = [
-  { value: 'open',        label: 'Новий',      color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
-  { value: 'in_progress', label: 'В роботі',   color: '#f97316', bg: '#fff7ed' },
-  { value: 'resolved',    label: 'Виправлено', color: '#10b981', bg: '#f0fdf4' },
+  { value: 'open',        label: 'Новий',      color: 'rgba(255, 96, 75, 0.8)', bg: 'rgba(255, 96, 75, 0.1)' },
+  { value: 'in_progress', label: 'В роботі',   color: 'rgba(249, 115, 22, 0.8)', bg: 'rgba(249, 115, 22, 0.1)' },
+  { value: 'resolved',    label: 'Виправлено', color: 'rgba(100, 227, 94, 0.8)', bg: 'rgba(100, 227, 94, 0.1)' },
 ];
 
 export function getSeverityColor(num: number) {

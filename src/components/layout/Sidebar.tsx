@@ -22,15 +22,37 @@ function ProjectRow({ project, isActive, onClick, isCollapsed, setHoveredTooltip
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    fetch(`/api/bugs?project_id=${project.id}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.bugs) {
-          const openBugs = data.bugs.filter((b: any) => b.status === 'open');
-          setUnreadCount(openBugs.length);
-        }
+    const fetchUnreadCount = () => {
+      fetch(`/api/bugs?project_id=${project.id}&_nocache=${Date.now()}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.bugs) {
+            const openBugs = data.bugs.filter((b: any) => b.status === 'open');
+            setUnreadCount(openBugs.length);
+          }
+        })
+        .catch(() => {});
+    };
+
+    fetchUnreadCount();
+
+    // Polling fallback every 5 seconds since postgres_changes is blocked by RLS
+    const pollInterval = setInterval(() => {
+      fetchUnreadCount();
+    }, 5000);
+
+    const supabase = createClient();
+    const channelId = `sidebar_unread_${project.id}_${Math.random()}`;
+    const channel = supabase.channel(channelId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bugs', filter: `project_id=eq.${project.id}` }, () => {
+        fetchUnreadCount();
       })
-      .catch(() => {});
+      .subscribe();
+
+    return () => {
+      clearInterval(pollInterval);
+      supabase.removeChannel(channel);
+    };
   }, [project.id]);
 
   return (
@@ -61,8 +83,11 @@ function ProjectRow({ project, isActive, onClick, isCollapsed, setHoveredTooltip
 
         {/* Unread Badge (Collapsed dot) */}
         <div className={`absolute top-[-4px] right-[-4px] transition-all duration-300 ${isCollapsed && unreadCount > 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none'}`}>
-          <div className="bg-[#ef4444] text-white text-[8px] font-bold flex items-center justify-center rounded-full min-w-[14px] h-[14px] px-[3px] border-[2px] border-[#1f1f1f]">
-            {unreadCount > 9 ? '9+' : unreadCount}
+          <div 
+            className={`bg-[#ef4444] text-white text-[8px] font-bold flex items-center justify-center border-[2px] border-[#1f1f1f] ${unreadCount > 99 ? 'rounded-[7px] px-[4px] h-[14px]' : 'w-[14px] h-[14px] rounded-full'}`}
+            style={{ lineHeight: '1' }}
+          >
+            {unreadCount}
           </div>
         </div>
       </div>
@@ -78,9 +103,12 @@ function ProjectRow({ project, isActive, onClick, isCollapsed, setHoveredTooltip
       </div>
 
       {/* Unread Badge (Expanded pill) */}
-      <div className={`overflow-hidden transition-all duration-300 flex items-center ${!isCollapsed && unreadCount > 0 ? 'max-w-[32px] opacity-100 ml-[8px]' : 'max-w-0 opacity-0 ml-0'}`}>
-        <div className="shrink-0 bg-[#ef4444] text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full">
-          {unreadCount > 9 ? '9+' : unreadCount}
+      <div className={`overflow-hidden transition-all duration-300 flex items-center ${!isCollapsed && unreadCount > 0 ? 'opacity-100 ml-[8px]' : 'opacity-0 w-0 ml-0'}`}>
+        <div 
+          className={`shrink-0 bg-[#ef4444] text-white text-[10px] font-bold h-[18px] flex items-center justify-center ${unreadCount > 99 ? 'rounded-[9px] px-[5px]' : 'w-[18px] rounded-full'}`}
+          style={{ lineHeight: '1' }}
+        >
+          {unreadCount}
         </div>
       </div>
     </div>
@@ -175,7 +203,7 @@ export default function Sidebar({ userEmail = '', userName = '', userAvatar = ''
           
           <button 
             onClick={() => setIsCollapsed?.(!isCollapsed)} 
-            className={`text-[#484747] hover:text-white transition-all duration-300 flex items-center justify-center shrink-0 overflow-hidden ${isCollapsed ? 'opacity-0 max-w-0 pointer-events-none' : 'opacity-100 max-w-[32px]'}`}
+            className={`text-[#484747] hover:text-white hover:bg-[#242424] rounded-[8px] transition-all duration-300 flex items-center justify-center shrink-0 overflow-hidden ${isCollapsed ? 'opacity-0 max-w-0 pointer-events-none' : 'opacity-100 max-w-[32px] w-[32px] h-[32px]'}`}
             title="Згорнути"
           >
             <PanelLeftClose size={18} />

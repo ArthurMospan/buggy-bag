@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Sidebar from './Sidebar';
+import MobileHeader from './MobileHeader';
+import MobileDrawer from './MobileDrawer';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -13,6 +15,7 @@ interface AppShellProps {
 export default function AppShell({ children, userEmail = '', userName = '', userAvatar = '' }: AppShellProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('BUGGY_BAG_SIDEBAR_COLLAPSED');
@@ -40,22 +43,42 @@ export default function AppShell({ children, userEmail = '', userName = '', user
   };
 
   return (
-    <div 
-      ref={containerRef}
-      className="h-screen flex overflow-hidden relative bg-[#1f1f1f]"
-    >
-      <aside className={`flex flex-col shrink-0 overflow-visible relative z-20 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-[72px]' : 'w-[284px]'}`}>
-        <Sidebar 
-          userEmail={userEmail} 
-          userName={userName} 
-          userAvatar={userAvatar} 
-          isCollapsed={isCollapsed}
-          setIsCollapsed={toggleCollapse}
-        />
-      </aside>
-      <main className="flex-1 flex overflow-hidden relative z-10 bg-transparent rounded-[24px] my-[12px] mr-[12px] clip-rounded border border-[#2a2a2a]">
-        {children}
-      </main>
+    <div className="flex flex-col h-screen overflow-hidden bg-white md:bg-transparent">
+      {/* ── Mobile Header (hidden on desktop) ── */}
+      <MobileHeader
+        onBurgerClick={() => setIsMobileDrawerOpen(true)}
+      />
+
+      {/* ── Mobile Drawer (hidden on desktop) ── */}
+      <MobileDrawer
+        isOpen={isMobileDrawerOpen}
+        onClose={() => setIsMobileDrawerOpen(false)}
+        userEmail={userEmail}
+        userName={userName}
+        userAvatar={userAvatar}
+      />
+
+      {/* ── Desktop + Mobile main container ── */}
+      <div
+        ref={containerRef}
+        className="flex-1 flex overflow-hidden relative bg-white md:bg-[#1f1f1f] h-[calc(100dvh-60px)] md:h-auto"
+      >
+        {/* Desktop-only sidebar */}
+        <aside className={`hidden md:flex flex-col shrink-0 overflow-visible relative z-20 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-[72px]' : 'w-[284px]'}`}>
+          <Sidebar
+            userEmail={userEmail}
+            userName={userName}
+            userAvatar={userAvatar}
+            isCollapsed={isCollapsed}
+            setIsCollapsed={toggleCollapse}
+          />
+        </aside>
+
+        {/* Main content area */}
+        <main className="flex-1 flex overflow-hidden relative z-10 bg-white md:bg-transparent md:rounded-[24px] md:my-[12px] md:mr-[12px] md:clip-rounded md:border md:border-[#2a2a2a]">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

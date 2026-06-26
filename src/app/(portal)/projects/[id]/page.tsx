@@ -7,11 +7,13 @@ import { useProjectContext } from '@/components/layout/ProjectContext';
 import PromptGenerator from '@/components/bugs/PromptGenerator';
 import SetupGuide from '@/components/bugs/SetupGuide';
 import { Bug, BugStatus } from '@/lib/types';
+import { useToast } from '@/components/ui/ToastContext';
 
 export default function ProjectDashboardPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { selectedBugIds, clearSelectedBugs, refreshTrigger, triggerRefresh } = useProjectContext();
+  const { success, error } = useToast();
   const [bugs, setBugs] = useState<Bug[]>([]);
   const [loading, setLoading] = useState(true);
   const [project, setProject] = useState<any>(null);
@@ -34,14 +36,13 @@ export default function ProjectDashboardPage() {
     });
   }, [id, router, refreshTrigger]);
 
-  const handleBulkAction = async (action: 'delete' | 'status' | 'severity', value?: string) => {
+  const handleBulkAction = async (action: 'delete' | 'status' | 'severity', value?: string, skipClear?: boolean) => {
     if (selectedBugIds.size === 0) return;
     const ids = Array.from(selectedBugIds);
 
     try {
       let res;
       if (action === 'delete') {
-        if (!confirm(`Ви дійсно хочете видалити ${ids.length} багів?`)) return;
         res = await fetch('/api/bugs', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
       } else if (action === 'status') {
         res = await fetch('/api/bugs', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, status: value }) });
@@ -51,19 +52,27 @@ export default function ProjectDashboardPage() {
 
       if (res && !res.ok) {
         const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-        alert(`Помилка: ${err.error || res.statusText}`);
+        error(`Помилка: ${err.error || res.statusText}`);
         return;
       }
     } catch (err: any) {
-      alert(`Помилка: ${err.message}`);
+      error(`Помилка: ${err.message}`);
       return;
     }
 
-    clearSelectedBugs();
+    if (action === 'status' && value === 'in_progress' && skipClear) {
+      success(`Статус ${ids.length} багів змінено на "В роботі"`);
+    } else {
+      success(action === 'delete' ? 'Баги видалено' : 'Баги оновлено');
+    }
+    
+    if (!skipClear) {
+      clearSelectedBugs();
+    }
     triggerRefresh();
   };
 
-  if (loading) return <div className="h-full w-full bg-[#ffffff] rounded-r-[24px]" />;
+  if (loading) return <div className="h-full w-full bg-[#ffffff] md:rounded-r-[24px]" />;
 
   if (project && !project.connected_domain && bugs.length === 0) {
     return (
@@ -77,7 +86,7 @@ export default function ProjectDashboardPage() {
 
   if (selectedBugIds.size > 0) {
     return (
-      <div className="h-full w-full bg-[#2a2a2a] rounded-r-[24px] overflow-hidden">
+      <div className="h-full w-full bg-[#2a2a2a] md:rounded-r-[24px] overflow-hidden">
         <PromptGenerator
           bugs={bugs}
           selectedIds={selectedBugIds}

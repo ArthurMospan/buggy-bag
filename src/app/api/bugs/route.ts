@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAuthClient, createServiceClient } from '@/lib/supabase-server';
+
+export const dynamic = 'force-dynamic';
 import type { BugStatus, BugSeverity } from '@/lib/types';
 
 /** Returns true if user is owner or member of the given project */
@@ -90,23 +92,30 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, ids, status, severity } = body as { id?: string; ids?: string[]; status?: BugStatus; severity?: BugSeverity };
+    const { id, ids, status, severity, description, json_annotations, json_shapes } = body as any;
 
     const targetIds = ids ?? (id ? [id] : []);
-    if (targetIds.length === 0 || (!status && !severity)) {
-      return NextResponse.json({ error: 'id(s) and status or severity are required' }, { status: 400 });
+    if (targetIds.length === 0) {
+      return NextResponse.json({ error: 'id(s) required' }, { status: 400 });
     }
 
-    const updates: Record<string, string> = {};
+    const updates: Record<string, any> = {};
     if (status) {
-      const validStatuses: BugStatus[] = ['open', 'in_progress', 'resolved', 'closed'];
+      const validStatuses: BugStatus[] = ['open', 'in_progress', 'resolved'];
       if (!validStatuses.includes(status)) return NextResponse.json({ error: `Invalid status` }, { status: 400 });
       updates.status = status;
     }
     if (severity) {
       const validSeverities: BugSeverity[] = ['low', 'medium', 'high', 'critical', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
-      if (!validSeverities.includes(severity)) return NextResponse.json({ error: `Invalid severity` }, { status: 400 });
+      if (!validSeverities.includes(severity as any)) return NextResponse.json({ error: `Invalid severity` }, { status: 400 });
       updates.severity = severity;
+    }
+    if (description !== undefined) updates.description = description;
+    if (json_annotations !== undefined) updates.json_annotations = json_annotations;
+    if (json_shapes !== undefined) updates.json_shapes = json_shapes;
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
     }
 
     const service = createServiceClient();
@@ -146,16 +155,43 @@ export async function DELETE(req: NextRequest) {
     if (!ids || ids.length === 0) return NextResponse.json({ error: 'ids are required' }, { status: 400 });
 
     const service = createServiceClient();
-    const { data: bugs } = await service.from('bugs').select('project_id').in('id', ids);
-    if (!bugs || bugs.length === 0) return NextResponse.json({ error: 'Bugs not found' }, { status: 404 });
+    const { data: bugs } = await service.from('bugs').select('project_id, image_url, json_annotations').in('id', ids);
+    if (!bugs || bugs.length === 0) return NextResponse.json({ success: true }); // Idempotent: already deleted
     
     const projectIds = Array.from(new Set(bugs.map(b => b.project_id)));
     for (const pid of projectIds) {
       if (!(await canAccessProject(pid, user.id))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    const storagePathsToDelete: string[] = [];
+    for (const bug of bugs) {
+      if (bug.image_url) {
+        const match = bug.image_url.match(/bug-screenshots\/(.+)$/);
+        if (match) storagePathsToDelete.push(match[1].split('?')[0]);
+      }
+      if (bug.json_annotations && Array.isArray(bug.json_annotations)) {
+        for (const ann of bug.json_annotations) {
+          if (ann.attachments && Array.isArray(ann.attachments)) {
+            for (const att of ann.attachments) {
+              if (att.url) {
+                const match = att.url.match(/bug-screenshots\/(.+)$/);
+                if (match) storagePathsToDelete.push(match[1].split('?')[0]);
+              }
+            }
+          }
+        }
+      }
+    }
+
     const { error } = await service.from('bugs').delete().in('id', ids);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    if (storagePathsToDelete.length > 0) {
+      const { error: storageError } = await service.storage.from('bug-screenshots').remove(storagePathsToDelete);
+      if (storageError) {
+        console.error('[buggy-bag] Failed to delete some bug screenshots:', storageError);
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch {
