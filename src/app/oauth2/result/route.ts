@@ -29,11 +29,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=oneb_no_code`);
   }
 
-  const clientId     = process.env.NEXT_PUBLIC_ONEB_CLIENT_ID!;
-  const clientSecret = process.env.ONEB_CLIENT_SECRET!;
+  const clientId     = process.env.NEXT_PUBLIC_ONEB_CLIENT_ID;
+  const clientSecret = process.env.ONEB_CLIENT_SECRET;
   const apiUri       = 'https://account.oneb.app/s/';
   // redirect_uri must match what's registered in OneB dashboard (where code is actually sent)
   const redirectUri  = `${origin}/login`;
+
+  // Validate env vars are set
+  if (!clientId || clientId === 'dummy_client_id') {
+    console.error('[OneB] NEXT_PUBLIC_ONEB_CLIENT_ID is not set or is placeholder');
+    return NextResponse.redirect(`${origin}/login?error=oneb_no_client_id`);
+  }
+  if (!clientSecret) {
+    console.error('[OneB] ONEB_CLIENT_SECRET is not set');
+    return NextResponse.redirect(`${origin}/login?error=oneb_no_client_secret`);
+  }
+
+  console.log('[OneB] Starting token exchange', {
+    clientId,
+    clientSecretLength: clientSecret.length,
+    redirectUri,
+    codeLength: code.length,
+  });
 
   try {
     // --- Step 1: Exchange code for tokens ---
@@ -51,7 +68,8 @@ export async function GET(req: NextRequest) {
     });
 
     if (!tokenRes.ok) {
-      console.error('[OneB] Token exchange failed:', await tokenRes.text());
+      const errText = await tokenRes.text();
+      console.error('[OneB] Token exchange failed:', errText, 'redirect_uri:', redirectUri);
       return NextResponse.redirect(`${origin}/login?error=oneb_token`);
     }
 
