@@ -33,7 +33,8 @@ function LoginForm() {
   const [onebLoading, setOnebLoading] = useState(false);
   const [error, setError]       = useState('');
 
-  // Fallback: If for any reason we land on /login with a code, forward to the backend handler at /oauth2/result
+  // OneB redirects code to /login (registered redirect_uri in OneB dashboard)
+  // Detect it and forward to our backend handler at /oauth2/result
   useEffect(() => {
     const code  = searchParams.get('code');
     const state = searchParams.get('state');
@@ -94,8 +95,8 @@ function LoginForm() {
     setError('');
     const redirect = searchParams.get('redirect') || '/';
     const clientId = process.env.NEXT_PUBLIC_ONEB_CLIENT_ID || 'dummy_client_id';
-    // redirect_uri must match what's registered in OneB dashboard
-    const redirectUri = `${window.location.origin}/oauth2/result`;
+    // redirect_uri must match what's registered in OneB dashboard — /login
+    const redirectUri = `${window.location.origin}/login`;
     // Encode redirect destination inside state so redirect_uri stays clean
     const state = JSON.stringify({ r: redirect, n: Math.random().toString(36).substring(7) });
     const scopes = process.env.NEXT_PUBLIC_ONEB_SCOPES ?? '';

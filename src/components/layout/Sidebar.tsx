@@ -177,8 +177,7 @@ export default function Sidebar({ userEmail = '', userName = '', userAvatar = ''
       console.error('[Sidebar Logout] API logout error:', err);
     }
 
-    router.push('/login');
-    router.refresh();
+    window.location.href = '/login';
   };
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -286,7 +285,10 @@ export default function Sidebar({ userEmail = '', userName = '', userAvatar = ''
                 <User size={14} /> Профіль
               </button>
               <button
-                onClick={() => { setMenuOpen(false); if (confirm('Вийти з акаунту?')) handleLogout(); }}
+                onClick={() => {
+                  handleLogout();
+                  setMenuOpen(false);
+                }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-[#ef4444] hover:bg-[#ef4444]/20 transition-colors"
               >
                 <LogOut size={14} /> Вийти

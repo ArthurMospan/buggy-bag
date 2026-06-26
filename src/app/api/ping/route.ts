@@ -29,16 +29,24 @@ export async function POST(req: NextRequest) {
     let domain = '';
     try { if (originUrl) domain = new URL(originUrl).host; } catch {}
 
+    const isLocalhost = domain.includes('localhost') || domain.includes('127.0.0.1');
+
     const updates: any = { last_seen_at: new Date().toISOString() };
-    if (domain && domain !== project.connected_domain) {
+    if (
+      domain && 
+      domain !== project.connected_domain && 
+      !isLocalhost
+    ) {
       updates.connected_domain = domain;
     }
     // Widget reads its own favicon from the DOM and reports it here
-    if (typeof favicon_url === 'string' && favicon_url) {
-      updates.favicon_url = favicon_url.slice(0, 2048);
-    }
-    if (typeof favicon_color === 'string' && favicon_color) {
-      updates.favicon_color = favicon_color.slice(0, 16);
+    if (!isLocalhost) {
+      if (typeof favicon_url === 'string' && favicon_url) {
+        updates.favicon_url = favicon_url.slice(0, 2048);
+      }
+      if (typeof favicon_color === 'string' && favicon_color) {
+        updates.favicon_color = favicon_color.slice(0, 16);
+      }
     }
 
     // Update project
