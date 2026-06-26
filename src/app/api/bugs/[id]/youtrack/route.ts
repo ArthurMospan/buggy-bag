@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAuthClient, createServiceClient } from '@/lib/supabase-server';
 import { decrypt } from '@/lib/crypto';
-import { canAccessProject } from '@/app/api/bugs/route';
+import { canAccessProject } from '@/lib/project';
 import { Bug, Project } from '@/lib/types';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';

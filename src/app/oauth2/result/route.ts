@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   const clientSecret = process.env.ONEB_CLIENT_SECRET;
   const apiUri       = 'https://account.oneb.app/s/';
   // redirect_uri must match what's registered in OneB dashboard (where code is actually sent)
-  const redirectUri  = `${origin}/login`;
+  const redirectUri  = `${origin}/oauth2/result`;
 
   // Validate env vars are set
   if (!clientId || clientId === 'dummy_client_id') {
@@ -55,9 +55,14 @@ export async function GET(req: NextRequest) {
   try {
     // --- Step 1: Exchange code for tokens ---
     // Token endpoint = {ONEB_API_URI}token
+    // Send client credentials BOTH as HTTP Basic Auth (RFC 6749 recommended) AND in body
+    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
     const tokenRes = await fetch(`${apiUri}token`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type':  'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${basicAuth}`,
+      },
       body: new URLSearchParams({
         grant_type:    'authorization_code',
         code,
