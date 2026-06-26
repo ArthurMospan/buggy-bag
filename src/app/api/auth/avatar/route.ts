@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     // Update user metadata directly in the database via Admin API
     const { error: updateErr } = await supabaseService.auth.admin.updateUserById(user.id, {
-      user_metadata: { avatar_url: publicUrl }
+      user_metadata: { avatar_url: publicUrl, custom_avatar_url: publicUrl }
     });
 
     if (updateErr) {

@@ -72,7 +72,7 @@ function GeneralSection({ user, name, setName, handleSaveName, savingName, nameS
               if (url) {
                 const supabase = createClient();
                 // This updates the local session cookie with the new JWT
-                await supabase.auth.updateUser({ data: { avatar_url: url } });
+                await supabase.auth.updateUser({ data: { avatar_url: url, custom_avatar_url: url } });
                 setAvatarUrl(url); // switch to the real remote URL
                 // Force a hard reload to ensure server components fetch the new metadata
                 // and bypass any Next.js router cache that might hold stale data.
@@ -485,7 +485,7 @@ export default function ProfilePage() {
       setUser(u);
       const storedName = u?.user_metadata?.display_name || u?.user_metadata?.full_name || u?.user_metadata?.name || '';
       setName(storedName || (u?.email?.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) ?? ''));
-      const storedAvatar = u?.user_metadata?.avatar_url || u?.user_metadata?.picture || '';
+      const storedAvatar = u?.user_metadata?.custom_avatar_url || u?.user_metadata?.avatar_url || u?.user_metadata?.picture || '';
       setAvatarUrl(storedAvatar);
       setLoading(false);
     });
