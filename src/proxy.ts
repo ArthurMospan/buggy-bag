@@ -30,6 +30,7 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith('/login') ||
     pathname.startsWith('/register') ||
     pathname.startsWith('/auth/') ||
+    pathname.startsWith('/oauth2/') ||
     pathname.startsWith('/invite/') ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
