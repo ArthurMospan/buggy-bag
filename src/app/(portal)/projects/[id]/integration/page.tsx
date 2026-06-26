@@ -75,7 +75,18 @@ function IntegrationSection({ project, onUpdate }: { project: Project, onUpdate:
             {project.connected_domain ? (
               <div className="w-[48px] h-[48px] bg-[#f8f8f9] border border-[#e9e9e9] rounded-[12px] flex items-center justify-center shrink-0 overflow-hidden">
                 {project.favicon_url ? (
-                  <img src={project.favicon_url} alt="Favicon" className="w-[24px] h-[24px] rounded-[4px] object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  <>
+                    <img 
+                      src={project.favicon_url} 
+                      alt="" 
+                      className="w-[24px] h-[24px] rounded-[4px] object-contain" 
+                      onError={(e) => { 
+                        e.currentTarget.style.display = 'none'; 
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden'); 
+                      }} 
+                    />
+                    <Globe size={24} className="text-[#9a9a9a] hidden" />
+                  </>
                 ) : (
                   <Globe size={24} className="text-[#9a9a9a]" />
                 )}

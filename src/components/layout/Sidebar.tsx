@@ -76,10 +76,22 @@ function ProjectRow({ project, isActive, onClick, isCollapsed, setHoveredTooltip
         }`}
       >
         {project.favicon_url ? (
-          <img src={project.favicon_url} alt="Favicon" width={18} height={18} className="rounded-sm object-contain" />
-        ) : (
-          <Folder size={16} className={isActive ? 'text-white' : 'text-[#9a9a9a]'} />
-        )}
+          <img 
+            src={project.favicon_url} 
+            alt="" 
+            width={18} 
+            height={18} 
+            className="rounded-sm object-contain" 
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+            }} 
+          />
+        ) : null}
+        <Folder 
+          size={16} 
+          className={`${project.favicon_url ? 'hidden' : ''} ${isActive ? 'text-white' : 'text-[#9a9a9a]'}`} 
+        />
 
         {/* Unread Badge (Collapsed dot) */}
         <div className={`absolute top-[-4px] right-[-4px] transition-all duration-300 ${isCollapsed && unreadCount > 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none'}`}>

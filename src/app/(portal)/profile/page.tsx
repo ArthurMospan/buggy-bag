@@ -56,11 +56,31 @@ function GeneralSection({ user, name, setName, handleSaveName, savingName, nameS
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/webp', 0.8);
+          // Set local preview immediately
           setAvatarUrl(dataUrl);
           
-          const supabase = createClient();
-          await supabase.auth.updateUser({ data: { avatar_url: dataUrl } });
-          router.refresh();
+          try {
+            // Upload to storage to prevent JWT cookie bloat
+            const res = await fetch('/api/auth/avatar', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ base64: dataUrl }),
+            });
+            
+            if (res.ok) {
+              const { url } = await res.json();
+              if (url) {
+                const supabase = createClient();
+                await supabase.auth.updateUser({ data: { avatar_url: url } });
+                setAvatarUrl(url); // switch to the real remote URL
+                router.refresh();
+              }
+            } else {
+              console.error('Failed to upload avatar:', await res.text());
+            }
+          } catch (e) {
+            console.error('Avatar upload error:', e);
+          }
         }
         setIsUploading(false);
       };
