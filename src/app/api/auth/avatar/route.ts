@@ -45,8 +45,17 @@ export async function POST(req: NextRequest) {
       .from('bug-screenshots')
       .getPublicUrl(upload.path);
 
-    // Note: We just return the publicUrl here.
-    // The client should call supabase.auth.updateUser to update the user metadata and refresh the session cookie.
+    // Update user metadata directly in the database via Admin API
+    const { error: updateErr } = await supabaseService.auth.admin.updateUserById(user.id, {
+      user_metadata: { avatar_url: publicUrl }
+    });
+
+    if (updateErr) {
+      console.error('[avatar update error]:', updateErr.message);
+    }
+
+    // Note: We return the publicUrl. The client should still call supabase.auth.updateUser 
+    // to force a session refresh, so the new JWT is saved in cookies.
     return NextResponse.json({ url: publicUrl });
   } catch (error: any) {
     console.error('Avatar upload exception:', error);

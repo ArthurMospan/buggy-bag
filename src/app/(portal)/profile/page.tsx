@@ -71,9 +71,12 @@ function GeneralSection({ user, name, setName, handleSaveName, savingName, nameS
               const { url } = await res.json();
               if (url) {
                 const supabase = createClient();
+                // This updates the local session cookie with the new JWT
                 await supabase.auth.updateUser({ data: { avatar_url: url } });
                 setAvatarUrl(url); // switch to the real remote URL
-                router.refresh();
+                // Force a hard reload to ensure server components fetch the new metadata
+                // and bypass any Next.js router cache that might hold stale data.
+                window.location.reload();
               }
             } else {
               console.error('Failed to upload avatar:', await res.text());
