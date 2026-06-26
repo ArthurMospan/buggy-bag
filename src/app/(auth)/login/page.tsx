@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import Button from '@/components/ui/Button';
@@ -35,10 +35,13 @@ function LoginForm() {
 
   // OneB redirects code to /login (registered redirect_uri in OneB dashboard)
   // Detect it and forward to our backend handler at /oauth2/result
+  const hasForwardedCode = useRef(false);
+
   useEffect(() => {
     const code  = searchParams.get('code');
     const state = searchParams.get('state');
-    if (code) {
+    if (code && !hasForwardedCode.current) {
+      hasForwardedCode.current = true;
       setOnebLoading(true);
       const params = new URLSearchParams({ code });
       if (state) params.set('state', state);
