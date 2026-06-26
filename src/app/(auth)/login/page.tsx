@@ -46,11 +46,37 @@ function LoginForm() {
     }
   }, [searchParams]);
 
+  // Handle Implicit Flow OAuth redirects from Supabase (used by OneB magiclink workaround)
   useEffect(() => {
-    if (searchParams.get('error') === 'oauth') {
-      setError('Не вдалося увійти через GitHub. Спробуйте ще раз.');
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token')) {
+      const supabase = createClient();
+      
+      // The Supabase client automatically parses the hash fragment and stores the session 
+      // in cookies when initialized. We wait for it to become available.
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          const redirect = searchParams.get('redirect') || '/';
+          router.push(redirect);
+          router.refresh();
+        }
+      });
+      
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          const redirect = searchParams.get('redirect') || '/';
+          router.push(redirect);
+          router.refresh();
+        }
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    } else if (searchParams.get('error') === 'oauth') {
+      setError('Не вдалося увійти. Спробуйте ще раз.');
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

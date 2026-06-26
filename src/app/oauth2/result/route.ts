@@ -158,14 +158,16 @@ export async function GET(req: NextRequest) {
     }
 
     // --- Step 4: Generate a magic link to authenticate the user ---
-    // IMPORTANT: Supabase SSR uses PKCE flow — magic link redirects with ?code= to a callback URL.
-    // We route through /auth/callback which calls exchangeCodeForSession, then redirects to destination.
-    const callbackUrl = `${origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
+    // IMPORTANT: Supabase SSR uses PKCE flow by default, but admin.generateLink uses Implicit flow.
+    // Implicit flow returns the session as a URL hash fragment (#access_token=...).
+    // Server routes (/auth/callback) cannot read hash fragments. So we redirect to a client-side
+    // page (/login) where the browser client will parse the hash, set the cookies, and redirect.
+    const loginRedirectUrl = `${origin}/login?redirect=${encodeURIComponent(redirectTo)}`;
 
     const { data: linkData, error: linkErr } = await serviceClient.auth.admin.generateLink({
       type:    'magiclink',
       email:   syntheticEmail,
-      options: { redirectTo: callbackUrl },
+      options: { redirectTo: loginRedirectUrl },
     });
 
     if (linkErr || !linkData?.properties?.action_link) {
