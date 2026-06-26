@@ -153,7 +153,7 @@ export default function DashboardPage() {
             >
               {creatingProject ? (
                 <>
-                  <LoadingSpinner size={16} />
+                  <LoadingSpinner size="sm" />
                   <span>Створюємо...</span>
                 </>
               ) : (
