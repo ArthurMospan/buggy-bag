@@ -32,8 +32,8 @@ export async function GET(req: NextRequest) {
   const clientId     = process.env.NEXT_PUBLIC_ONEB_CLIENT_ID;
   const clientSecret = process.env.ONEB_CLIENT_SECRET;
   const apiUri       = 'https://account.oneb.app/s/';
-  // redirect_uri must match what's registered in OneB dashboard (where code is actually sent)
-  const redirectUri  = `${origin}/oauth2/result`;
+  // redirect_uri must match what's registered in OneB dashboard and what was used in the authorize request
+  const redirectUri  = `${origin}/login`;
 
   // Validate env vars are set
   if (!clientId || clientId === 'dummy_client_id') {
