@@ -75,6 +75,10 @@ function LoginForm() {
       };
     } else if (searchParams.get('error') === 'oauth') {
       setError('Не вдалося увійти. Спробуйте ще раз.');
+    } else if (searchParams.get('error')?.startsWith('oneb_')) {
+      const errCode = searchParams.get('error');
+      if (errCode === 'oneb_token') setError('Помилка авторизації в OneB: Неправильний Client ID або Secret (перевірте налаштування у Vercel та зробіть Redeploy).');
+      else setError('Щось пішло не так при вході через OneB.');
     }
   }, [searchParams, router]);
 
