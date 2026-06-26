@@ -152,9 +152,19 @@ export default function Sidebar({ userEmail = '', userName = '', userAvatar = ''
   }, [menuOpen]);
 
   const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    await fetch('/api/auth/logout', { method: 'POST' });
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('[Sidebar Logout] Supabase signOut error:', err);
+    }
+    
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('[Sidebar Logout] API logout error:', err);
+    }
+
     router.push('/login');
     router.refresh();
   };
