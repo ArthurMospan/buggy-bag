@@ -130,6 +130,7 @@ export interface Bug {
   tech_context: TechContext | null;
   github_issue_url: string | null;
   youtrack_issue_url?: string | null;
+  quickteam_issue_url?: string | null;
   created_at: string;
 }
 
@@ -164,6 +165,11 @@ export interface Project {
   youtrack_url?: string | null;
   youtrack_token?: string | null;
   youtrack_project?: string | null;
+  quickteam_url?: string | null;
+  quickteam_token?: string | null;
+  quickteam_organization_id?: string | null;
+  telegram_chat_id?: string | null;
+  telegram_bot_token?: string | null;
   google_access_token?: string | null;
   google_refresh_token?: string | null;
   google_token_expiry?: string | null;
