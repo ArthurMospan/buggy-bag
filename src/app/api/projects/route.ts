@@ -41,6 +41,8 @@ export async function GET() {
     const projects = (data ?? []).map((p: any) => {
       if (p.github_token) p.github_token = 'ghp_***';
       if (p.youtrack_token) p.youtrack_token = 'perm:***';
+      if (p.quickteam_token) p.quickteam_token = 'qt_***';
+      if (p.telegram_bot_token) p.telegram_bot_token = '***';
       return p;
     });
 
@@ -81,6 +83,12 @@ export async function POST(req: NextRequest) {
     }
     if (data?.youtrack_token) {
       data.youtrack_token = 'perm:***';
+    }
+    if (data?.quickteam_token) {
+      data.quickteam_token = 'qt_***';
+    }
+    if (data?.telegram_bot_token) {
+      data.telegram_bot_token = '***';
     }
 
     return NextResponse.json({ project: data }, { status: 201 });
@@ -123,23 +131,32 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json() as { id: string; is_active?: boolean; name?: string; regenerate_api_key?: boolean; github_repo?: string; github_token?: string; widget_password?: string; youtrack_url?: string; youtrack_token?: string; youtrack_project?: string };
-    const { id, is_active, name, regenerate_api_key, github_repo, github_token, widget_password, youtrack_url, youtrack_token, youtrack_project } = body;
+    const body = await req.json() as { id: string; is_active?: boolean; name?: string; regenerate_api_key?: boolean; github_repo?: string; github_token?: string; widget_password?: string; youtrack_url?: string; youtrack_token?: string; youtrack_project?: string; quickteam_url?: string; quickteam_token?: string; quickteam_organization_id?: string; telegram_chat_id?: string; telegram_bot_token?: string };
+    const { id, is_active, name, regenerate_api_key, github_repo, github_token, widget_password, youtrack_url, youtrack_token, youtrack_project, quickteam_url, quickteam_token, quickteam_organization_id, telegram_chat_id, telegram_bot_token } = body;
     if (!id) return NextResponse.json({ error: 'Project id is required' }, { status: 400 });
 
-    const updateData: { is_active?: boolean; name?: string; api_key?: string; github_repo?: string; github_token?: string | null; widget_password?: string | null; youtrack_url?: string | null; youtrack_token?: string | null; youtrack_project?: string | null } = {};
+    const updateData: { is_active?: boolean; name?: string; api_key?: string; github_repo?: string; github_token?: string | null; widget_password?: string | null; youtrack_url?: string | null; youtrack_token?: string | null; youtrack_project?: string | null; quickteam_url?: string | null; quickteam_token?: string | null; quickteam_organization_id?: string | null; telegram_chat_id?: string | null; telegram_bot_token?: string | null } = {};
     if (typeof is_active === 'boolean') updateData.is_active = is_active;
     if (name?.trim()) updateData.name = name.trim();
     if (regenerate_api_key) updateData.api_key = crypto.randomUUID();
     if (github_repo !== undefined) updateData.github_repo = github_repo;
     if (widget_password !== undefined) updateData.widget_password = widget_password ? widget_password.trim() : null;
-    if (github_token !== undefined) {
+    if (github_token !== undefined && github_token !== 'ghp_***') {
       updateData.github_token = github_token ? encrypt(github_token) : null;
     }
     if (youtrack_url !== undefined) updateData.youtrack_url = youtrack_url;
     if (youtrack_project !== undefined) updateData.youtrack_project = youtrack_project;
-    if (youtrack_token !== undefined) {
+    if (youtrack_token !== undefined && youtrack_token !== 'perm:***') {
       updateData.youtrack_token = youtrack_token ? encrypt(youtrack_token) : null;
+    }
+    if (quickteam_url !== undefined) updateData.quickteam_url = quickteam_url;
+    if (quickteam_organization_id !== undefined) updateData.quickteam_organization_id = quickteam_organization_id;
+    if (quickteam_token !== undefined && quickteam_token !== 'qt_***') {
+      updateData.quickteam_token = quickteam_token ? encrypt(quickteam_token) : null;
+    }
+    if (telegram_chat_id !== undefined) updateData.telegram_chat_id = telegram_chat_id;
+    if (telegram_bot_token !== undefined && telegram_bot_token !== '***') {
+      updateData.telegram_bot_token = telegram_bot_token ? encrypt(telegram_bot_token) : null;
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -167,6 +184,12 @@ export async function PATCH(req: NextRequest) {
     }
     if (data?.youtrack_token) {
       data.youtrack_token = 'perm:***';
+    }
+    if (data?.quickteam_token) {
+      data.quickteam_token = 'qt_***';
+    }
+    if (data?.telegram_bot_token) {
+      data.telegram_bot_token = '***';
     }
 
     return NextResponse.json({ project: data });

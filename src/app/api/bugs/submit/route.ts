@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase-server';
+import { decrypt } from '@/lib/crypto';
 import type { Annotation, TechContext, DrawShape } from '@/lib/types';
 
 const CORS = {
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     const { data: project, error: projectErr } = await supabase
       .from('projects')
-      .select('id, is_active')
+      .select('id, is_active, telegram_chat_id, telegram_bot_token, name')
       .eq('api_key', api_key)
       .single();
 
@@ -195,6 +196,50 @@ export async function POST(req: NextRequest) {
       action: 'bug_received',
       details: { bug_id: data.id, severity: data.severity }
     }).then();
+
+    // Send Telegram Notification
+    if (project.telegram_chat_id && project.telegram_bot_token) {
+      try {
+        const botToken = decrypt(project.telegram_bot_token);
+        const chatId = project.telegram_chat_id;
+        if (botToken && chatId) {
+
+          const portalUrl = (req.headers.get('origin') || 'https://buggybag.com');
+          const bugLink = `${portalUrl}/projects/${project_id}/bugs/${data.id}`;
+          
+          const title = `🚨 Новий баг у ${project.name || 'проєкті'}`;
+          const sevMap: Record<string, string> = { low: '🟢 Низький', medium: '🟡 Середній', high: '🟠 Високий', critical: '🔴 Критичний' };
+          let msg = `<b>${title}</b>\n\n`;
+          msg += `<b>Пріоритет:</b> ${sevMap[severity] || severity}\n`;
+          if (description) msg += `<b>Опис:</b> ${description.replace(/</g, '&lt;').replace(/>/g, '&gt;')}\n`;
+          if (tech_context?.route) msg += `<b>Сторінка:</b> <code>${tech_context.route.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code>\n`;
+          if (tech_context?.viewport) msg += `<b>Екран:</b> <code>${tech_context.viewport}</code>\n`;
+          msg += `\n<a href="${bugLink}">Відкрити в BuggyBag</a>`;
+
+          let url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+          const body: any = { chat_id: chatId, parse_mode: 'HTML', text: msg };
+          
+          if (image_url) {
+            url = `https://api.telegram.org/bot${botToken}/sendPhoto`;
+            body.photo = image_url;
+            body.caption = msg;
+            delete body.text;
+          }
+          
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          
+          if (!res.ok) {
+            console.error('[buggy-bag] telegram API error:', await res.text());
+          }
+        }
+      } catch (e) {
+        console.error('[buggy-bag] telegram send error:', e);
+      }
+    }
 
     return NextResponse.json({ success: true, bug: data }, { status: 201, headers: CORS });
   } catch (err) {

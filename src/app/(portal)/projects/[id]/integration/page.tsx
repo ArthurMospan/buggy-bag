@@ -5,7 +5,7 @@ import { Project, ActivityLog } from '@/lib/types';
 import LoadingSpinner from '@/components/ui/Feedback/LoadingSpinner';
 
 import SetupGuide from '@/components/bugs/SetupGuide';
-import { Copy, Check, Terminal, Code2, Play, Circle, CheckCircle2, RefreshCw, Eye, EyeOff, AlertTriangle, Link as LinkIcon, Users, Settings, Activity, ShieldAlert, X, ArrowLeft, Power, Globe, ExternalLink } from 'lucide-react';
+import { Copy, Check, Terminal, Code2, Play, Circle, CheckCircle2, RefreshCw, Eye, EyeOff, AlertTriangle, Link as LinkIcon, Users, Settings, Activity, ShieldAlert, X, ArrowLeft, Power, Globe, ExternalLink, Send } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/components/ui/ToastContext';
 import { formatDistanceToNow } from 'date-fns';
@@ -615,21 +615,200 @@ function YoutrackSection({ project, onUpdate }: { project: Project, onUpdate: (p
   );
 }
 
+function TelegramSection({ project, onUpdate }: { project: Project, onUpdate: (p: Project) => void }) {
+  const [chatId, setChatId] = useState(project.telegram_chat_id || '');
+  const [token, setToken] = useState(project.telegram_bot_token || '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [showToken, setShowToken] = useState(false);
+  const { success: toastSuccess, error } = useToast();
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setSuccess(false);
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: project.id, telegram_chat_id: chatId, telegram_bot_token: token }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        onUpdate(updated.project ?? { ...project, telegram_chat_id: chatId, telegram_bot_token: token });
+        setSuccess(true);
+        toastSuccess('Налаштування збережено');
+        setTimeout(() => setSuccess(false), 3000);
+      } else { error('Помилка збереження'); }
+    } catch (e) { console.error(e); error('Помилка збереження'); } finally { setIsSaving(false); }
+  };
+
+  return (
+    <div className="flex flex-col">
+      <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Інтеграція з Telegram</h2>
+      <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Підключіть Telegram бота, щоб миттєво отримувати сповіщення про нові баги.</p>
+
+      <form onSubmit={handleSave} className="flex flex-col gap-[16px]">
+        <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
+          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+            <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">ID чату (Chat ID)</span>
+            <input
+              type="text"
+              name="bb_tg_chat"
+              id="bb_tg_chat"
+              autoComplete="off"
+              data-lpignore="true"
+              placeholder="-1001234567890 або 123456789"
+              value={chatId}
+              onChange={e => setChatId(e.target.value)}
+              className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+            />
+          </div>
+          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+            <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Токен бота</span>
+            <div className="flex-1 flex items-center gap-[10px]">
+              <input
+                type={showToken ? 'text' : 'password'}
+                name="bb_tg_token"
+                id="bb_tg_token"
+                autoComplete="new-password"
+                data-lpignore="true"
+                placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+                value={token}
+                onChange={e => setToken(e.target.value)}
+                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+              />
+              {token && (
+                <button type="button" onClick={() => setShowToken(!showToken)} className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[2px]">
+                  {showToken ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-end justify-between mt-[4px]">
+          <div className="text-[12px] font-medium text-[#9a9a9a] max-w-[500px]">
+            <ol className="list-decimal pl-[16px] space-y-[6px]">
+              <li>
+                Створіть бота через <a href="https://t.me/botfather" target="_blank" rel="noreferrer" className="text-[#1f1f1f] font-bold hover:underline">@BotFather</a> у Telegram та скопіюйте сюди його <b>Token</b>.
+              </li>
+              <li>
+                Напишіть боту <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer" className="text-[#1f1f1f] font-bold hover:underline">@userinfobot</a>, щоб дізнатись свій особистий <b>Chat ID</b>.
+              </li>
+              <li className="text-[11px] text-[#9a9a9a]/80">
+                <i>Щоб отримувати баги в групу — додайте бота в групу і дізнайтесь її ID через @raw_data_bot.</i>
+              </li>
+            </ol>
+          </div>
+          <div className="flex items-center gap-[12px] shrink-0 pb-[2px]">
+            {success && (
+              <span className="flex items-center gap-[6px] text-[13px] font-bold text-emerald-600">
+                <Check size={14} /> Збережено
+              </span>
+            )}
+            <button type="submit" disabled={isSaving} className="bg-[#1f1f1f] hover:bg-[#303030] text-[#ffffff] text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50">
+              {isSaving ? 'Збереження...' : 'Зберегти'}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 function QuickTeamSection({ project, onUpdate }: { project: Project, onUpdate: (p: Project) => void }) {
+  const [token, setToken] = useState(project.quickteam_token || '');
+  const [qtOrg, setQtOrg] = useState(project.quickteam_organization_id || '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [showToken, setShowToken] = useState(false);
+  const { success: toastSuccess, error } = useToast();
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setSuccess(false);
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: project.id, quickteam_token: token, quickteam_organization_id: qtOrg }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        onUpdate(updated.project ?? { ...project, quickteam_token: token, quickteam_organization_id: qtOrg });
+        setSuccess(true);
+        toastSuccess('Налаштування збережено');
+        setTimeout(() => setSuccess(false), 3000);
+      } else { error('Помилка збереження'); }
+    } catch (e) { console.error(e); error('Помилка збереження'); } finally { setIsSaving(false); }
+  };
+
   return (
     <div className="flex flex-col">
       <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Інтеграція з QuickTeam</h2>
-      <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Незабаром ви зможете підключити свій таскменеджер QuickTeam, щоб створювати задачі автоматично в один клік.</p>
+      <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Підключіть свій таскменеджер QuickTeam, щоб створювати задачі автоматично в один клік.</p>
 
-      <div className="flex flex-col items-center justify-center py-[48px] bg-[#f4f4f5] border border-dashed border-[#e9e9e9] rounded-[12px]">
-        <div className="w-[48px] h-[48px] bg-[#ffffff] border border-[#e9e9e9] rounded-[12px] flex items-center justify-center mb-[16px] shadow-sm">
-          <img src="/logo-min.svg" alt="QuickTeam" className="w-[24px] h-[24px] opacity-50 grayscale" />
+      <form onSubmit={handleSave} className="flex flex-col gap-[16px]">
+        <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
+          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+            <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">API Key</span>
+            <div className="flex-1 flex items-center gap-[10px]">
+              <input
+                type={showToken ? 'text' : 'password'}
+                name="bb_qt_token"
+                id="bb_qt_token"
+                autoComplete="new-password"
+                data-lpignore="true"
+                placeholder="qt_12345abcdef..."
+                value={token}
+                onChange={e => setToken(e.target.value)}
+                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+              />
+              {token && (
+                <button type="button" onClick={() => setShowToken(!showToken)} className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[2px]">
+                  {showToken ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+            <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Organization ID</span>
+            <input
+              type="text"
+              name="bb_qt_org"
+              id="bb_qt_org"
+              autoComplete="off"
+              data-lpignore="true"
+              placeholder="ID організації в QuickTeam"
+              value={qtOrg}
+              onChange={e => setQtOrg(e.target.value)}
+              className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+            />
+          </div>
         </div>
-        <h3 className="text-[14px] font-bold text-[#1f1f1f] mb-[8px]">Інтеграція в розробці</h3>
-        <p className="text-[13px] text-[#9a9a9a] text-center max-w-[300px]">
-          Ми активно працюємо над API-інтеграцією. Слідкуйте за оновленнями!
-        </p>
-      </div>
+        
+        <div className="flex items-end justify-between mt-[4px]">
+          <div className="text-[12px] font-medium text-[#9a9a9a] max-w-[500px]">
+            <div className="bg-[#f4f4f5] border border-[#e9e9e9] rounded-[10px] p-[16px] text-[13px] text-[#1f1f1f] leading-relaxed flex flex-col gap-[8px]">
+              <p>
+                <b>API Key та Organization ID:</b> Відкрийте свій QuickTeam, перейдіть у <b>Settings (⚙️) → Workspace Settings</b>. Там ви знайдете ваш Organization ID та зможете згенерувати новий API ключ.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-[12px] shrink-0 pb-[2px]">
+            {success && (
+              <span className="flex items-center gap-[6px] text-[13px] font-bold text-emerald-600">
+                <Check size={14} /> Збережено
+              </span>
+            )}
+            <button type="submit" disabled={isSaving} className="bg-[#1f1f1f] hover:bg-[#303030] text-[#ffffff] text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50">
+              {isSaving ? 'Збереження...' : 'Зберегти'}
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }
@@ -682,12 +861,13 @@ const NAV_ITEMS = [
   { id: 'integration', label: 'Віджет', icon: <Code2 size={16} /> },
   { id: 'general', label: 'Загальні', icon: <Settings size={16} /> },
   { id: 'team', label: 'Команда', icon: <Users size={16} /> },
+  { id: 'telegram', label: 'Telegram', icon: <Send size={16} /> },
   { id: 'github', label: 'GitHub', icon: <GithubLogo /> },
   { id: 'youtrack', label: 'YouTrack', icon: <YoutrackLogo /> },
   { id: 'quickteam', label: 'QuickTeam', icon: <QuickTeamLogo /> },
   { id: 'activity', label: 'Активність', icon: <Activity size={16} /> },
 ];
-type NavId = 'integration' | 'general' | 'team' | 'github' | 'youtrack' | 'quickteam' | 'activity';
+type NavId = 'integration' | 'general' | 'team' | 'telegram' | 'github' | 'youtrack' | 'quickteam' | 'activity';
 
 export default function IntegrationPage() {
   const { id } = useParams<{ id: string }>();
@@ -726,6 +906,7 @@ export default function IntegrationPage() {
       case 'integration': return 'Налаштування віджета та статус';
       case 'general': return 'Назва проєкту та видалення';
       case 'team': return 'Управління доступом та учасники';
+      case 'telegram': return 'Сповіщення про нові баги';
       case 'github': return 'Інтеграція репозиторію та токени';
       case 'youtrack': return 'Інтеграція з YouTrack';
       case 'quickteam': return 'Інтеграція з QuickTeam (В розробці)';
@@ -800,6 +981,7 @@ export default function IntegrationPage() {
           {activeNav === 'integration' && <IntegrationSection project={project} onUpdate={setProject} />}
           {activeNav === 'general' && <GeneralSection project={project} onUpdate={setProject} />}
           {activeNav === 'team' && <TeamSection project={project} onUpdate={setProject} />}
+          {activeNav === 'telegram' && <TelegramSection project={project} onUpdate={setProject} />}
           {activeNav === 'github' && <GithubSection project={project} onUpdate={setProject} />}
           {activeNav === 'youtrack' && <YoutrackSection project={project} onUpdate={setProject} />}
           {activeNav === 'quickteam' && <QuickTeamSection project={project} onUpdate={setProject} />}
