@@ -790,12 +790,13 @@ function QuickTeamSection({ project, onUpdate }: { project: Project, onUpdate: (
         </div>
         
         <div className="flex items-end justify-between mt-[4px]">
-          <div className="text-[12px] font-medium text-[#9a9a9a] max-w-[500px]">
-            <div className="bg-[#f4f4f5] border border-[#e9e9e9] rounded-[10px] p-[16px] text-[13px] text-[#1f1f1f] leading-relaxed flex flex-col gap-[8px]">
-              <p>
-                <b>API Key та Organization ID:</b> Відкрийте свій QuickTeam, перейдіть у <b>Settings (⚙️) → Workspace Settings</b>. Там ви знайдете ваш Organization ID та зможете згенерувати новий API ключ.
-              </p>
-            </div>
+          <div className="text-[12px] font-medium text-[#9a9a9a] max-w-[400px]">
+            <p className="mb-[6px]">
+              Перейдіть у <a href="https://qt-workspace.vercel.app" target="_blank" rel="noreferrer" className="text-[#1f1f1f] hover:underline">QuickTeam</a>: <span className="text-[#1f1f1f] font-bold">Налаштування → Інтеграції → Активуємо BuggyBag Portal</span>.
+            </p>
+            <p>
+              Скопіюйте звідти дані (API Key та Organization ID) і вставте їх сюди.
+            </p>
           </div>
           <div className="flex items-center gap-[12px] shrink-0 pb-[2px]">
             {success && (
@@ -909,7 +910,7 @@ export default function IntegrationPage() {
       case 'telegram': return 'Сповіщення про нові баги';
       case 'github': return 'Інтеграція репозиторію та токени';
       case 'youtrack': return 'Інтеграція з YouTrack';
-      case 'quickteam': return 'Інтеграція з QuickTeam (В розробці)';
+      case 'quickteam': return 'Інтеграція з QuickTeam';
       case 'activity': return 'Останні події та лог роботи';
       default: return '';
     }

@@ -227,6 +227,12 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
   const [isPushing, setIsPushing] = useState(false);
   const [ytIssueUrl,  setYtIssueUrl]  = useState<string | null>(null);
   const [isPushingYt, setIsPushingYt] = useState(false);
+  const [qtIssueUrl,  setQtIssueUrl]  = useState<string | null>(null);
+  const [isPushingQt, setIsPushingQt] = useState(false);
+  const [qtModalOpen, setQtModalOpen] = useState(false);
+  const [qtProjects, setQtProjects] = useState<{id: string, name: string}[]>([]);
+  const [selectedQtProject, setSelectedQtProject] = useState<string | null>(null);
+  const [isLoadingQtProjects, setIsLoadingQtProjects] = useState(false);
   const [activePin, setActivePin] = useState<number | null>(null);
 
   const [editingAnnotationIndex, setEditingAnnotationIndex] = useState<number | null>(null);
@@ -259,6 +265,7 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
       setSeverity(initialSev ?? '1');
       setIssueUrl(bug.github_issue_url ?? null);
       setYtIssueUrl(bug.youtrack_issue_url ?? null);
+      setQtIssueUrl(bug.quickteam_issue_url ?? null);
     }
   }, [bug?.id, bug?.status, bug?.severity, bug?.github_issue_url]);
 
@@ -345,6 +352,49 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
     }
   };
 
+  const openQtModal = async () => {
+    setQtModalOpen(true);
+    setIsLoadingQtProjects(true);
+    try {
+      const res = await fetch(`/api/projects/${bug.project_id}/quickteam/projects`);
+      if (res.ok) {
+        const data = await res.json();
+        setQtProjects(data.projects || []);
+      } else {
+        error('Помилка завантаження проєктів з QuickTeam');
+      }
+    } catch (e) {
+      error('Помилка завантаження проєктів');
+    } finally {
+      setIsLoadingQtProjects(false);
+    }
+  };
+
+  const pushToQuickTeam = async () => {
+    setIsPushingQt(true);
+    try {
+      const res = await fetch(`/api/bugs/${bug.id}/quickteam`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: selectedQtProject })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setQtIssueUrl(data.url);
+        success('Задачу створено в QuickTeam');
+        setQtModalOpen(false);
+      } else {
+        const errData = await res.json();
+        error(errData.error || 'Помилка інтеграції з QuickTeam');
+      }
+    } catch (e) {
+      console.error(e);
+      error('Помилка при створенні задачі в QuickTeam');
+    } finally {
+      setIsPushingQt(false);
+    }
+  };
+
   const handleSaveAnnotation = async (index: number) => {
     if (index < 0 || index >= annotations.length) return;
     setSaving(true);
@@ -394,6 +444,35 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
   return (
     <div className="h-full w-full flex flex-row bg-[#f4f4f5]">
       {lightbox && <Lightbox src={lightbox} onClose={() => setLightbox(null)} />}
+      
+      {typeof document !== 'undefined' && createPortal(
+        <Dialog isOpen={qtModalOpen} onClose={() => setQtModalOpen(false)} title="Експорт в QuickTeam">
+          {isLoadingQtProjects ? (
+            <div className="text-[13px] text-[#9a9a9a] py-[20px] text-center">Завантаження проєктів...</div>
+          ) : (
+            <div className="flex flex-col gap-[12px]">
+              <p className="text-[13px] text-[#5d5d5d]">Оберіть проєкт, в який буде створено цю задачу:</p>
+              <select 
+                className="w-full text-[13px] bg-white border border-[#e9e9e9] rounded-[8px] px-[12px] py-[8px] outline-none focus:border-[#4F46E5]"
+                value={selectedQtProject || ''}
+                onChange={e => setSelectedQtProject(e.target.value)}
+              >
+                <option value="" disabled>Оберіть проєкт...</option>
+                {qtProjects.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              <div className="flex justify-end gap-[8px] mt-[12px]">
+                <button onClick={() => setQtModalOpen(false)} className="px-[16px] py-[8px] text-[13px] font-semibold text-[#5d5d5d] hover:bg-[#f4f4f5] rounded-[8px] transition-colors">Скасувати</button>
+                <button onClick={pushToQuickTeam} disabled={isPushingQt || !selectedQtProject} className="px-[16px] py-[8px] text-[13px] font-bold bg-[#1f1f1f] text-white hover:bg-[#2a2a2a] rounded-[8px] transition-colors disabled:opacity-50">
+                  {isPushingQt ? 'Створюємо...' : 'Експортувати'}
+                </button>
+              </div>
+            </div>
+          )}
+        </Dialog>,
+        document.body
+      )}
 
       {/* ── Left Sidebar (Pins) — desktop only ── */}
       <div className="hidden md:flex w-[360px] shrink-0 bg-[#ffffff] border-r border-[#e9e9e9] flex-col h-full z-20">
@@ -592,6 +671,31 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
                   >
                     <img src="/icons/YouTrack_icon.svg" alt="YouTrack" width="16" height="16" className="grayscale" />
                     <span className="hidden md:inline">{isPushingYt ? 'Створюємо...' : 'YouTrack Issue'}</span>
+                  </button>
+              )
+            )}
+
+            {project?.quickteam_token && project?.quickteam_organization_id && (
+              qtIssueUrl ? (
+                  <a
+                    href={qtIssueUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Переглянути в QuickTeam"
+                    className="flex items-center justify-center gap-[8px] px-[12px] md:px-[16px] h-[36px] rounded-[8px] text-[13px] font-bold transition-all bg-[#f0f4ff] text-[#4F46E5] hover:bg-[#e0e7ff]"
+                  >
+                    <img src="/logo-min.svg" alt="QuickTeam" width="16" height="16" />
+                    <span className="hidden md:inline">QuickTeam Task</span>
+                    <ExternalLink size={14} className="opacity-60 hidden md:block" />
+                  </a>
+              ) : (
+                  <button
+                    onClick={openQtModal}
+                    disabled={isPushingQt}
+                    className="flex items-center justify-center gap-[8px] px-[12px] md:px-[16px] h-[36px] rounded-[8px] text-[13px] font-bold transition-all bg-[#f4f4f5] text-[#1f1f1f] hover:bg-[#e9e9e9] disabled:opacity-40"
+                  >
+                    <img src="/logo-min.svg" alt="QuickTeam" width="16" height="16" className="grayscale" />
+                    <span className="hidden md:inline">{isPushingQt ? 'Створюємо...' : 'QuickTeam Task'}</span>
                   </button>
               )
             )}
