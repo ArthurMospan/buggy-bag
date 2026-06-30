@@ -204,7 +204,9 @@ export async function POST(req: NextRequest) {
         const chatId = project.telegram_chat_id;
         if (botToken && chatId) {
 
-          const portalUrl = (req.headers.get('origin') || 'https://buggybag.com');
+          const protocol = req.headers.get('x-forwarded-proto') || 'https';
+          const host = req.headers.get('host') || 'buggy-bag.vercel.app';
+          const portalUrl = `${protocol}://${host}`;
           const bugLink = `${portalUrl}/projects/${project_id}/bugs/${data.id}`;
           
           const title = `🚨 Новий баг у ${project.name || 'проєкті'}`;
