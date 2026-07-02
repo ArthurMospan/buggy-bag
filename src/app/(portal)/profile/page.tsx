@@ -265,32 +265,6 @@ function ConnectionsSection({ email, githubIdentity, handleConnectGitHub, handle
         <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Керуйте сервісами, через які ви можете авторизуватись у системі.</p>
 
         <div className="flex flex-col gap-[16px]">
-          {/* Рядок Email */}
-          <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px]">
-            <div className="flex items-center gap-[12px]">
-              <div className="w-[36px] h-[36px] rounded-[8px] bg-[#f4f4f5] flex items-center justify-center shrink-0 border border-[#e9e9e9] text-[#1f1f1f]">
-                <LogIn size={16} />
-              </div>
-              <div>
-                <span className="text-[14px] font-bold text-[#1f1f1f] block">Email / Логін</span>
-                <span className="text-[13px] font-medium text-[#9a9a9a] mt-[2px] block">
-                  як <strong className="text-[#1f1f1f] font-bold">{email || 'Активно'}</strong>
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-[8px]">
-              {(!isPrimaryOneb && !isPrimaryGitHub) ? (
-                <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#6366f1] bg-[#f0f0ff] px-[10px] py-[4px] rounded-[6px] border border-[#c7d2fe]">
-                  <LogIn size={13} /> Основний вхід
-                </div>
-              ) : (
-                <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
-                  <Check size={14} /> Активно
-                </div>
-              )}
-            </div>
-          </div>
-
           {githubIdentity ? (
             <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px]">
               <div className="flex items-center gap-[12px]">
@@ -306,12 +280,12 @@ function ConnectionsSection({ email, githubIdentity, handleConnectGitHub, handle
               </div>
               <div className="flex items-center gap-[8px]">
                 {isPrimaryGitHub ? (
-                  <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#6366f1] bg-[#f0f0ff] px-[10px] py-[4px] rounded-[6px] border border-[#c7d2fe]">
+                  <div className="flex items-center gap-[6px] text-[13px] font-medium text-[#6366f1] bg-[#f0f0ff] px-[8px] py-[4px] rounded-[6px]">
                     <LogIn size={13} /> Основний вхід
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+                    <div className="flex items-center gap-[6px] text-[13px] font-medium text-[#10b981] bg-[#f0fdf4] px-[8px] py-[4px] rounded-[6px]">
                       <Check size={14} /> Активно
                     </div>
                     <KebabMenu onDisconnect={handleDisconnectGitHub} />
@@ -352,12 +326,12 @@ function ConnectionsSection({ email, githubIdentity, handleConnectGitHub, handle
               </div>
               <div className="flex items-center gap-[8px]">
                 {isPrimaryOneb ? (
-                  <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#6366f1] bg-[#f0f0ff] px-[10px] py-[4px] rounded-[6px] border border-[#c7d2fe]">
+                  <div className="flex items-center gap-[6px] text-[13px] font-medium text-[#6366f1] bg-[#f0f0ff] px-[8px] py-[4px] rounded-[6px]">
                     <LogIn size={13} /> Основний вхід
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+                    <div className="flex items-center gap-[6px] text-[13px] font-medium text-[#10b981] bg-[#f0fdf4] px-[8px] py-[4px] rounded-[6px]">
                       <Check size={14} /> Активно
                     </div>
                     <KebabMenu onDisconnect={handleDisconnectOneB} />
@@ -382,6 +356,32 @@ function ConnectionsSection({ email, githubIdentity, handleConnectGitHub, handle
               </button>
             </div>
           )}
+
+          {/* Рядок Email */}
+          <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px]">
+            <div className="flex items-center gap-[12px]">
+              <div className="w-[36px] h-[36px] rounded-[8px] bg-[#f4f4f5] flex items-center justify-center shrink-0 border border-[#e9e9e9] text-[#1f1f1f]">
+                <LogIn size={16} />
+              </div>
+              <div>
+                <span className="text-[14px] font-bold text-[#1f1f1f] block">Email</span>
+                <span className="text-[13px] font-medium text-[#9a9a9a] mt-[2px] block">
+                  як <strong className="text-[#1f1f1f] font-bold">{email || 'Активно'}</strong>
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-[8px]">
+              {(!isPrimaryOneb && !isPrimaryGitHub) ? (
+                <div className="flex items-center gap-[6px] text-[13px] font-medium text-[#6366f1] bg-[#f0f0ff] px-[8px] py-[4px] rounded-[6px]">
+                  <LogIn size={13} /> Основний вхід
+                </div>
+              ) : (
+                <div className="flex items-center gap-[6px] text-[13px] font-medium text-[#10b981] bg-[#f0fdf4] px-[8px] py-[4px] rounded-[6px]">
+                  <Check size={14} /> Активно
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
