@@ -25,6 +25,30 @@ function GeneralSection({ user, name, setName, handleSaveName, savingName, nameS
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [emailInput, setEmailInput] = useState(user?.email || '');
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailMsg, setEmailMsg] = useState<{ok: boolean, text: string} | null>(null);
+
+  useEffect(() => {
+    if (user?.email) setEmailInput(user.email);
+  }, [user?.email]);
+
+  const handleSaveEmail = async () => {
+    if (!emailInput.trim() || emailInput === user?.email) return;
+    setSavingEmail(true);
+    setEmailMsg(null);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ email: emailInput });
+      if (error) throw error;
+      setEmailMsg({ ok: true, text: 'Листи-підтвердження надіслано на поточну та нову пошту. Будь ласка, перевірте обидві скриньки.' });
+    } catch (err: any) {
+      setEmailMsg({ ok: false, text: err.message || 'Помилка оновлення пошти' });
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -154,6 +178,41 @@ function GeneralSection({ user, name, setName, handleSaveName, savingName, nameS
             >
               {savingName ? <Loader2 size={14} className="animate-spin" /> : nameSaved ? <Check size={14} /> : null}
               {nameSaved ? 'Збережено' : 'Зберегти'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="py-[32px] border-t border-[#e9e9e9]">
+        <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Електронна пошта</h2>
+        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Адреса електронної пошти, яка використовується для входу.</p>
+        
+        <div className="flex flex-col gap-[16px]">
+          <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
+            <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+              <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Email</span>
+              <input
+                type="email"
+                value={emailInput}
+                onChange={e => setEmailInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSaveEmail(); }}
+                placeholder="Введіть email"
+                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className={`text-[12px] flex items-center gap-[5px] ${emailMsg?.ok ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
+              {emailMsg && (emailMsg.ok ? <Check size={12} /> : <AlertCircle size={12} />)}
+              {emailMsg?.text}
+            </div>
+            <button
+              onClick={handleSaveEmail}
+              disabled={savingEmail || !emailInput.trim() || emailInput === user?.email}
+              className="bg-[#1f1f1f] hover:bg-[#303030] text-white text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50 shrink-0 flex items-center justify-center gap-[6px]"
+            >
+              {savingEmail ? <Loader2 size={14} className="animate-spin" /> : null}
+              Змінити Email
             </button>
           </div>
         </div>
@@ -329,86 +388,24 @@ function ConnectionsSection({ email, githubIdentity, handleConnectGitHub, handle
   );
 }
 
-function SecuritySection({ oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, setConfirmPwd, handleChangePwd, savingPwd, pwdMsg, handleDeleteAccount, isDeleting, showDeleteModal, setShowDeleteModal }: any) {
+function SecuritySection({ handleDeleteAccount, isDeleting, showDeleteModal, setShowDeleteModal }: any) {
   return (
     <div className="flex flex-col">
-      <div className="pb-[32px]">
-        <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Встановлення або зміна пароля</h2>
-        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Встановіть пароль, якщо хочете входити за допомогою Email. Або оновіть існуючий пароль.</p>
-
-        <form onSubmit={handleChangePwd} className="flex flex-col gap-[16px]">
-          <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
-            <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
-              <span className="text-[13px] font-bold text-[#9a9a9a] w-[180px] shrink-0">Поточний пароль</span>
-              <input
-                type="password"
-                placeholder="Введіть старий пароль"
-                value={oldPwd}
-                onChange={e => setOldPwd(e.target.value)}
-                required
-                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
-              />
-            </div>
-            <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
-              <span className="text-[13px] font-bold text-[#9a9a9a] w-[180px] shrink-0">Новий пароль</span>
-              <input
-                type="password"
-                placeholder="Мінімум 6 символів"
-                value={newPwd}
-                onChange={e => setNewPwd(e.target.value)}
-                required
-                minLength={6}
-                autoComplete="new-password"
-                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
-              />
-            </div>
-            <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
-              <span className="text-[13px] font-bold text-[#9a9a9a] w-[180px] shrink-0">Підтвердіть пароль</span>
-              <input
-                type="password"
-                placeholder="Повторіть новий пароль"
-                value={confirmPwd}
-                onChange={e => setConfirmPwd(e.target.value)}
-                required
-                minLength={6}
-                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
-              />
-            </div>
+      <div className="flex flex-col gap-[1px] bg-[#fee2e2] border border-[#fca5a5] rounded-[10px] overflow-hidden mt-[16px]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-[#ffffff] p-[20px] gap-[16px]">
+          <div>
+            <h3 className="text-[14px] font-bold text-[#ef4444] mb-[4px]">Видалити акаунт</h3>
+            <p className="text-[13px] text-[#9a9a9a] leading-relaxed max-w-[400px]">
+              Цю дію неможливо скасувати. Усі ваші дані, проєкти та налаштування будуть видалені назавжди.
+            </p>
           </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="text-[12px] font-medium text-[#9a9a9a]">
-              {pwdMsg && (
-                <p className={`flex items-center gap-[5px] ${pwdMsg.ok ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
-                  {pwdMsg.ok ? <Check size={12} /> : <AlertCircle size={12} />}
-                  {pwdMsg.text}
-                </p>
-              )}
-            </div>
-            <button
-              type="submit"
-              disabled={savingPwd || !oldPwd || !newPwd || !confirmPwd}
-              className="bg-[#1f1f1f] hover:bg-[#303030] text-white text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50 shrink-0 flex items-center justify-center gap-[6px]"
-            >
-              {savingPwd && <Loader2 size={14} className="animate-spin" />}
-              Зберегти пароль
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div className="py-[32px] border-t border-[#e9e9e9]">
-        <h2 className="text-[16px] font-bold text-[#ef4444] mb-[6px]">Видалення облікового запису</h2>
-        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">
-          Після видалення облікового запису всі ваші дані будуть назавжди втрачені. Цю дію неможливо скасувати.
-        </p>
-        
-        <button
-          onClick={() => setShowDeleteModal(true)}
-          className="bg-transparent border border-[#ef4444] text-[#ef4444] hover:bg-[#fef2f2] text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors shrink-0 w-fit"
-        >
-          Видалити акаунт назавжди
-        </button>
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="bg-[#ef4444] hover:bg-[#dc2626] text-white text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors shrink-0"
+          >
+            Видалити назавжди
+          </button>
+        </div>
       </div>
 
       {showDeleteModal && (
@@ -512,20 +509,9 @@ function SecuritySkeleton() {
         <div className="h-[20px] w-[100px] bg-zinc-200 rounded mb-[6px]" />
         <div className="h-[14px] w-[240px] bg-zinc-100 rounded mb-[20px]" />
 
-        <div className="flex flex-col gap-[18px] max-w-[400px]">
-          <div className="flex flex-col gap-[8px]">
-            <div className="h-[14px] w-[120px] bg-zinc-200 rounded" />
-            <div className="h-[38px] bg-zinc-100 rounded-[8px] border border-[#e9e9e9]" />
-          </div>
-          <div className="flex flex-col gap-[8px]">
-            <div className="h-[14px] w-[100px] bg-zinc-200 rounded" />
-            <div className="h-[38px] bg-zinc-100 rounded-[8px] border border-[#e9e9e9]" />
-          </div>
-          <div className="flex flex-col gap-[8px]">
-            <div className="h-[14px] w-[160px] bg-zinc-200 rounded" />
-            <div className="h-[38px] bg-zinc-100 rounded-[8px] border border-[#e9e9e9]" />
-          </div>
-          <div className="w-[140px] h-[38px] bg-zinc-200 rounded-[8px] mt-[4px]" />
+        <div className="flex flex-col gap-[8px]">
+          <div className="h-[14px] w-[100px] bg-zinc-200 rounded" />
+          <div className="h-[38px] bg-zinc-100 rounded-[8px] border border-[#e9e9e9]" />
         </div>
       </div>
     </div>
@@ -591,42 +577,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handleChangePwd = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!oldPwd || !newPwd || !confirmPwd || savingPwd) return;
-    
-    if (newPwd !== confirmPwd) {
-      setPwdMsg({ ok: false, text: 'Нові паролі не збігаються' });
-      return;
-    }
-
-    setSavingPwd(true);
-    setPwdMsg(null);
-    const supabase = createClient();
-
-    if (user?.email) {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: oldPwd,
-      });
-      if (signInError) {
-        setSavingPwd(false);
-        setPwdMsg({ ok: false, text: 'Неправильний старий пароль' });
-        return;
-      }
-    }
-
-    const { error } = await supabase.auth.updateUser({ password: newPwd });
-    setSavingPwd(false);
-    if (error) {
-      setPwdMsg({ ok: false, text: error.message });
-    } else { 
-      setPwdMsg({ ok: true, text: 'Пароль успішно змінено' }); 
-      setOldPwd('');
-      setNewPwd(''); 
-      setConfirmPwd('');
-    }
-  };
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
@@ -814,15 +764,6 @@ export default function ProfilePage() {
               )}
               {activeNav === 'security' && (
                 <SecuritySection
-                  oldPwd={oldPwd}
-                  setOldPwd={setOldPwd}
-                  newPwd={newPwd}
-                  setNewPwd={setNewPwd}
-                  confirmPwd={confirmPwd}
-                  setConfirmPwd={setConfirmPwd}
-                  handleChangePwd={handleChangePwd}
-                  savingPwd={savingPwd}
-                  pwdMsg={pwdMsg}
                   handleDeleteAccount={handleDeleteAccount}
                   isDeleting={isDeleting}
                   showDeleteModal={showDeleteModal}
