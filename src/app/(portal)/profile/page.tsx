@@ -202,8 +202,8 @@ function ConnectionsSection({ githubIdentity, handleConnectGitHub, handleDisconn
   return (
     <div className="flex flex-col">
       <div className="pb-[32px]">
-        <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Інтеграції</h2>
-        <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Підключені сервіси та соціальні мережі.</p>
+        <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Способи входу</h2>
+        <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Керуйте сервісами, через які ви можете авторизуватись у системі.</p>
 
         <div className="flex flex-col gap-[16px]">
           {githubIdentity ? (
@@ -307,8 +307,8 @@ function SecuritySection({ oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, set
   return (
     <div className="flex flex-col">
       <div className="pb-[32px]">
-        <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Безпека</h2>
-        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Керуйте своїм паролем та безпекою входу.</p>
+        <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Встановлення або зміна пароля</h2>
+        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Встановіть пароль, якщо хочете входити за допомогою Email. Або оновіть існуючий пароль.</p>
 
         <form onSubmit={handleChangePwd} className="flex flex-col gap-[16px]">
           <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
