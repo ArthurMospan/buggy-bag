@@ -128,8 +128,8 @@ function LoginForm() {
     setError('');
     const redirect = searchParams.get('redirect') || '/';
     const clientId = process.env.NEXT_PUBLIC_ONEB_CLIENT_ID || 'dummy_client_id';
-    // redirect_uri must match what's registered in OneB dashboard — /login
-    const redirectUri = `${window.location.origin}/login`;
+    // redirect_uri must match what's registered in OneB dashboard
+    const redirectUri = `${window.location.origin}/oauth2/result`;
     // Encode redirect destination inside state so redirect_uri stays clean
     const state = JSON.stringify({ r: redirect, n: Math.random().toString(36).substring(7) });
     const scopes = process.env.NEXT_PUBLIC_ONEB_SCOPES ?? '';
