@@ -663,11 +663,12 @@ export default function ProfilePage() {
   const onebIdentity     = (user?.user_metadata?.oneb_id && user?.user_metadata?.oneb_connected !== false)
     ? { identity_data: { name: user.user_metadata.full_name || 'OneB Account' } }
     : undefined;
+  const hasEmailIdentity = user?.identities?.some(i => i.provider === 'email') ?? false;
+  const hasOnebConnected = !!(user?.user_metadata?.oneb_id && user?.user_metadata?.oneb_connected !== false);
+  
   // Primary OneB user: if OneB is connected and they don't have GitHub, we consider it their primary external method
   const isPrimaryOneb    = hasOnebConnected && !githubIdentity;
   // Primary GitHub user: no email identity AND no OneB → GitHub is the only login method
-  const hasEmailIdentity = user?.identities?.some(i => i.provider === 'email') ?? false;
-  const hasOnebConnected = !!(user?.user_metadata?.oneb_id && user?.user_metadata?.oneb_connected !== false);
   const isPrimaryGitHub  = !!(githubIdentity && !hasEmailIdentity && !hasOnebConnected);
 
   const getNavDescription = (id: string) => {
