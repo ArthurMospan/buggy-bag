@@ -715,7 +715,7 @@ export default function ProfilePage() {
     }
   };
 
-  const visibleNavItems = (loading || isEmailAuth || isPrimaryOneb || isPrimaryGitHub) ? NAV_ITEMS : NAV_ITEMS.filter(n => n.id !== 'security');
+  const visibleNavItems = NAV_ITEMS; // Security (Danger Zone) is always visible now
 
   return (
     <div className="h-full w-full flex flex-col md:flex-row bg-[#f4f4f5]">
