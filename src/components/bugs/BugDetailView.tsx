@@ -736,7 +736,7 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
         </div>
 
         {/* Metadata Strip */}
-        <div className="flex flex-wrap items-center gap-[16px] px-[16px] md:px-[32px] py-[10px] bg-[#ffffff] border-y border-[#e9e9e9] shrink-0 w-full relative z-40">
+        <div className="flex overflow-x-auto no-scrollbar md:flex-wrap items-center gap-[16px] px-[16px] md:px-[32px] py-[10px] bg-[#ffffff] border-y border-[#e9e9e9] shrink-0 w-full relative z-40">
           <div className="flex items-center gap-[8px] shrink-0">
             <span className="text-[12px] text-[#71717a] font-normal">Статус:</span>
             <CustomDropdown value={status} options={STATUS_CFG} onChange={handleStatusChange} saving={saving} type="status" />

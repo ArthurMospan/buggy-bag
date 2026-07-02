@@ -63,7 +63,7 @@ export default function MobileDrawer({
             userName={userName}
             userAvatar={userAvatar}
             isCollapsed={false}
-            setIsCollapsed={() => {}}
+            setIsCollapsed={onClose}
           />
         </div>
       </div>

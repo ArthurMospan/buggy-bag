@@ -16,7 +16,7 @@ export default function Dialog({
   const sizeClasses = { sm: 'max-w-[480px]', md: 'max-w-[640px]', lg: 'max-w-[900px]', xl: 'max-w-[1200px]' };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm pt-12 overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 backdrop-blur-sm pt-12 overflow-y-auto" onClick={onClose}>
       <div className={`bg-[#ffffff] rounded-[20px] shadow-[0_25px_50px_rgba(0,0,0,0.12)] w-full mx-4 ${sizeClasses[size]} ${className}`} onClick={e => e.stopPropagation()}>
         {title && (
           <div className="flex items-center gap-[10px] px-6 pt-5 pb-4 shrink-0">

@@ -2,9 +2,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bug, BugStatus, BugSeverity, TechContext } from '@/lib/types';
 import { STATUS_CFG, SEVERITY_CFG } from '@/lib/constants';
-import { Sparkles, Copy, Check, Code, Terminal, MessageSquare, Bot, Trash2, ChevronDown } from 'lucide-react';
+import { Sparkles, Copy, Check, Code, Terminal, MessageSquare, Bot, Trash2, ChevronDown, ArrowLeft } from 'lucide-react';
 import { getUnifiedSeverityLabel } from '@/lib/markdownFormatter';
+import { useProjectContext } from '@/components/layout/ProjectContext';
 import Dialog from '@/components/ui/Dialog';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
 interface PromptGeneratorProps {
   bugs: Bug[];
@@ -627,6 +630,8 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
   const [copied, setCopied]         = useState(false);
   const [template, setTemplate]     = useState<TemplateId>('antigravity');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const { clearSelectedBugs } = useProjectContext();
+  const { id } = useParams<{ id: string }>();
 
   const selected = sortBySev(bugs.filter(b => selectedIds.has(b.id)));
   const prompt   = selected.length > 0 ? FORMATTERS[template](selected) : '';
@@ -645,6 +650,17 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
         <div className="flex flex-1 overflow-hidden">
           {/* Main prompt area */}
           <div className="flex-1 flex flex-col min-w-0 bg-transparent rounded-br-[24px] overflow-hidden">
+            {/* Mobile Header with Back Button */}
+            <div className="md:hidden flex items-center gap-[12px] px-[16px] py-[16px] bg-[#ffffff] border-b border-[#e9e9e9] shrink-0">
+              <Link
+                href={`/projects/${id}`}
+                className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[8px] -ml-[8px] rounded-[8px] hover:bg-[#f4f4f5]"
+              >
+                <ArrowLeft size={20} strokeWidth={1.5} />
+              </Link>
+              <h2 className="text-[20px] font-bold text-[#1f1f1f]">Генератор промптів</h2>
+            </div>
+
             {/* Bulk Actions Toolbar */}
             {selected.length > 0 && onBulkAction && (
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-[16px] md:px-[32px] py-[12px] bg-[#ffffff] border-b border-[#e9e9e9] gap-[12px] md:gap-0">
@@ -766,7 +782,7 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
           
           {/* Mobile Floating Copy Button */}
           {selected.length > 0 && (
-            <div className="md:hidden fixed bottom-[24px] left-[50%] -translate-x-1/2 z-[100] w-[calc(100%-32px)]">
+            <div className="md:hidden fixed bottom-[90px] left-[50%] -translate-x-1/2 z-[100] w-[280px]">
               <button 
                 onClick={handleCopy} 
                 className="w-full flex items-center justify-center gap-[8px] h-[48px] bg-[#1f1f1f] text-white rounded-[12px] shadow-[0_8px_30px_rgba(0,0,0,0.2)] text-[15px] font-bold hover:scale-[1.02] active:scale-[0.98] transition-transform"

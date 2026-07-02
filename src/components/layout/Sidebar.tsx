@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import type { Project } from '@/lib/types';
+import { createPortal } from 'react-dom';
 import Dialog from '@/components/ui/Dialog';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -319,8 +320,9 @@ export default function Sidebar({ userEmail = '', userName = '', userAvatar = ''
       )}
 
       {/* New Project Dialog */}
-      <Dialog
-        isOpen={showNewDialog}
+      {typeof document !== 'undefined' && createPortal(
+        <Dialog
+          isOpen={showNewDialog}
         onClose={() => { setShowNewDialog(false); setNewName(''); }}
         title="Новий проєкт"
         size="sm"
@@ -355,7 +357,8 @@ export default function Sidebar({ userEmail = '', userName = '', userAvatar = ''
             </Button>
           </div>
         </form>
-      </Dialog>
+      </Dialog>, document.body
+      )}
     </div>
     
     {/* Portal-like Tooltip rendered outside normal flow */}

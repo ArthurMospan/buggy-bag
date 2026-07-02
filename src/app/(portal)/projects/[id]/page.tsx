@@ -19,21 +19,36 @@ export default function ProjectDashboardPage() {
   const [project, setProject] = useState<any>(null);
 
   useEffect(() => {
-    Promise.all([
-      fetch(`/api/projects`),
+    const fetchProjectAndBugs = () => {
+      Promise.all([
+        fetch(`/api/projects`),
+        fetch(`/api/bugs?project_id=${id}`)
+      ])
+      .then(async ([projRes, bugRes]) => {
+        const projData = await projRes.json();
+        const bugData = await bugRes.json();
+        
+        const p = (projData.projects || []).find((p: any) => p.id === id);
+        const b = bugData.bugs || [];
+        
+        setProject(p);
+        setBugs(b);
+        setLoading(false);
+      });
+    };
+
+    fetchProjectAndBugs();
+
+    const pollInterval = setInterval(() => {
       fetch(`/api/bugs?project_id=${id}`)
-    ])
-    .then(async ([projRes, bugRes]) => {
-      const projData = await projRes.json();
-      const bugData = await bugRes.json();
-      
-      const p = (projData.projects || []).find((p: any) => p.id === id);
-      const b = bugData.bugs || [];
-      
-      setProject(p);
-      setBugs(b);
-      setLoading(false);
-    });
+        .then(res => res.json())
+        .then(data => {
+          if (data.bugs) setBugs(data.bugs);
+        })
+        .catch(() => {});
+    }, 5000);
+
+    return () => clearInterval(pollInterval);
   }, [id, router, refreshTrigger]);
 
   const handleBulkAction = async (action: 'delete' | 'status' | 'severity', value?: string, skipClear?: boolean) => {

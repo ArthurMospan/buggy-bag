@@ -70,20 +70,13 @@ export default function BugScreenshot({ bug, variant, onClick, className, childr
     );
   }
 
-  // Mobile-shaped — frame in a phone mockup instead of stretching it edge-to-edge.
-  const frameWidth = variant === 'page' ? 300 : 220;
+  // Mobile-shaped — frame in a phone mockup instead of stretching it edge-to-edge on desktop.
+  const frameClass = variant === 'page'
+    ? 'relative group w-full md:inline-block md:w-[300px] md:rounded-[28px] md:outline md:outline-[6px] md:outline-[#1c1c1e] md:-outline-offset-[6px] md:shadow-[0_12px_32px_rgba(0,0,0,0.08)] md:overflow-hidden'
+    : 'relative group w-full md:inline-block md:w-[220px] md:rounded-[28px] md:outline md:outline-[6px] md:outline-[#1c1c1e] md:-outline-offset-[6px] md:shadow-[0_12px_32px_rgba(0,0,0,0.08)] md:overflow-hidden';
+
   const frame = (
-    <div
-      className="relative inline-block group"
-      style={{
-        width: frameWidth,
-        borderRadius: 28,
-        outline: '6px solid #1c1c1e',
-        outlineOffset: '-6px',
-        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
-        overflow: 'hidden',
-      }}
-    >
+    <div className={frameClass}>
       {img}
       {children}
     </div>

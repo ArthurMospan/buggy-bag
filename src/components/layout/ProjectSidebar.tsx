@@ -404,7 +404,7 @@ export default function ProjectSidebar() {
 
       {/* ── Mobile Floating Prompt Button ── */}
       {selectedBugIds.size > 0 && (
-        <div className="md:hidden absolute bottom-[20px] left-[16px] right-[16px] z-30">
+        <div className="md:hidden absolute bottom-[90px] left-[50%] -translate-x-1/2 w-[280px] z-30">
           <button 
             onClick={() => router.push(`${pathname}?prompt=1`)}
             className="w-full h-[52px] bg-[#1f1f1f] text-white rounded-[16px] shadow-[0_8px_32px_rgba(0,0,0,0.25)] flex items-center justify-center gap-[10px] active:scale-[0.98] transition-transform cursor-pointer"
