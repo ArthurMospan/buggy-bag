@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase-server';
+import { createServiceClient, createAuthClient } from '@/lib/supabase-server';
 
 /**
  * OneB OAuth callback — registered redirect_uri: https://buggy-bag.vercel.app/oauth2/result
@@ -113,9 +113,33 @@ export async function GET(req: NextRequest) {
     // OneB doesn't provide email — generate a stable synthetic email from accountId
     const syntheticEmail = `oneb_${profile.accountId}@oneb.buggy-bag`;
 
-    // --- Step 3: Find or create user in Supabase ---
+    // --- Step 3: Link to current user OR find/create user ---
+    const authClient = await createAuthClient();
+    const { data: { user: currentUser } } = await authClient.auth.getUser();
     const serviceClient = createServiceClient();
 
+    if (currentUser) {
+      // User is already logged in — link this OneB account to the existing Supabase user
+      const { error: updateErr } = await serviceClient.auth.admin.updateUserById(currentUser.id, {
+        user_metadata: {
+          ...currentUser.user_metadata,
+          oneb_id:      profile.accountId,
+          oneb_alias:   profile.alias ?? currentUser.user_metadata?.oneb_alias ?? null,
+          workspace:    profile.workspace ?? currentUser.user_metadata?.workspace ?? null,
+          workspace_id: profile.tenantId ?? currentUser.user_metadata?.workspace_id ?? null,
+        },
+      });
+
+      if (updateErr) {
+        console.error('[OneB] Failed to link account:', updateErr);
+        return NextResponse.redirect(`${origin}/profile?error=oneb_link_failed`);
+      }
+
+      // Successfully linked, redirect back to destination (usually profile)
+      return NextResponse.redirect(`${origin}${redirectTo === '/' ? '/profile' : redirectTo}`);
+    }
+
+    // No current user — normal login/register flow
     const { data: { users }, error: listErr } = await serviceClient.auth.admin.listUsers();
     const existingUser = !listErr
       ? users.find(u => u.user_metadata?.oneb_id === profile.accountId || u.email === syntheticEmail)
@@ -155,12 +179,7 @@ export async function GET(req: NextRequest) {
     }
 
     // --- Step 4: Generate a magic link to authenticate the user ---
-    // IMPORTANT: Supabase SSR uses PKCE flow by default, but admin.generateLink uses Implicit flow.
-    // Implicit flow returns the session as a URL hash fragment (#access_token=...).
-    // Server routes (/auth/callback) cannot read hash fragments. So we redirect to a client-side
-    // page (/login) where the browser client will parse the hash, set the cookies, and redirect.
     const loginRedirectUrl = `${origin}/login?redirect=${encodeURIComponent(redirectTo)}`;
-
     const { data: linkData, error: linkErr } = await serviceClient.auth.admin.generateLink({
       type:    'magiclink',
       email:   syntheticEmail,
@@ -172,7 +191,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${origin}/login?error=oneb_link`);
     }
 
-    // Redirect through Supabase magic link → Supabase verifies → /auth/callback → destination
     return NextResponse.redirect(linkData.properties.action_link);
 
   } catch (err) {

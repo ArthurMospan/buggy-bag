@@ -587,7 +587,7 @@ export default function ProfilePage() {
 
   const isEmailAuth    = user?.app_metadata?.provider === 'email' || (user?.identities?.some(i => i.provider === 'email') ?? false);
   const githubIdentity = user?.identities?.find(i => i.provider === 'github');
-  const onebIdentity   = user?.identities?.find(i => i.provider === 'oneb');
+  const onebIdentity   = user?.user_metadata?.oneb_id ? { identity_data: { name: user.user_metadata.full_name || 'OneB Account' } } : undefined;
 
   const getNavDescription = (id: string) => {
     switch (id) {
