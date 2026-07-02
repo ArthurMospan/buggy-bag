@@ -98,6 +98,7 @@ export async function GET(req: NextRequest) {
       id:          string;  // user id in workspace
       accountId:   string;  // global account id (= sub from JWT)
       name:        string;
+      email?:      string;
       tenantId:    string;  // workspace id
       alias?:      string;
       workspace?:  string;
@@ -110,8 +111,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${origin}/login?error=oneb_no_account`);
     }
 
-    // OneB doesn't provide email — generate a stable synthetic email from accountId
-    const syntheticEmail = `oneb_${profile.accountId}@oneb.buggy-bag`;
+    // If OneB provides an email, use it. Otherwise fallback to a synthetic email
+    const resolvedEmail = profile.email || `oneb_${profile.accountId}@oneb.buggy-bag`;
 
     // --- Step 3: Link to current user OR find/create user ---
     const authClient = await createAuthClient();
@@ -149,7 +150,7 @@ export async function GET(req: NextRequest) {
       // OR by synthetic email (for accounts created before the oneb_connected flag was introduced)
       const matchedUsers = users.filter(u =>
         u.user_metadata?.oneb_id === profile.accountId ||
-        u.email === syntheticEmail
+        u.email === resolvedEmail
       );
       if (matchedUsers.length > 0) {
         // If there are duplicate accounts (e.g. from before the linking fix), prefer the one with a real email
@@ -164,7 +165,7 @@ export async function GET(req: NextRequest) {
 
     if (!existingUser) {
       const { error: createErr } = await serviceClient.auth.admin.createUser({
-        email:         syntheticEmail,
+        email:         resolvedEmail,
         email_confirm: true,
         user_metadata: {
           full_name:      profile.name,
@@ -198,7 +199,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const targetEmail = (existingUser && existingUser.email) ? existingUser.email : syntheticEmail;
+    const targetEmail = (existingUser && existingUser.email) ? existingUser.email : resolvedEmail;
 
     // --- Step 4: Generate a magic link to authenticate the user ---
     const loginRedirectUrl = `${origin}/login?redirect=${encodeURIComponent(redirectTo)}`;
