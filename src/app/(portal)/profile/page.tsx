@@ -312,17 +312,7 @@ function SecuritySection({ oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, set
 
         <form onSubmit={handleChangePwd} className="flex flex-col gap-[16px]">
           <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
-            <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
-              <span className="text-[13px] font-bold text-[#9a9a9a] w-[180px] shrink-0">Поточний пароль</span>
-              <input
-                type="password"
-                placeholder="Введіть старий пароль"
-                value={oldPwd}
-                onChange={e => setOldPwd(e.target.value)}
-                required
-                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
-              />
-            </div>
+
             <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
               <span className="text-[13px] font-bold text-[#9a9a9a] w-[180px] shrink-0">Новий пароль</span>
               <input
@@ -508,7 +498,7 @@ function SecuritySkeleton() {
 
 const NAV_ITEMS = [
   { id: 'general', label: 'Загальні', icon: <UserIcon size={16} /> },
-  { id: 'connections', label: 'Інтеграції', icon: <LinkIcon size={16} /> },
+  { id: 'connections', label: 'Способи входу', icon: <LinkIcon size={16} /> },
   { id: 'security', label: 'Безпека', icon: <Shield size={16} /> },
 ];
 
@@ -673,8 +663,8 @@ export default function ProfilePage() {
   const onebIdentity     = (user?.user_metadata?.oneb_id && user?.user_metadata?.oneb_connected !== false)
     ? { identity_data: { name: user.user_metadata.full_name || 'OneB Account' } }
     : undefined;
-  // Primary OneB user: synthetic email means OneB is the ONLY login method
-  const isPrimaryOneb    = user?.email?.endsWith('@oneb.buggy-bag') ?? false;
+  // Primary OneB user: if OneB is connected and they don't have GitHub, we consider it their primary external method
+  const isPrimaryOneb    = hasOnebConnected && !githubIdentity;
   // Primary GitHub user: no email identity AND no OneB → GitHub is the only login method
   const hasEmailIdentity = user?.identities?.some(i => i.provider === 'email') ?? false;
   const hasOnebConnected = !!(user?.user_metadata?.oneb_id && user?.user_metadata?.oneb_connected !== false);
