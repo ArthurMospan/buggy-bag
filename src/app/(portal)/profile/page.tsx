@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import { Check, Loader2, AlertCircle, ArrowLeft, User as UserIcon, Shield, Link as LinkIcon, Upload } from 'lucide-react';
+import { Check, Loader2, AlertCircle, ArrowLeft, User as UserIcon, Shield, Link as LinkIcon, Upload, MoreHorizontal, LogIn } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -162,7 +162,43 @@ function GeneralSection({ user, name, setName, handleSaveName, savingName, nameS
   );
 }
 
-function ConnectionsSection({ githubIdentity, handleConnectGitHub, handleDisconnectGitHub, onebIdentity, handleConnectOneB, handleDisconnectOneB }: any) {
+function KebabMenu({ onDisconnect }: { onDisconnect: () => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-[32px] h-[32px] flex items-center justify-center rounded-[8px] text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-[#f4f4f5] transition-colors"
+        title="Дії"
+      >
+        <MoreHorizontal size={16} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-[36px] bg-white border border-[#e9e9e9] rounded-[10px] shadow-[0_4px_20px_rgba(0,0,0,0.10)] z-50 min-w-[160px] py-[4px] overflow-hidden">
+          <button
+            onClick={() => { setOpen(false); onDisconnect(); }}
+            className="w-full text-left px-[14px] py-[10px] text-[13px] font-medium text-[#ef4444] hover:bg-[#fef2f2] transition-colors flex items-center gap-[8px]"
+          >
+            <LinkIcon size={13} className="opacity-70" />
+            Від'єднати
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConnectionsSection({ githubIdentity, handleConnectGitHub, handleDisconnectGitHub, isPrimaryGitHub, onebIdentity, handleConnectOneB, handleDisconnectOneB, isPrimaryOneb }: any) {
   return (
     <div className="flex flex-col">
       <div className="pb-[32px]">
@@ -183,16 +219,19 @@ function ConnectionsSection({ githubIdentity, handleConnectGitHub, handleDisconn
                   </span>
                 </div>
               </div>
-              <div className="flex flex-col items-end gap-[8px]">
-                <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
-                  <Check size={14} /> Активно
-                </div>
-                <button
-                  onClick={handleDisconnectGitHub}
-                  className="text-[12px] font-medium text-[#ef4444] hover:underline"
-                >
-                  Відключити
-                </button>
+              <div className="flex items-center gap-[8px]">
+                {isPrimaryGitHub ? (
+                  <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#6366f1] bg-[#f0f0ff] px-[10px] py-[4px] rounded-[6px] border border-[#c7d2fe]">
+                    <LogIn size={13} /> Основний вхід
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+                      <Check size={14} /> Активно
+                    </div>
+                    <KebabMenu onDisconnect={handleDisconnectGitHub} />
+                  </>
+                )}
               </div>
             </div>
           ) : (
@@ -226,16 +265,19 @@ function ConnectionsSection({ githubIdentity, handleConnectGitHub, handleDisconn
                   </span>
                 </div>
               </div>
-              <div className="flex flex-col items-end gap-[8px]">
-                <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
-                  <Check size={14} /> Активно
-                </div>
-                <button
-                  onClick={handleDisconnectOneB}
-                  className="text-[12px] font-medium text-[#ef4444] hover:underline"
-                >
-                  Відключити
-                </button>
+              <div className="flex items-center gap-[8px]">
+                {isPrimaryOneb ? (
+                  <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#6366f1] bg-[#f0f0ff] px-[10px] py-[4px] rounded-[6px] border border-[#c7d2fe]">
+                    <LogIn size={13} /> Основний вхід
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+                      <Check size={14} /> Активно
+                    </div>
+                    <KebabMenu onDisconnect={handleDisconnectOneB} />
+                  </>
+                )}
               </div>
             </div>
           ) : (
@@ -602,30 +644,41 @@ export default function ProfilePage() {
   };
 
   const handleDisconnectGitHub = async () => {
-    if (!githubIdentity) return;
-    const supabase = createClient();
-    await supabase.auth.unlinkIdentity(githubIdentity);
-    const { data } = await supabase.auth.getUser();
-    setUser(data.user);
+    const res = await fetch('/api/auth/unlink-github', { method: 'DELETE' });
+    if (res.ok) {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    } else {
+      const body = await res.json().catch(() => ({}));
+      alert(body.message || 'Не вдалося відключити GitHub');
+    }
   };
 
   const handleDisconnectOneB = async () => {
     const supabase = createClient();
+    // Soft-unlink: keep oneb_id so we can re-match on reconnect, just set oneb_connected: false
     await supabase.auth.updateUser({
       data: {
-        oneb_id: null,
-        oneb_alias: null,
-        workspace: null,
-        workspace_id: null,
+        oneb_connected: false,
       }
     });
     const { data } = await supabase.auth.getUser();
     setUser(data.user);
   };
 
-  const isEmailAuth    = user?.app_metadata?.provider === 'email' || (user?.identities?.some(i => i.provider === 'email') ?? false);
-  const githubIdentity = user?.identities?.find(i => i.provider === 'github');
-  const onebIdentity   = user?.user_metadata?.oneb_id ? { identity_data: { name: user.user_metadata.full_name || 'OneB Account' } } : undefined;
+  const isEmailAuth      = user?.app_metadata?.provider === 'email' || (user?.identities?.some(i => i.provider === 'email') ?? false);
+  const githubIdentity   = user?.identities?.find(i => i.provider === 'github');
+  // onebIdentity: user has oneb_id AND oneb_connected is not explicitly false
+  const onebIdentity     = (user?.user_metadata?.oneb_id && user?.user_metadata?.oneb_connected !== false)
+    ? { identity_data: { name: user.user_metadata.full_name || 'OneB Account' } }
+    : undefined;
+  // Primary OneB user: synthetic email means OneB is the ONLY login method
+  const isPrimaryOneb    = user?.email?.endsWith('@oneb.buggy-bag') ?? false;
+  // Primary GitHub user: no email identity AND no OneB → GitHub is the only login method
+  const hasEmailIdentity = user?.identities?.some(i => i.provider === 'email') ?? false;
+  const hasOnebConnected = !!(user?.user_metadata?.oneb_id && user?.user_metadata?.oneb_connected !== false);
+  const isPrimaryGitHub  = !!(githubIdentity && !hasEmailIdentity && !hasOnebConnected);
 
   const getNavDescription = (id: string) => {
     switch (id) {
@@ -636,7 +689,7 @@ export default function ProfilePage() {
     }
   };
 
-  const visibleNavItems = (loading || isEmailAuth) ? NAV_ITEMS : NAV_ITEMS.filter(n => n.id !== 'security');
+  const visibleNavItems = (loading || isEmailAuth || isPrimaryOneb || isPrimaryGitHub) ? NAV_ITEMS : NAV_ITEMS.filter(n => n.id !== 'security');
 
   return (
     <div className="h-full w-full flex flex-col md:flex-row bg-[#f4f4f5]">
@@ -725,9 +778,11 @@ export default function ProfilePage() {
                   githubIdentity={githubIdentity}
                   handleConnectGitHub={handleConnectGitHub}
                   handleDisconnectGitHub={handleDisconnectGitHub}
+                  isPrimaryGitHub={isPrimaryGitHub}
                   onebIdentity={onebIdentity}
                   handleConnectOneB={handleConnectOneB}
                   handleDisconnectOneB={handleDisconnectOneB}
+                  isPrimaryOneb={isPrimaryOneb}
                 />
               )}
               {activeNav === 'security' && (

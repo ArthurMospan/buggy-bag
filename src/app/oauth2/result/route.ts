@@ -123,10 +123,11 @@ export async function GET(req: NextRequest) {
       const { error: updateErr } = await serviceClient.auth.admin.updateUserById(currentUser.id, {
         user_metadata: {
           ...currentUser.user_metadata,
-          oneb_id:      profile.accountId,
-          oneb_alias:   profile.alias ?? currentUser.user_metadata?.oneb_alias ?? null,
-          workspace:    profile.workspace ?? currentUser.user_metadata?.workspace ?? null,
-          workspace_id: profile.tenantId ?? currentUser.user_metadata?.workspace_id ?? null,
+          oneb_id:        profile.accountId,
+          oneb_connected: true,
+          oneb_alias:     profile.alias ?? currentUser.user_metadata?.oneb_alias ?? null,
+          workspace:      profile.workspace ?? currentUser.user_metadata?.workspace ?? null,
+          workspace_id:   profile.tenantId ?? currentUser.user_metadata?.workspace_id ?? null,
         },
       });
 
@@ -144,7 +145,12 @@ export async function GET(req: NextRequest) {
     let existingUser = undefined;
     
     if (!listErr) {
-      const matchedUsers = users.filter(u => u.user_metadata?.oneb_id === profile.accountId || u.email === syntheticEmail);
+      // Match by oneb_id (even if oneb_connected was set to false — reconnect scenario)
+      // OR by synthetic email (for accounts created before the oneb_connected flag was introduced)
+      const matchedUsers = users.filter(u =>
+        u.user_metadata?.oneb_id === profile.accountId ||
+        u.email === syntheticEmail
+      );
       if (matchedUsers.length > 0) {
         // If there are duplicate accounts (e.g. from before the linking fix), prefer the one with a real email
         matchedUsers.sort((a, b) => {
@@ -161,13 +167,14 @@ export async function GET(req: NextRequest) {
         email:         syntheticEmail,
         email_confirm: true,
         user_metadata: {
-          full_name:    profile.name,
-          avatar_url:   profile.photoUrl ?? null,
-          oneb_id:      profile.accountId,
-          oneb_alias:   profile.alias ?? null,
-          workspace:    profile.workspace ?? null,
-          workspace_id: profile.tenantId,
-          provider:     'oneb',
+          full_name:      profile.name,
+          avatar_url:     profile.photoUrl ?? null,
+          oneb_id:        profile.accountId,
+          oneb_connected: true,
+          oneb_alias:     profile.alias ?? null,
+          workspace:      profile.workspace ?? null,
+          workspace_id:   profile.tenantId,
+          provider:       'oneb',
         },
       });
 
@@ -176,15 +183,17 @@ export async function GET(req: NextRequest) {
         return NextResponse.redirect(`${origin}/login?error=oneb_create`);
       }
     } else {
-      // Update metadata if user already exists
+      // Update metadata if user already exists — also re-enable oneb_connected in case they had disconnected
       await serviceClient.auth.admin.updateUserById(existingUser.id, {
         user_metadata: {
           ...existingUser.user_metadata,
-          full_name:    profile.name,
-          avatar_url:   profile.photoUrl ?? existingUser.user_metadata?.avatar_url,
-          oneb_alias:   profile.alias ?? null,
-          workspace:    profile.workspace ?? null,
-          workspace_id: profile.tenantId,
+          full_name:      profile.name,
+          avatar_url:     profile.photoUrl ?? existingUser.user_metadata?.avatar_url,
+          oneb_id:        profile.accountId,
+          oneb_connected: true,
+          oneb_alias:     profile.alias ?? null,
+          workspace:      profile.workspace ?? null,
+          workspace_id:   profile.tenantId,
         },
       });
     }

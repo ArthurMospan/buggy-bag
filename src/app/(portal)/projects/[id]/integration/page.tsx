@@ -1,11 +1,11 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Project, ActivityLog } from '@/lib/types';
 import LoadingSpinner from '@/components/ui/Feedback/LoadingSpinner';
 
 import SetupGuide from '@/components/bugs/SetupGuide';
-import { Copy, Check, Terminal, Code2, Play, Circle, CheckCircle2, RefreshCw, Eye, EyeOff, AlertTriangle, Link as LinkIcon, Users, Settings, Activity, ShieldAlert, X, ArrowLeft, Power, Globe, ExternalLink, Send } from 'lucide-react';
+import { Copy, Check, Terminal, Code2, Play, Circle, CheckCircle2, RefreshCw, Eye, EyeOff, AlertTriangle, Link as LinkIcon, Users, Settings, Activity, ShieldAlert, X, ArrowLeft, Power, Globe, ExternalLink, Send, MoreHorizontal, Unplug } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/components/ui/ToastContext';
 import { formatDistanceToNow } from 'date-fns';
@@ -34,6 +34,44 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
           {copied ? 'Скопійовано' : 'Копіювати'}
         </button>
       </div>
+    </div>
+  );
+}
+
+function KebabMenu({ onDisconnect, label = 'Від\'єднати' }: { onDisconnect: () => void; label?: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-[32px] h-[32px] flex items-center justify-center rounded-[8px] text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-[#f4f4f5] transition-colors"
+        title="Дії"
+        type="button"
+      >
+        <MoreHorizontal size={16} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-[36px] bg-white border border-[#e9e9e9] rounded-[10px] shadow-[0_4px_20px_rgba(0,0,0,0.10)] z-50 min-w-[160px] py-[4px] overflow-hidden">
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onDisconnect(); }}
+            className="w-full text-left px-[14px] py-[10px] text-[13px] font-medium text-[#ef4444] hover:bg-[#fef2f2] transition-colors flex items-center gap-[8px]"
+          >
+            <Unplug size={13} className="opacity-70" />
+            {label}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -417,7 +455,10 @@ function GithubSection({ project, onUpdate }: { project: Project, onUpdate: (p: 
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showToken, setShowToken] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const { success: toastSuccess, error } = useToast();
+
+  const isConnected = !!(project.github_repo && project.github_token);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -439,69 +480,167 @@ function GithubSection({ project, onUpdate }: { project: Project, onUpdate: (p: 
     } catch (e) { console.error(e); error('Помилка збереження'); } finally { setIsSaving(false); }
   };
 
+  const handleDisconnect = async () => {
+    setIsDisconnecting(true);
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: project.id, github_repo: null, github_token: null }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        onUpdate(updated.project ?? { ...project, github_repo: null, github_token: null });
+        setRepo('');
+        setToken('');
+        toastSuccess('GitHub відключено');
+      } else { error('Помилка відключення'); }
+    } catch (e) { console.error(e); error('Помилка відключення'); } finally { setIsDisconnecting(false); }
+  };
+
   return (
     <div className="flex flex-col">
       <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Інтеграція з GitHub</h2>
       <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Підключіть свій GitHub репозиторій, щоб генерувати повноцінні Issues прямо з порталу в один клік.</p>
 
-      <form onSubmit={handleSave} className="flex flex-col gap-[16px]">
-        <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
-          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
-            <span className="text-[13px] font-bold text-[#9a9a9a] w-[120px] shrink-0">Репозиторій</span>
-            <input
-              type="text"
-              name="bb_repo"
-              id="bb_repo"
-              autoComplete="off"
-              data-lpignore="true"
-              placeholder="Власник/Репозиторій (напр. facebook/react)"
-              value={repo}
-              onChange={e => setRepo(e.target.value)}
-              className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
-            />
-          </div>
-          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
-            <span className="text-[13px] font-bold text-[#9a9a9a] w-[120px] shrink-0">PAT Токен</span>
-            <div className="flex-1 flex items-center gap-[10px]">
-              <input
-                type={showToken ? 'text' : 'password'}
-                name="bb_pat_token"
-                id="bb_pat_token"
-                autoComplete="new-password"
-                data-lpignore="true"
-                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                value={token}
-                onChange={e => setToken(e.target.value)}
-                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
-              />
-              {token && (
-                <button type="button" onClick={() => setShowToken(!showToken)} className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[2px]">
-                  {showToken ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              )}
+      {isConnected ? (
+        <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px] mb-[24px]">
+          <div className="flex items-center gap-[12px]">
+            <div className="w-[36px] h-[36px] rounded-[8px] bg-[#f4f4f5] flex items-center justify-center shrink-0 border border-[#e9e9e9] text-[#1f1f1f]">
+              <GithubLogo />
+            </div>
+            <div>
+              <span className="text-[14px] font-bold text-[#1f1f1f] block">GitHub підключено</span>
+              <span className="text-[13px] font-medium text-[#9a9a9a] mt-[2px] block">
+                Репозиторій: <strong className="text-[#1f1f1f] font-bold">{project.github_repo}</strong>
+              </span>
             </div>
           </div>
-        </div>
-        
-        <div className="flex items-center justify-between mt-[4px]">
-          <div className="text-[12px] font-medium text-[#9a9a9a]">
-            Створіть токен на <a href="https://github.com/settings/tokens/new" target="_blank" rel="noreferrer" className="text-[#1f1f1f] hover:underline">на сторінці GitHub</a> з доступом <span className="text-[#1f1f1f] font-bold">repo</span>.
-          </div>
-          <div className="flex items-center gap-[12px] shrink-0">
-            {success && (
-              <span className="flex items-center gap-[6px] text-[13px] font-bold text-emerald-600">
-                <Check size={14} /> Збережено
-              </span>
-            )}
-            <button type="submit" disabled={isSaving} className="bg-[#1f1f1f] hover:bg-[#303030] text-[#ffffff] text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50">
-              {isSaving ? 'Збереження...' : 'Зберегти'}
-            </button>
+          <div className="flex items-center gap-[8px]">
+            <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+              <Check size={14} /> Активно
+            </div>
+            <KebabMenu onDisconnect={handleDisconnect} />
           </div>
         </div>
-      </form>
+      ) : null}
+
+      {!isConnected && (
+        <form onSubmit={handleSave} className="flex flex-col gap-[16px]">
+          <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
+            <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+              <span className="text-[13px] font-bold text-[#9a9a9a] w-[120px] shrink-0">Репозиторій</span>
+              <input
+                type="text"
+                name="bb_repo"
+                id="bb_repo"
+                autoComplete="off"
+                data-lpignore="true"
+                placeholder="Власник/Репозиторій (напр. facebook/react)"
+                value={repo}
+                onChange={e => setRepo(e.target.value)}
+                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+              />
+            </div>
+            <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+              <span className="text-[13px] font-bold text-[#9a9a9a] w-[120px] shrink-0">PAT Токен</span>
+              <div className="flex-1 flex items-center gap-[10px]">
+                <input
+                  type={showToken ? 'text' : 'password'}
+                  name="bb_pat_token"
+                  id="bb_pat_token"
+                  autoComplete="new-password"
+                  data-lpignore="true"
+                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                  value={token}
+                  onChange={e => setToken(e.target.value)}
+                  className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+                />
+                {token && (
+                  <button type="button" onClick={() => setShowToken(!showToken)} className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[2px]">
+                    {showToken ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between mt-[4px]">
+            <div className="text-[12px] font-medium text-[#9a9a9a]">
+              Створіть токен на <a href="https://github.com/settings/tokens/new" target="_blank" rel="noreferrer" className="text-[#1f1f1f] hover:underline">на сторінці GitHub</a> з доступом <span className="text-[#1f1f1f] font-bold">repo</span>.
+            </div>
+            <div className="flex items-center gap-[12px] shrink-0">
+              {success && (
+                <span className="flex items-center gap-[6px] text-[13px] font-bold text-emerald-600">
+                  <Check size={14} /> Збережено
+                </span>
+              )}
+              <button type="submit" disabled={isSaving || !repo || !token} className="bg-[#1f1f1f] hover:bg-[#303030] text-[#ffffff] text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50">
+                {isSaving ? 'Збереження...' : 'Підключити'}
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {isConnected && (
+        <div className="border-t border-[#e9e9e9] pt-[24px]">
+          <p className="text-[13px] text-[#9a9a9a] mb-[16px]">Оновити налаштування підключення:</p>
+          <form onSubmit={handleSave} className="flex flex-col gap-[16px]">
+            <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
+              <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+                <span className="text-[13px] font-bold text-[#9a9a9a] w-[120px] shrink-0">Репозиторій</span>
+                <input
+                  type="text"
+                  name="bb_repo_edit"
+                  id="bb_repo_edit"
+                  autoComplete="off"
+                  data-lpignore="true"
+                  placeholder="Власник/Репозиторій"
+                  value={repo}
+                  onChange={e => setRepo(e.target.value)}
+                  className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+                />
+              </div>
+              <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+                <span className="text-[13px] font-bold text-[#9a9a9a] w-[120px] shrink-0">PAT Токен</span>
+                <div className="flex-1 flex items-center gap-[10px]">
+                  <input
+                    type={showToken ? 'text' : 'password'}
+                    name="bb_pat_token_edit"
+                    id="bb_pat_token_edit"
+                    autoComplete="new-password"
+                    data-lpignore="true"
+                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                    value={token}
+                    onChange={e => setToken(e.target.value)}
+                    className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+                  />
+                  {token && (
+                    <button type="button" onClick={() => setShowToken(!showToken)} className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[2px]">
+                      {showToken ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-[12px]">
+              {success && (
+                <span className="flex items-center gap-[6px] text-[13px] font-bold text-emerald-600">
+                  <Check size={14} /> Збережено
+                </span>
+              )}
+              <button type="submit" disabled={isSaving} className="bg-[#1f1f1f] hover:bg-[#303030] text-[#ffffff] text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50">
+                {isSaving ? 'Збереження...' : 'Зберегти'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
+
 
 function YoutrackSection({ project, onUpdate }: { project: Project, onUpdate: (p: Project) => void }) {
   const [url, setUrl] = useState(project.youtrack_url || '');
@@ -511,6 +650,8 @@ function YoutrackSection({ project, onUpdate }: { project: Project, onUpdate: (p
   const [success, setSuccess] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const { success: toastSuccess, error } = useToast();
+
+  const isConnected = !!(project.youtrack_url && project.youtrack_token);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -532,85 +673,94 @@ function YoutrackSection({ project, onUpdate }: { project: Project, onUpdate: (p
     } catch (e) { console.error(e); error('Помилка збереження'); } finally { setIsSaving(false); }
   };
 
+  const handleDisconnect = async () => {
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: project.id, youtrack_url: null, youtrack_token: null, youtrack_project: null }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        onUpdate(updated.project ?? { ...project, youtrack_url: null, youtrack_token: null, youtrack_project: null });
+        setUrl(''); setToken(''); setYtProject('');
+        toastSuccess('YouTrack відключено');
+      } else { error('Помилка відключення'); }
+    } catch (e) { console.error(e); error('Помилка відключення'); }
+  };
+
+  const form = (
+    <form onSubmit={handleSave} className="flex flex-col gap-[16px]">
+      <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
+        <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+          <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">URL інстансу</span>
+          <input type="text" name="bb_yt_url" id="bb_yt_url" autoComplete="off" data-lpignore="true"
+            placeholder="https://your-domain.youtrack.cloud" value={url} onChange={e => setUrl(e.target.value)}
+            className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]" />
+        </div>
+        <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+          <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Permanent Token</span>
+          <div className="flex-1 flex items-center gap-[10px]">
+            <input type={showToken ? 'text' : 'password'} name="bb_yt_token" id="bb_yt_token" autoComplete="new-password" data-lpignore="true"
+              placeholder="perm:xxxxxxxxxxxxxxxxxxxx" value={token} onChange={e => setToken(e.target.value)}
+              className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]" />
+            {token && (<button type="button" onClick={() => setShowToken(!showToken)} className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[2px]">{showToken ? <EyeOff size={15} /> : <Eye size={15} />}</button>)}
+          </div>
+        </div>
+        <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+          <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Короткий код</span>
+          <input type="text" name="bb_yt_project" id="bb_yt_project" autoComplete="off" data-lpignore="true"
+            placeholder="Напр. FIN" value={ytProject} onChange={e => setYtProject(e.target.value)}
+            className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]" />
+        </div>
+      </div>
+      <div className="flex items-end justify-between mt-[4px]">
+        <div className="text-[12px] font-medium text-[#9a9a9a] max-w-[400px]">
+          <p className="mb-[6px]">Створіть токен у профілі: <span className="text-[#1f1f1f] font-bold">Profile → Account Security → New Token</span>.</p>
+          <p>Короткий код (Project ID) — це префікс ваших задач (напр. <span className="text-[#1f1f1f] font-bold">FIN</span> для задачі FIN-123).</p>
+        </div>
+        <div className="flex items-center gap-[12px] shrink-0 pb-[2px]">
+          {success && (<span className="flex items-center gap-[6px] text-[13px] font-bold text-emerald-600"><Check size={14} /> Збережено</span>)}
+          <button type="submit" disabled={isSaving || !url || !token} className="bg-[#1f1f1f] hover:bg-[#303030] text-[#ffffff] text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50">
+            {isSaving ? 'Збереження...' : isConnected ? 'Зберегти' : 'Підключити'}
+          </button>
+        </div>
+      </div>
+    </form>
+  );
+
   return (
     <div className="flex flex-col">
       <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Інтеграція з YouTrack</h2>
       <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Підключіть свій YouTrack інстанс, щоб генерувати повноцінні Issues прямо з порталу в один клік.</p>
 
-      <form onSubmit={handleSave} className="flex flex-col gap-[16px]">
-        <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
-          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
-            <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">URL інстансу</span>
-            <input
-              type="text"
-              name="bb_yt_url"
-              id="bb_yt_url"
-              autoComplete="off"
-              data-lpignore="true"
-              placeholder="https://your-domain.youtrack.cloud"
-              value={url}
-              onChange={e => setUrl(e.target.value)}
-              className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
-            />
-          </div>
-          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
-            <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Permanent Token</span>
-            <div className="flex-1 flex items-center gap-[10px]">
-              <input
-                type={showToken ? 'text' : 'password'}
-                name="bb_yt_token"
-                id="bb_yt_token"
-                autoComplete="new-password"
-                data-lpignore="true"
-                placeholder="perm:xxxxxxxxxxxxxxxxxxxx"
-                value={token}
-                onChange={e => setToken(e.target.value)}
-                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
-              />
-              {token && (
-                <button type="button" onClick={() => setShowToken(!showToken)} className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[2px]">
-                  {showToken ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              )}
+      {isConnected && (
+        <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px] mb-[24px]">
+          <div className="flex items-center gap-[12px]">
+            <div className="w-[36px] h-[36px] rounded-[8px] bg-[#f4f4f5] flex items-center justify-center shrink-0 border border-[#e9e9e9]">
+              <YoutrackLogo />
+            </div>
+            <div>
+              <span className="text-[14px] font-bold text-[#1f1f1f] block">YouTrack підключено</span>
+              <span className="text-[13px] font-medium text-[#9a9a9a] mt-[2px] block">
+                {project.youtrack_url}{project.youtrack_project ? ` · ${project.youtrack_project}` : ''}
+              </span>
             </div>
           </div>
-          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
-            <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Короткий код</span>
-            <input
-              type="text"
-              name="bb_yt_project"
-              id="bb_yt_project"
-              autoComplete="off"
-              data-lpignore="true"
-              placeholder="Напр. FIN"
-              value={ytProject}
-              onChange={e => setYtProject(e.target.value)}
-              className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
-            />
+          <div className="flex items-center gap-[8px]">
+            <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+              <Check size={14} /> Активно
+            </div>
+            <KebabMenu onDisconnect={handleDisconnect} />
           </div>
         </div>
-        
-        <div className="flex items-end justify-between mt-[4px]">
-          <div className="text-[12px] font-medium text-[#9a9a9a] max-w-[400px]">
-            <p className="mb-[6px]">
-              Створіть токен у профілі: <span className="text-[#1f1f1f] font-bold">Profile → Account Security → New Token</span>.
-            </p>
-            <p>
-              Короткий код (Project ID) — це префікс ваших задач (напр. <span className="text-[#1f1f1f] font-bold">FIN</span> для задачі FIN-123). Його можна знайти в налаштуваннях проєкту в YouTrack.
-            </p>
-          </div>
-          <div className="flex items-center gap-[12px] shrink-0 pb-[2px]">
-            {success && (
-              <span className="flex items-center gap-[6px] text-[13px] font-bold text-emerald-600">
-                <Check size={14} /> Збережено
-              </span>
-            )}
-            <button type="submit" disabled={isSaving} className="bg-[#1f1f1f] hover:bg-[#303030] text-[#ffffff] text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50">
-              {isSaving ? 'Збереження...' : 'Зберегти'}
-            </button>
-          </div>
+      )}
+      {isConnected ? (
+        <div className="border-t border-[#e9e9e9] pt-[24px]">
+          <p className="text-[13px] text-[#9a9a9a] mb-[16px]">Оновити налаштування підключення:</p>
+          {form}
         </div>
-      </form>
+      ) : form}
     </div>
   );
 }
@@ -622,6 +772,8 @@ function TelegramSection({ project, onUpdate }: { project: Project, onUpdate: (p
   const [success, setSuccess] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const { success: toastSuccess, error } = useToast();
+
+  const isConnected = !!(project.telegram_chat_id && project.telegram_bot_token);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -643,76 +795,91 @@ function TelegramSection({ project, onUpdate }: { project: Project, onUpdate: (p
     } catch (e) { console.error(e); error('Помилка збереження'); } finally { setIsSaving(false); }
   };
 
+  const handleDisconnect = async () => {
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: project.id, telegram_chat_id: null, telegram_bot_token: null }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        onUpdate(updated.project ?? { ...project, telegram_chat_id: null, telegram_bot_token: null });
+        setChatId(''); setToken('');
+        toastSuccess('Telegram відключено');
+      } else { error('Помилка відключення'); }
+    } catch (e) { console.error(e); error('Помилка відключення'); }
+  };
+
+  const form = (
+    <form onSubmit={handleSave} className="flex flex-col gap-[16px]">
+      <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
+        <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+          <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">ID чату (Chat ID)</span>
+          <input type="text" name="bb_tg_chat" id="bb_tg_chat" autoComplete="off" data-lpignore="true"
+            placeholder="-1001234567890 або 123456789" value={chatId} onChange={e => setChatId(e.target.value)}
+            className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]" />
+        </div>
+        <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+          <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Токен бота</span>
+          <div className="flex-1 flex items-center gap-[10px]">
+            <input type={showToken ? 'text' : 'password'} name="bb_tg_token" id="bb_tg_token" autoComplete="new-password" data-lpignore="true"
+              placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" value={token} onChange={e => setToken(e.target.value)}
+              className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]" />
+            {token && (<button type="button" onClick={() => setShowToken(!showToken)} className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[2px]">{showToken ? <EyeOff size={15} /> : <Eye size={15} />}</button>)}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-end justify-between mt-[4px]">
+        <div className="text-[12px] font-medium text-[#9a9a9a] max-w-[500px]">
+          <ol className="list-decimal pl-[16px] space-y-[6px]">
+            <li>Створіть бота через <a href="https://t.me/botfather" target="_blank" rel="noreferrer" className="text-[#1f1f1f] font-bold hover:underline">@BotFather</a> у Telegram та скопіюйте сюди його <b>Token</b>.</li>
+            <li>Напишіть боту <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer" className="text-[#1f1f1f] font-bold hover:underline">@userinfobot</a>, щоб дізнатись свій особистий <b>Chat ID</b>.</li>
+            <li className="text-[11px] text-[#9a9a9a]/80"><i>Щоб отримувати баги в групу — додайте бота в групу і дізнайтесь її ID через @raw_data_bot.</i></li>
+          </ol>
+        </div>
+        <div className="flex items-center gap-[12px] shrink-0 pb-[2px]">
+          {success && (<span className="flex items-center gap-[6px] text-[13px] font-bold text-emerald-600"><Check size={14} /> Збережено</span>)}
+          <button type="submit" disabled={isSaving || !chatId || !token} className="bg-[#1f1f1f] hover:bg-[#303030] text-[#ffffff] text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50">
+            {isSaving ? 'Збереження...' : isConnected ? 'Зберегти' : 'Підключити'}
+          </button>
+        </div>
+      </div>
+    </form>
+  );
+
   return (
     <div className="flex flex-col">
       <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Інтеграція з Telegram</h2>
       <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Підключіть Telegram бота, щоб миттєво отримувати сповіщення про нові баги.</p>
 
-      <form onSubmit={handleSave} className="flex flex-col gap-[16px]">
-        <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
-          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
-            <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">ID чату (Chat ID)</span>
-            <input
-              type="text"
-              name="bb_tg_chat"
-              id="bb_tg_chat"
-              autoComplete="off"
-              data-lpignore="true"
-              placeholder="-1001234567890 або 123456789"
-              value={chatId}
-              onChange={e => setChatId(e.target.value)}
-              className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
-            />
-          </div>
-          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
-            <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Токен бота</span>
-            <div className="flex-1 flex items-center gap-[10px]">
-              <input
-                type={showToken ? 'text' : 'password'}
-                name="bb_tg_token"
-                id="bb_tg_token"
-                autoComplete="new-password"
-                data-lpignore="true"
-                placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-                value={token}
-                onChange={e => setToken(e.target.value)}
-                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
-              />
-              {token && (
-                <button type="button" onClick={() => setShowToken(!showToken)} className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[2px]">
-                  {showToken ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              )}
+      {isConnected && (
+        <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px] mb-[24px]">
+          <div className="flex items-center gap-[12px]">
+            <div className="w-[36px] h-[36px] rounded-[8px] bg-[#f4f4f5] flex items-center justify-center shrink-0 border border-[#e9e9e9] text-[#229ED9]">
+              <Send size={18} />
+            </div>
+            <div>
+              <span className="text-[14px] font-bold text-[#1f1f1f] block">Telegram підключено</span>
+              <span className="text-[13px] font-medium text-[#9a9a9a] mt-[2px] block">
+                Chat ID: <strong className="text-[#1f1f1f] font-bold">{project.telegram_chat_id}</strong>
+              </span>
             </div>
           </div>
-        </div>
-        
-        <div className="flex items-end justify-between mt-[4px]">
-          <div className="text-[12px] font-medium text-[#9a9a9a] max-w-[500px]">
-            <ol className="list-decimal pl-[16px] space-y-[6px]">
-              <li>
-                Створіть бота через <a href="https://t.me/botfather" target="_blank" rel="noreferrer" className="text-[#1f1f1f] font-bold hover:underline">@BotFather</a> у Telegram та скопіюйте сюди його <b>Token</b>.
-              </li>
-              <li>
-                Напишіть боту <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer" className="text-[#1f1f1f] font-bold hover:underline">@userinfobot</a>, щоб дізнатись свій особистий <b>Chat ID</b>.
-              </li>
-              <li className="text-[11px] text-[#9a9a9a]/80">
-                <i>Щоб отримувати баги в групу — додайте бота в групу і дізнайтесь її ID через @raw_data_bot.</i>
-              </li>
-            </ol>
-          </div>
-          <div className="flex items-center gap-[12px] shrink-0 pb-[2px]">
-            {success && (
-              <span className="flex items-center gap-[6px] text-[13px] font-bold text-emerald-600">
-                <Check size={14} /> Збережено
-              </span>
-            )}
-            <button type="submit" disabled={isSaving} className="bg-[#1f1f1f] hover:bg-[#303030] text-[#ffffff] text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50">
-              {isSaving ? 'Збереження...' : 'Зберегти'}
-            </button>
+          <div className="flex items-center gap-[8px]">
+            <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+              <Check size={14} /> Активно
+            </div>
+            <KebabMenu onDisconnect={handleDisconnect} />
           </div>
         </div>
-      </form>
+      )}
+      {isConnected ? (
+        <div className="border-t border-[#e9e9e9] pt-[24px]">
+          <p className="text-[13px] text-[#9a9a9a] mb-[16px]">Оновити налаштування підключення:</p>
+          {form}
+        </div>
+      ) : form}
     </div>
   );
 }
@@ -724,6 +891,8 @@ function QuickTeamSection({ project, onUpdate }: { project: Project, onUpdate: (
   const [success, setSuccess] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const { success: toastSuccess, error } = useToast();
+
+  const isConnected = !!(project.quickteam_token && project.quickteam_organization_id);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -745,74 +914,93 @@ function QuickTeamSection({ project, onUpdate }: { project: Project, onUpdate: (
     } catch (e) { console.error(e); error('Помилка збереження'); } finally { setIsSaving(false); }
   };
 
+  const handleDisconnect = async () => {
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: project.id, quickteam_token: null, quickteam_organization_id: null }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        onUpdate(updated.project ?? { ...project, quickteam_token: null, quickteam_organization_id: null });
+        setToken(''); setQtOrg('');
+        toastSuccess('QuickTeam відключено');
+      } else { error('Помилка відключення'); }
+    } catch (e) { console.error(e); error('Помилка відключення'); }
+  };
+
+  const form = (
+    <form onSubmit={handleSave} className="flex flex-col gap-[16px]">
+      <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
+        <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+          <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">API Key</span>
+          <div className="flex-1 flex items-center gap-[10px]">
+            <input type={showToken ? 'text' : 'password'} name="bb_qt_token" id="bb_qt_token" autoComplete="new-password" data-lpignore="true"
+              placeholder="qt_12345abcdef..." value={token} onChange={e => setToken(e.target.value)}
+              className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]" />
+            {token && (<button type="button" onClick={() => setShowToken(!showToken)} className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[2px]">{showToken ? <EyeOff size={15} /> : <Eye size={15} />}</button>)}
+          </div>
+        </div>
+        <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+          <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Organization ID</span>
+          <input type="text" name="bb_qt_org" id="bb_qt_org" autoComplete="off" data-lpignore="true"
+            placeholder="ID організації в QuickTeam" value={qtOrg} onChange={e => setQtOrg(e.target.value)}
+            className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]" />
+        </div>
+      </div>
+      <div className="flex items-end justify-between mt-[4px]">
+        <div className="text-[12px] font-medium text-[#9a9a9a] max-w-[400px]">
+          <p className="mb-[6px]">Перейдіть у <a href="https://qt-workspace.vercel.app" target="_blank" rel="noreferrer" className="text-[#1f1f1f] hover:underline">QuickTeam</a>: <span className="text-[#1f1f1f] font-bold">Налаштування → Інтеграції → Активуємо BuggyBag Portal</span>.</p>
+          <p>Скопіюйте звідти дані (API Key та Organization ID) і вставте їх сюди.</p>
+        </div>
+        <div className="flex items-center gap-[12px] shrink-0 pb-[2px]">
+          {success && (<span className="flex items-center gap-[6px] text-[13px] font-bold text-emerald-600"><Check size={14} /> Збережено</span>)}
+          <button type="submit" disabled={isSaving || !token || !qtOrg} className="bg-[#1f1f1f] hover:bg-[#303030] text-[#ffffff] text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50">
+            {isSaving ? 'Збереження...' : isConnected ? 'Зберегти' : 'Підключити'}
+          </button>
+        </div>
+      </div>
+    </form>
+  );
+
   return (
     <div className="flex flex-col">
       <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Інтеграція з QuickTeam</h2>
       <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Підключіть свій таскменеджер QuickTeam, щоб створювати задачі автоматично в один клік.</p>
 
-      <form onSubmit={handleSave} className="flex flex-col gap-[16px]">
-        <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
-          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
-            <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">API Key</span>
-            <div className="flex-1 flex items-center gap-[10px]">
-              <input
-                type={showToken ? 'text' : 'password'}
-                name="bb_qt_token"
-                id="bb_qt_token"
-                autoComplete="new-password"
-                data-lpignore="true"
-                placeholder="qt_12345abcdef..."
-                value={token}
-                onChange={e => setToken(e.target.value)}
-                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
-              />
-              {token && (
-                <button type="button" onClick={() => setShowToken(!showToken)} className="text-[#9a9a9a] hover:text-[#1f1f1f] transition-colors p-[2px]">
-                  {showToken ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              )}
+      {isConnected && (
+        <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px] mb-[24px]">
+          <div className="flex items-center gap-[12px]">
+            <div className="w-[36px] h-[36px] rounded-[8px] bg-[#f4f4f5] flex items-center justify-center shrink-0 border border-[#e9e9e9]">
+              <QuickTeamLogo />
+            </div>
+            <div>
+              <span className="text-[14px] font-bold text-[#1f1f1f] block">QuickTeam підключено</span>
+              <span className="text-[13px] font-medium text-[#9a9a9a] mt-[2px] block">
+                Org ID: <strong className="text-[#1f1f1f] font-bold">{project.quickteam_organization_id}</strong>
+              </span>
             </div>
           </div>
-          <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
-            <span className="text-[13px] font-bold text-[#9a9a9a] w-[140px] shrink-0">Organization ID</span>
-            <input
-              type="text"
-              name="bb_qt_org"
-              id="bb_qt_org"
-              autoComplete="off"
-              data-lpignore="true"
-              placeholder="ID організації в QuickTeam"
-              value={qtOrg}
-              onChange={e => setQtOrg(e.target.value)}
-              className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
-            />
+          <div className="flex items-center gap-[8px]">
+            <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+              <Check size={14} /> Активно
+            </div>
+            <KebabMenu onDisconnect={handleDisconnect} />
           </div>
         </div>
-        
-        <div className="flex items-end justify-between mt-[4px]">
-          <div className="text-[12px] font-medium text-[#9a9a9a] max-w-[400px]">
-            <p className="mb-[6px]">
-              Перейдіть у <a href="https://qt-workspace.vercel.app" target="_blank" rel="noreferrer" className="text-[#1f1f1f] hover:underline">QuickTeam</a>: <span className="text-[#1f1f1f] font-bold">Налаштування → Інтеграції → Активуємо BuggyBag Portal</span>.
-            </p>
-            <p>
-              Скопіюйте звідти дані (API Key та Organization ID) і вставте їх сюди.
-            </p>
-          </div>
-          <div className="flex items-center gap-[12px] shrink-0 pb-[2px]">
-            {success && (
-              <span className="flex items-center gap-[6px] text-[13px] font-bold text-emerald-600">
-                <Check size={14} /> Збережено
-              </span>
-            )}
-            <button type="submit" disabled={isSaving} className="bg-[#1f1f1f] hover:bg-[#303030] text-[#ffffff] text-[13px] font-bold px-[20px] py-[10px] rounded-[8px] transition-colors disabled:opacity-50">
-              {isSaving ? 'Збереження...' : 'Зберегти'}
-            </button>
-          </div>
+      )}
+      {isConnected ? (
+        <div className="border-t border-[#e9e9e9] pt-[24px]">
+          <p className="text-[13px] text-[#9a9a9a] mb-[16px]">Оновити налаштування підключення:</p>
+          {form}
         </div>
-      </form>
+      ) : form}
     </div>
   );
 }
+
+
 
 function ActivityTimeline({ logs }: { logs: ActivityLog[] }) {
   if (logs.length === 0) return <div className="text-[13px] font-bold text-[#9a9a9a]">Історія порожня.</div>;
