@@ -141,9 +141,20 @@ export async function GET(req: NextRequest) {
 
     // No current user — normal login/register flow
     const { data: { users }, error: listErr } = await serviceClient.auth.admin.listUsers();
-    const existingUser = !listErr
-      ? users.find(u => u.user_metadata?.oneb_id === profile.accountId || u.email === syntheticEmail)
-      : undefined;
+    let existingUser = undefined;
+    
+    if (!listErr) {
+      const matchedUsers = users.filter(u => u.user_metadata?.oneb_id === profile.accountId || u.email === syntheticEmail);
+      if (matchedUsers.length > 0) {
+        // If there are duplicate accounts (e.g. from before the linking fix), prefer the one with a real email
+        matchedUsers.sort((a, b) => {
+          const aIsSynthetic = a.email?.endsWith('@oneb.buggy-bag') ? 1 : 0;
+          const bIsSynthetic = b.email?.endsWith('@oneb.buggy-bag') ? 1 : 0;
+          return aIsSynthetic - bIsSynthetic;
+        });
+        existingUser = matchedUsers[0];
+      }
+    }
 
     if (!existingUser) {
       const { error: createErr } = await serviceClient.auth.admin.createUser({
@@ -178,11 +189,13 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    const targetEmail = existingUser ? existingUser.email : syntheticEmail;
+
     // --- Step 4: Generate a magic link to authenticate the user ---
     const loginRedirectUrl = `${origin}/login?redirect=${encodeURIComponent(redirectTo)}`;
     const { data: linkData, error: linkErr } = await serviceClient.auth.admin.generateLink({
       type:    'magiclink',
-      email:   syntheticEmail,
+      email:   targetEmail,
       options: { redirectTo: loginRedirectUrl },
     });
 
