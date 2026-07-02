@@ -27,7 +27,7 @@ function LoginForm() {
   const router        = useRouter();
   const searchParams  = useSearchParams();
   const [email, setEmail]       = useState('');
-  const [step, setStep]         = useState<'email' | 'otp'>('email');
+  const [step, setStep]         = useState<'idle' | 'email' | 'otp'>('idle');
   const [token, setToken]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [ghLoading, setGhLoading] = useState(false);
@@ -190,69 +190,82 @@ function LoginForm() {
           Увійти через OneB
         </button>
 
-        <div className="flex items-center gap-3 w-full my-2">
-          <div className="flex-1 h-px bg-white/10" />
-          <span className="text-[12px] font-medium text-white/40">або з Email</span>
-          <div className="flex-1 h-px bg-white/10" />
-        </div>
-
-        {step === 'email' ? (
-          <form onSubmit={handleSendOtp} className="w-full flex flex-col gap-4">
-            <input
-              type="email"
-              placeholder="Email адреса"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-center text-white text-base font-medium outline-none focus:border-white/40 focus:bg-white/10 transition-all placeholder:text-white/30"
-            />
-
-            {error && (
-              <p className="text-[12px] font-medium text-[#f87171] text-center mt-1">
-                {error}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading || ghLoading}
-              className="w-full flex items-center justify-center gap-3 rounded-full bg-white/10 px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-white/20 active:scale-[0.98] border border-white/10 focus-ring cursor-pointer shadow-sm mt-2"
-            >
-              {loading ? 'Надсилаємо код...' : 'Продовжити'}
-            </button>
-          </form>
+        {step === 'idle' ? (
+          <button
+            onClick={() => setStep('email')}
+            disabled={ghLoading || loading}
+            className="w-full flex items-center justify-center gap-3 rounded-full bg-white px-6 py-3 text-sm font-semibold text-gray-900 transition-all hover:bg-gray-100 active:scale-[0.98] focus-ring cursor-pointer shadow-sm"
+          >
+            <span className="font-bold text-[16px]">@</span>
+            Увійти через Email
+          </button>
         ) : (
-          <form onSubmit={handleVerifyOtp} className="w-full flex flex-col gap-4">
-            <p className="text-[13px] text-white/70 text-center">
-              Код надіслано на <strong className="text-white">{email}</strong>
-              <br />
-              <button type="button" onClick={() => setStep('email')} className="text-white hover:underline mt-2 inline-block">Змінити email</button>
-            </p>
-            <input
-              type="text"
-              placeholder="Введіть код"
-              value={token}
-              onChange={e => setToken(e.target.value.replace(/\D/g, ''))}
-              required
-              autoComplete="one-time-code"
-              className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-center text-white text-lg tracking-[0.2em] font-medium outline-none focus:border-white/40 focus:bg-white/10 transition-all placeholder:text-white/30 placeholder:tracking-normal"
-            />
+          <>
+            <div className="flex items-center gap-3 w-full my-2">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-[12px] font-medium text-white/40">через Email</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
 
-            {error && (
-              <p className="text-[12px] font-medium text-[#f87171] text-center mt-1">
-                {error}
-              </p>
+            {step === 'email' ? (
+              <form onSubmit={handleSendOtp} className="w-full flex flex-col gap-4">
+                <input
+                  type="email"
+                  placeholder="Email адреса"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-center text-white text-base font-medium outline-none focus:border-white/40 focus:bg-white/10 transition-all placeholder:text-white/30"
+                />
+
+                {error && (
+                  <p className="text-[12px] font-medium text-[#f87171] text-center mt-1">
+                    {error}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading || ghLoading}
+                  className="w-full flex items-center justify-center gap-3 rounded-full bg-white/10 px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-white/20 active:scale-[0.98] border border-white/10 focus-ring cursor-pointer shadow-sm mt-2"
+                >
+                  {loading ? 'Надсилаємо код...' : 'Продовжити'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyOtp} className="w-full flex flex-col gap-4">
+                <p className="text-[13px] text-white/70 text-center">
+                  Код надіслано на <strong className="text-white">{email}</strong>
+                  <br />
+                  <button type="button" onClick={() => setStep('email')} className="text-white hover:underline mt-2 inline-block">Змінити email</button>
+                </p>
+                <input
+                  type="text"
+                  placeholder="Введіть код"
+                  value={token}
+                  onChange={e => setToken(e.target.value.replace(/\D/g, ''))}
+                  required
+                  autoComplete="one-time-code"
+                  className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-center text-white text-lg tracking-[0.2em] font-medium outline-none focus:border-white/40 focus:bg-white/10 transition-all placeholder:text-white/30 placeholder:tracking-normal"
+                />
+
+                {error && (
+                  <p className="text-[12px] font-medium text-[#f87171] text-center mt-1">
+                    {error}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading || token.length < 6}
+                  className="w-full flex items-center justify-center gap-3 rounded-full bg-white/10 px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-white/20 active:scale-[0.98] border border-white/10 focus-ring cursor-pointer shadow-sm disabled:opacity-50 mt-2"
+                >
+                  {loading ? 'Перевіряємо...' : 'Підтвердити вхід'}
+                </button>
+              </form>
             )}
-
-            <button
-              type="submit"
-              disabled={loading || token.length < 6}
-              className="w-full flex items-center justify-center gap-3 rounded-full bg-white/10 px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-white/20 active:scale-[0.98] border border-white/10 focus-ring cursor-pointer shadow-sm disabled:opacity-50 mt-2"
-            >
-              {loading ? 'Перевіряємо...' : 'Підтвердити вхід'}
-            </button>
-          </form>
+          </>
         )}
 
         <p className="mt-6 text-center text-xs text-white/40">
