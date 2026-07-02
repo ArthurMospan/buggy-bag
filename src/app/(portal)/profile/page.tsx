@@ -162,7 +162,7 @@ function GeneralSection({ user, name, setName, handleSaveName, savingName, nameS
   );
 }
 
-function ConnectionsSection({ githubIdentity, handleConnectGitHub, onebIdentity, handleConnectOneB }: any) {
+function ConnectionsSection({ githubIdentity, handleConnectGitHub, handleDisconnectGitHub, onebIdentity, handleConnectOneB, handleDisconnectOneB }: any) {
   return (
     <div className="flex flex-col">
       <div className="pb-[32px]">
@@ -183,8 +183,16 @@ function ConnectionsSection({ githubIdentity, handleConnectGitHub, onebIdentity,
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
-                <Check size={14} /> Активно
+              <div className="flex flex-col items-end gap-[8px]">
+                <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+                  <Check size={14} /> Активно
+                </div>
+                <button
+                  onClick={handleDisconnectGitHub}
+                  className="text-[12px] font-medium text-[#ef4444] hover:underline"
+                >
+                  Відключити
+                </button>
               </div>
             </div>
           ) : (
@@ -218,8 +226,16 @@ function ConnectionsSection({ githubIdentity, handleConnectGitHub, onebIdentity,
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
-                <Check size={14} /> Активно
+              <div className="flex flex-col items-end gap-[8px]">
+                <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+                  <Check size={14} /> Активно
+                </div>
+                <button
+                  onClick={handleDisconnectOneB}
+                  className="text-[12px] font-medium text-[#ef4444] hover:underline"
+                >
+                  Відключити
+                </button>
               </div>
             </div>
           ) : (
@@ -585,6 +601,28 @@ export default function ProfilePage() {
     window.location.href = authUrl;
   };
 
+  const handleDisconnectGitHub = async () => {
+    if (!githubIdentity) return;
+    const supabase = createClient();
+    await supabase.auth.unlinkIdentity(githubIdentity);
+    const { data } = await supabase.auth.getUser();
+    setUser(data.user);
+  };
+
+  const handleDisconnectOneB = async () => {
+    const supabase = createClient();
+    await supabase.auth.updateUser({
+      data: {
+        oneb_id: null,
+        oneb_alias: null,
+        workspace: null,
+        workspace_id: null,
+      }
+    });
+    const { data } = await supabase.auth.getUser();
+    setUser(data.user);
+  };
+
   const isEmailAuth    = user?.app_metadata?.provider === 'email' || (user?.identities?.some(i => i.provider === 'email') ?? false);
   const githubIdentity = user?.identities?.find(i => i.provider === 'github');
   const onebIdentity   = user?.user_metadata?.oneb_id ? { identity_data: { name: user.user_metadata.full_name || 'OneB Account' } } : undefined;
@@ -686,8 +724,10 @@ export default function ProfilePage() {
                 <ConnectionsSection
                   githubIdentity={githubIdentity}
                   handleConnectGitHub={handleConnectGitHub}
+                  handleDisconnectGitHub={handleDisconnectGitHub}
                   onebIdentity={onebIdentity}
                   handleConnectOneB={handleConnectOneB}
+                  handleDisconnectOneB={handleDisconnectOneB}
                 />
               )}
               {activeNav === 'security' && (
