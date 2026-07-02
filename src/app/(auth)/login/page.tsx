@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import Button from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Bug } from 'lucide-react';
+import { Bug, AtSign } from 'lucide-react';
 import Link from 'next/link';
 
 function GitHubIcon() {
@@ -196,7 +196,7 @@ function LoginForm() {
             disabled={ghLoading || loading}
             className="w-full flex items-center justify-center gap-3 rounded-full bg-white px-6 py-3 text-sm font-semibold text-gray-900 transition-all hover:bg-gray-100 active:scale-[0.98] focus-ring cursor-pointer shadow-sm"
           >
-            <span className="font-bold text-[16px]">@</span>
+            <AtSign size={18} strokeWidth={2.5} />
             Увійти через Email
           </button>
         ) : (

@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import { Check, Loader2, AlertCircle, ArrowLeft, User as UserIcon, Shield, Link as LinkIcon, Upload, MoreHorizontal, LogIn } from 'lucide-react';
+import { Check, Loader2, AlertCircle, ArrowLeft, User as UserIcon, Shield, Link as LinkIcon, Upload, MoreHorizontal, LogIn, AtSign } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -320,7 +320,7 @@ function ConnectionsSection({ email, githubIdentity, handleConnectGitHub, handle
                 <div>
                   <span className="text-[14px] font-bold text-[#1f1f1f] block">OneB підключено</span>
                   <span className="text-[13px] font-medium text-[#9a9a9a] mt-[2px] block">
-                    як <strong className="text-[#1f1f1f] font-bold">{onebIdentity.identity_data?.name ?? 'OneB Account'}</strong>
+                    як <strong className="text-[13px] font-bold text-[#1f1f1f]">{onebIdentity.identity_data?.name ?? 'OneB Account'}</strong>
                   </span>
                 </div>
               </div>
@@ -361,7 +361,7 @@ function ConnectionsSection({ email, githubIdentity, handleConnectGitHub, handle
           <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px]">
             <div className="flex items-center gap-[12px]">
               <div className="w-[36px] h-[36px] rounded-[8px] bg-[#f4f4f5] flex items-center justify-center shrink-0 border border-[#e9e9e9] text-[#1f1f1f]">
-                <LogIn size={16} />
+                <AtSign size={18} strokeWidth={2.5} />
               </div>
               <div>
                 <span className="text-[14px] font-bold text-[#1f1f1f] block">Email</span>
@@ -520,7 +520,7 @@ function SecuritySkeleton() {
 
 const NAV_ITEMS = [
   { id: 'general', label: 'Загальні', icon: <UserIcon size={16} /> },
-  { id: 'connections', label: 'Способи входу', icon: <LinkIcon size={16} /> },
+  { id: 'connections', label: 'Способи входу', icon: <LogIn size={16} /> },
   { id: 'security', label: 'Безпека', icon: <Shield size={16} /> },
 ];
 

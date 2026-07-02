@@ -517,7 +517,7 @@ function GithubSection({ project, onUpdate }: { project: Project, onUpdate: (p: 
             </div>
           </div>
           <div className="flex items-center gap-[8px]">
-            <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+            <div className="flex items-center gap-[6px] text-[13px] font-medium text-[#10b981] bg-[#f0fdf4] px-[8px] py-[4px] rounded-[6px]">
               <Check size={14} /> Активно
             </div>
             <KebabMenu onDisconnect={handleDisconnect} />
@@ -748,7 +748,7 @@ function YoutrackSection({ project, onUpdate }: { project: Project, onUpdate: (p
             </div>
           </div>
           <div className="flex items-center gap-[8px]">
-            <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+            <div className="flex items-center gap-[6px] text-[13px] font-medium text-[#10b981] bg-[#f0fdf4] px-[8px] py-[4px] rounded-[6px]">
               <Check size={14} /> Активно
             </div>
             <KebabMenu onDisconnect={handleDisconnect} />
@@ -867,7 +867,7 @@ function TelegramSection({ project, onUpdate }: { project: Project, onUpdate: (p
             </div>
           </div>
           <div className="flex items-center gap-[8px]">
-            <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+            <div className="flex items-center gap-[6px] text-[13px] font-medium text-[#10b981] bg-[#f0fdf4] px-[8px] py-[4px] rounded-[6px]">
               <Check size={14} /> Активно
             </div>
             <KebabMenu onDisconnect={handleDisconnect} />
@@ -983,7 +983,7 @@ function QuickTeamSection({ project, onUpdate }: { project: Project, onUpdate: (
             </div>
           </div>
           <div className="flex items-center gap-[8px]">
-            <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+            <div className="flex items-center gap-[6px] text-[13px] font-medium text-[#10b981] bg-[#f0fdf4] px-[8px] py-[4px] rounded-[6px]">
               <Check size={14} /> Активно
             </div>
             <KebabMenu onDisconnect={handleDisconnect} />
