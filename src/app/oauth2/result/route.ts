@@ -172,6 +172,7 @@ export async function GET(req: NextRequest) {
           avatar_url:     profile.photoUrl ?? null,
           oneb_id:        profile.accountId,
           oneb_connected: true,
+          created_via_oneb: true,
           oneb_alias:     profile.alias ?? null,
           workspace:      profile.workspace ?? null,
           workspace_id:   profile.tenantId,

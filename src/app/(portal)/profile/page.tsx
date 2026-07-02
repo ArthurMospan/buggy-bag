@@ -198,7 +198,7 @@ function KebabMenu({ onDisconnect }: { onDisconnect: () => void }) {
   );
 }
 
-function ConnectionsSection({ githubIdentity, handleConnectGitHub, handleDisconnectGitHub, isPrimaryGitHub, onebIdentity, handleConnectOneB, handleDisconnectOneB, isPrimaryOneb }: any) {
+function ConnectionsSection({ email, githubIdentity, handleConnectGitHub, handleDisconnectGitHub, isPrimaryGitHub, onebIdentity, handleConnectOneB, handleDisconnectOneB, isPrimaryOneb }: any) {
   return (
     <div className="flex flex-col">
       <div className="pb-[32px]">
@@ -206,6 +206,32 @@ function ConnectionsSection({ githubIdentity, handleConnectGitHub, handleDisconn
         <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Керуйте сервісами, через які ви можете авторизуватись у системі.</p>
 
         <div className="flex flex-col gap-[16px]">
+          {/* Рядок Email */}
+          <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px]">
+            <div className="flex items-center gap-[12px]">
+              <div className="w-[36px] h-[36px] rounded-[8px] bg-[#f4f4f5] flex items-center justify-center shrink-0 border border-[#e9e9e9] text-[#1f1f1f]">
+                <LogIn size={16} />
+              </div>
+              <div>
+                <span className="text-[14px] font-bold text-[#1f1f1f] block">Email / Логін</span>
+                <span className="text-[13px] font-medium text-[#9a9a9a] mt-[2px] block">
+                  як <strong className="text-[#1f1f1f] font-bold">{email || 'Активно'}</strong>
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-[8px]">
+              {(!isPrimaryOneb && !isPrimaryGitHub) ? (
+                <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#6366f1] bg-[#f0f0ff] px-[10px] py-[4px] rounded-[6px] border border-[#c7d2fe]">
+                  <LogIn size={13} /> Основний вхід
+                </div>
+              ) : (
+                <div className="flex items-center gap-[6px] text-[13px] font-bold text-[#10b981] bg-[#f0fdf4] px-[10px] py-[4px] rounded-[6px] border border-[#bbf7d0]">
+                  <Check size={14} /> Активно
+                </div>
+              )}
+            </div>
+          </div>
+
           {githubIdentity ? (
             <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px]">
               <div className="flex items-center gap-[12px]">
@@ -312,7 +338,17 @@ function SecuritySection({ oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, set
 
         <form onSubmit={handleChangePwd} className="flex flex-col gap-[16px]">
           <div className="flex flex-col gap-[1px] bg-[#e9e9e9] border border-[#e9e9e9] rounded-[10px] overflow-hidden">
-
+            <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
+              <span className="text-[13px] font-bold text-[#9a9a9a] w-[180px] shrink-0">Поточний пароль</span>
+              <input
+                type="password"
+                placeholder="Введіть старий пароль"
+                value={oldPwd}
+                onChange={e => setOldPwd(e.target.value)}
+                required
+                className="flex-1 bg-transparent text-[13px] text-[#1f1f1f] font-bold outline-none placeholder:text-[#9a9a9a]"
+              />
+            </div>
             <div className="flex items-center bg-[#ffffff] px-[16px] py-[14px]">
               <span className="text-[13px] font-bold text-[#9a9a9a] w-[180px] shrink-0">Новий пароль</span>
               <input
@@ -666,10 +702,9 @@ export default function ProfilePage() {
   const hasEmailIdentity = user?.identities?.some(i => i.provider === 'email') ?? false;
   const hasOnebConnected = !!(user?.user_metadata?.oneb_id && user?.user_metadata?.oneb_connected !== false);
   
-  // Primary OneB user: if OneB is connected and they don't have GitHub, we consider it their primary external method
-  const isPrimaryOneb    = hasOnebConnected && !githubIdentity;
-  // Primary GitHub user: no email identity AND no OneB → GitHub is the only login method
-  const isPrimaryGitHub  = !!(githubIdentity && !hasEmailIdentity && !hasOnebConnected);
+  const createdViaOneB   = !!user?.user_metadata?.created_via_oneb;
+  const isPrimaryOneb    = createdViaOneB || (!hasEmailIdentity && hasOnebConnected && !githubIdentity) || (hasOnebConnected && user?.email?.endsWith('@oneb.buggy-bag'));
+  const isPrimaryGitHub  = !!(githubIdentity && !hasEmailIdentity && !hasOnebConnected) || (githubIdentity && !createdViaOneB && user?.app_metadata?.providers?.length === 1 && user.app_metadata.providers[0] === 'github');
 
   const getNavDescription = (id: string) => {
     switch (id) {
@@ -766,6 +801,7 @@ export default function ProfilePage() {
               )}
               {activeNav === 'connections' && (
                 <ConnectionsSection
+                  email={user?.email}
                   githubIdentity={githubIdentity}
                   handleConnectGitHub={handleConnectGitHub}
                   handleDisconnectGitHub={handleDisconnectGitHub}
