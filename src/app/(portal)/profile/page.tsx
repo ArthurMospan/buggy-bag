@@ -624,7 +624,7 @@ export default function ProfilePage() {
 
   const handleConnectGitHub = async () => {
     const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
+    await supabase.auth.linkIdentity({
       provider: 'github',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
