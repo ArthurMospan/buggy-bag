@@ -55,27 +55,26 @@ function LoginForm() {
     if (hash && hash.includes('access_token')) {
       const supabase = createClient();
       
-      // The Supabase client automatically parses the hash fragment and stores the session 
-      // in cookies when initialized. We wait for it to become available.
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          const redirect = searchParams.get('redirect') || '/';
-          router.push(redirect);
-          router.refresh();
-        }
-      });
+      // Since @supabase/ssr defaults to PKCE, it might ignore implicit flow hash fragments.
+      // We manually parse the hash and set the session.
+      const hashParams = new URLSearchParams(hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
       
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          const redirect = searchParams.get('redirect') || '/';
-          router.push(redirect);
-          router.refresh();
-        }
-      });
-
-      return () => {
-        subscription.unsubscribe();
-      };
+      if (accessToken && refreshToken) {
+        supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        }).then(({ error }) => {
+          if (!error) {
+            const redirect = searchParams.get('redirect') || '/';
+            router.push(redirect);
+            router.refresh();
+          } else {
+            setError('Помилка входу через посилання.');
+          }
+        });
+      }
     } else if (searchParams.get('error') === 'oauth') {
       setError('Не вдалося увійти. Спробуйте ще раз.');
     } else if (searchParams.get('error')?.startsWith('oneb_')) {
