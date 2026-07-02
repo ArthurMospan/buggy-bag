@@ -189,7 +189,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const targetEmail = existingUser ? existingUser.email : syntheticEmail;
+    const targetEmail = (existingUser && existingUser.email) ? existingUser.email : syntheticEmail;
 
     // --- Step 4: Generate a magic link to authenticate the user ---
     const loginRedirectUrl = `${origin}/login?redirect=${encodeURIComponent(redirectTo)}`;
