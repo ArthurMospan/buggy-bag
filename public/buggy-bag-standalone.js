@@ -177,6 +177,9 @@ ${L.message}`})),x({shape:be,isNew:!0})},[u]),Cf=(0,T.jsx)("div",{style:{width:"
 .max-w-\\[900px\\] {\r
     max-width: 900px
 }\r
+.flex-shrink {\r
+    flex-shrink: 1
+}\r
 .shrink-0 {\r
     flex-shrink: 0
 }\r
@@ -253,6 +256,10 @@ ${L.message}`})),x({shape:be,isNew:!0})},[u]),Cf=(0,T.jsx)("div",{style:{width:"
 .bg-\\[\\#f5f5f5\\] {\r
     --tw-bg-opacity: 1;\r
     background-color: rgb(245 245 245 / var(--tw-bg-opacity, 1))
+}\r
+.bg-black {\r
+    --tw-bg-opacity: 1;\r
+    background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1))
 }\r
 .bg-black\\/40 {\r
     background-color: rgb(0 0 0 / 0.4)
@@ -372,6 +379,9 @@ ${L.message}`})),x({shape:be,isNew:!0})},[u]),Cf=(0,T.jsx)("div",{style:{width:"
 }\r
 .backdrop-blur-sm {\r
     --tw-backdrop-blur: blur(4px);\r
+    backdrop-filter: var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)
+}\r
+.backdrop-filter {\r
     backdrop-filter: var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)
 }\r
 .transition {\r

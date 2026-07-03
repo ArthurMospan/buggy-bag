@@ -209,7 +209,7 @@ export async function POST(req: NextRequest) {
           const portalUrl = `${protocol}://${host}`;
           const bugLink = `${portalUrl}/projects/${project_id}/bugs/${data.id}`;
           
-          const title = `🚨 Новий баг у ${project.name || 'проєкті'}`;
+          const title = `🚨 Новий репорт у ${project.name || 'проєкті'}`;
           const sevMap: Record<string, string> = { low: '🟢 Низький', medium: '🟡 Середній', high: '🟠 Високий', critical: '🔴 Критичний' };
           let msg = `<b>${title}</b>\n\n`;
           msg += `<b>Пріоритет:</b> ${sevMap[severity] || severity}\n`;

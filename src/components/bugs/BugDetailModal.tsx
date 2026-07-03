@@ -608,7 +608,7 @@ export default function BugDetailModal({ bug, project, onClose, onStatusChange, 
 
           {(onPrev || onNext) && (
             <div className="flex justify-center pt-[4px]">
-              <span className="text-[11px] text-[#cfcfcf]">← → для навігації між багами</span>
+              <span className="text-[11px] text-[#cfcfcf]">← → для навігації між репортами</span>
             </div>
           )}
 

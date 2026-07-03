@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
       'Each report contains: screenshot URL, DOM element context (CSS selector, React component, file path),',
       'network errors (with request/response bodies), console errors, user interaction steps, and state changes.',
       '',
-      'For each bug provide:',
+      'For each report provide:',
       '1. A clear, concise title',
       '2. Root cause analysis based on the technical evidence',
       '3. Exact file(s) and line(s) to fix (use the component filePath and selector info)',

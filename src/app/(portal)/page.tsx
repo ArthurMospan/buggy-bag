@@ -303,7 +303,7 @@ export default function DashboardPage() {
             </div>
           ) : filteredBugs.length === 0 ? (
             <div className="text-[13px] text-center text-[#9a9a9a] py-[60px] font-medium">
-              Жодного бага за обраними фільтрами не знайдено.
+              Жодного репорту за обраними фільтрами не знайдено.
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[16px] px-[16px] md:px-[40px] pb-[40px] w-full">
