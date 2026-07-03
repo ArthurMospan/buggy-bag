@@ -38,7 +38,7 @@ export default function SetupGuide({ apiKey, widgetPassword }: { apiKey: string,
     <div className="flex flex-col gap-[32px] bg-[#f9f9fa] border border-[#e9e9e9] p-[32px] rounded-[16px]">
       <div>
         <h2 className="text-[20px] font-bold text-[#1f1f1f] mb-[8px]">Підключення віджета</h2>
-        <p className="text-[14px] text-[#9a9a9a] leading-relaxed">Вставте скрипт на ваш сайт, щоб почати збирати баги.</p>
+        <p className="text-[14px] text-[#9a9a9a] leading-relaxed">Вставте скрипт на ваш сайт, щоб почати збирати репорти.</p>
       </div>
       
       <div className="flex flex-col gap-[24px]">

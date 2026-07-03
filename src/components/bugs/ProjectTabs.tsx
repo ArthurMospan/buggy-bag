@@ -18,7 +18,7 @@ export default function ProjectTabs({ projectId }: { projectId: string }) {
         }`}
       >
         <Bug size={14} />
-        Баги
+        Репорти
       </Link>
       <Link
         href={`/projects/${projectId}/integration`}

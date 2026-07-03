@@ -515,7 +515,7 @@ const FORMATTERS: Record<TemplateId, (bugs: Bug[]) => string> = {
 // ── UI helpers ───────────────────────────────────────────────────────────────
 
 const TOOL_OPTIONS: { id: TemplateId; label: string; desc: string }[] = [
-  { id: 'antigravity', label: 'Antigravity',   desc: 'Агент виправляє баги по черзі' },
+  { id: 'antigravity', label: 'Antigravity',   desc: 'Агент виправляє репорти по черзі' },
   { id: 'claude',      label: 'Claude Code',   desc: 'Claude у терміналі' },
   { id: 'cursor',      label: 'Cursor',        desc: 'AI-редактор з chat-режимом' },
   { id: 'github',      label: 'GitHub Issue',  desc: 'Структурований звіт для GitHub/Jira' },
@@ -735,7 +735,7 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
             <div className="flex-1 overflow-hidden relative bg-[#2a2a2a] md:rounded-br-[24px] md:clip-rounded border-t border-[#3f3f46]">
               {selected.length === 0 ? (
                 <div className="w-full h-full flex items-center justify-center text-[#9a9a9a] font-medium text-[14px] bg-[#2a2a2a] md:rounded-br-[24px] text-center px-4">
-                  Оберіть баги зі списку ліворуч — промпт згенерується автоматично...
+                  Оберіть репорти зі списку ліворуч — промпт згенерується автоматично...
                 </div>
               ) : (
                 <div className="w-full h-full font-mono text-[13px] leading-relaxed bg-[#2a2a2a] p-[16px] pb-[80px] md:pb-[32px] md:p-[32px] text-white/90 overflow-y-auto custom-scrollbar whitespace-pre-wrap select-text rounded-br-[24px]">
@@ -802,7 +802,7 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
         >
           <div className="flex flex-col gap-4">
             <p className="text-[14px] text-[#5d5d5d]">
-              Ви впевнені, що хочете видалити обрані баги ({selected.length})? Цю дію неможливо скасувати.
+              Ви впевнені, що хочете видалити обрані репорти ({selected.length})? Цю дію неможливо скасувати.
             </p>
             <div className="flex justify-end gap-[8px] mt-2">
               <button

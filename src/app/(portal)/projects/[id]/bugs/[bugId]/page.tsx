@@ -94,7 +94,7 @@ export default function BugPage() {
   }
 
   if (!bug) {
-    return <div className="flex h-full items-center justify-center text-[#9a9a9a] bg-[#f4f4f5]">Баг не знайдено</div>;
+    return <div className="flex h-full items-center justify-center text-[#9a9a9a] bg-[#f4f4f5]">Репорт не знайдено</div>;
   }
 
   return (

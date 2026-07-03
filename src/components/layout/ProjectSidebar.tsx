@@ -33,9 +33,9 @@ const FILTER_TABS = FILTERS.map(f => ({ id: f.value, label: f.label }));
 function bugLabel(n: number): string {
   const mod10 = n % 10;
   const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return 'баг';
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'баги';
-  return 'багів';
+  if (mod10 === 1 && mod100 !== 11) return 'репорт';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'репорти';
+  return 'репортів';
 }
 
 export default function ProjectSidebar() {
@@ -256,7 +256,7 @@ export default function ProjectSidebar() {
                   <HardDrive size={14} className="shrink-0" /> {exporting ? 'Генерація...' : 'Зберегти на Google Drive'}
                 </button>
                 <div className="h-[1px] bg-[#f0f0f0] my-[4px] mx-[6px]" />
-                <div className="px-[12px] py-[6px] text-[10px] font-bold text-[#9a9a9a] uppercase tracking-wider">Фільтр багів</div>
+                <div className="px-[12px] py-[6px] text-[10px] font-bold text-[#9a9a9a] uppercase tracking-wider">Фільтр репортів</div>
                 {FILTERS.map(f => (
                   <button
                     key={f.value}

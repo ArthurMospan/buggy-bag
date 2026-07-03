@@ -76,9 +76,9 @@ export default function ProjectDashboardPage() {
     }
 
     if (action === 'status' && value === 'in_progress' && skipClear) {
-      success(`Статус ${ids.length} багів змінено на "В роботі"`);
+      success(`Статус ${ids.length} репортів змінено на "В роботі"`);
     } else {
-      success(action === 'delete' ? 'Баги видалено' : 'Баги оновлено');
+      success(action === 'delete' ? 'Репорти видалено' : 'Репорти оновлено');
     }
     
     if (!skipClear) {
@@ -116,9 +116,9 @@ export default function ProjectDashboardPage() {
       <div className="mb-[24px] text-[#1f1f1f]">
         <AnimatedLogo size={84} />
       </div>
-      <h1 className="text-[20px] font-semibold text-[#1f1f1f] mb-[8px]">Виберіть баг</h1>
+      <h1 className="text-[20px] font-semibold text-[#1f1f1f] mb-[8px]">Виберіть репорт</h1>
       <p className="text-[13px] text-[#9a9a9a] max-w-[360px] leading-relaxed">
-        Виберіть баг зі списку зліва, щоб переглянути його деталі, або виділіть кілька чекбоксами для генерації промпту.
+        Виберіть репорт зі списку зліва, щоб переглянути його деталі, або виділіть кілька чекбоксами для генерації промпту.
       </p>
     </div>
   );

@@ -129,7 +129,7 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-[8px]">
             <h2 className="text-[24px] font-bold text-[#1a1a1a] tracking-tight">Ласкаво просимо до BuggyBag!</h2>
             <p className="text-[14px] leading-relaxed text-[#71717a] font-medium max-w-[400px] mx-auto">
-              Почнімо роботу. Створіть свій перший проєкт, щоб згенерувати унікальний API-ключ та підключити віджет збору багів.
+              Почнімо роботу. Створіть свій перший проєкт, щоб згенерувати унікальний API-ключ та підключити віджет збору репортів.
             </p>
           </div>
 
@@ -175,7 +175,7 @@ export default function DashboardPage() {
       {/* ── Header ── */}
       <div className="pt-[16px] md:pt-[24px] pb-[16px] w-full shrink-0 flex flex-col md:flex-row md:items-center justify-between px-[16px] md:px-[40px] sticky top-0 z-50 bg-[#ffffff] gap-4">
         <div className="flex items-center justify-between w-full md:w-auto">
-          <h1 className="text-[24px] font-bold text-[#1f1f1f] tracking-tight">Останні баги</h1>
+          <h1 className="text-[24px] font-bold text-[#1f1f1f] tracking-tight">Останні репорти</h1>
           <button 
             className="md:hidden w-[32px] h-[32px] flex items-center justify-center bg-[#f4f4f5] hover:bg-[#e9e9e9] rounded-[8px] text-[#1f1f1f] transition-colors"
             onClick={() => setShowFilters(!showFilters)}

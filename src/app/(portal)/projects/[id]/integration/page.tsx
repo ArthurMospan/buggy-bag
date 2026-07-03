@@ -206,7 +206,7 @@ function GeneralSection({ project, onUpdate }: { project: Project, onUpdate: (p:
   };
 
   const handleDelete = async () => {
-    if (!confirm('Ви впевнені, що хочете видалити цей проєкт? Усі баги та налаштування будуть втрачені назавжди!')) return;
+    if (!confirm('Ви впевнені, що хочете видалити цей проєкт? Усі репорти та налаштування будуть втрачені назавжди!')) return;
     setIsDeleting(true);
     try {
       const res = await fetch('/api/projects', {
@@ -303,7 +303,7 @@ function GeneralSection({ project, onUpdate }: { project: Project, onUpdate: (p:
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px]">
           <div>
             <span className="text-[13px] font-bold text-[#1f1f1f] block">Статус віджета: {project.is_active ? 'Активний' : 'Вимкнений'}</span>
-            <span className="text-[12px] text-[#9a9a9a] mt-[4px] block">Відвідувачі {project.is_active ? 'можуть' : 'не можуть'} надсилати баги.</span>
+            <span className="text-[12px] text-[#9a9a9a] mt-[4px] block">Відвідувачі {project.is_active ? 'можуть' : 'не можуть'} надсилати репорти.</span>
           </div>
           <button onClick={toggleActive} disabled={isUpdatingStatus} className={`relative w-[44px] h-[24px] rounded-full transition-colors ${project.is_active ? 'bg-[#1f1f1f]' : 'bg-[#e9e9e9]'} ${isUpdatingStatus ? 'opacity-50' : ''} shrink-0`}>
             <div className={`absolute top-[2px] left-[2px] w-[20px] h-[20px] bg-white rounded-full transition-transform shadow-sm ${project.is_active ? 'translate-x-[20px]' : 'translate-x-0'}`} />
@@ -315,7 +315,7 @@ function GeneralSection({ project, onUpdate }: { project: Project, onUpdate: (p:
         <h2 className="text-[16px] font-bold text-[#ef4444] mb-[6px] flex items-center gap-[8px]">
           <ShieldAlert size={18} /> Небезпечна зона
         </h2>
-        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Видалення проєкту — незворотна дія. Всі дані, налаштування та зібрані баги будуть втрачені.</p>
+        <p className="text-[13px] text-[#9a9a9a] mb-[20px] leading-relaxed">Видалення проєкту — незворотна дія. Всі дані, налаштування та зібрані репорти будуть втрачені.</p>
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[16px] bg-red-500/5 border border-red-500/20 rounded-[10px] p-[20px]">
           <div>
@@ -376,7 +376,7 @@ function InviteModal({ project, onUpdate, onClose }: { project: Project, onUpdat
           <button onClick={onClose} className="text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-[#f4f4f5] p-1 rounded-lg transition-colors"><X size={20} /></button>
         </div>
         <div className="p-[24px]">
-          <p className="text-[13px] text-[#9a9a9a] mb-[16px] leading-relaxed">Поділіться цим посиланням з іншими розробниками. Вони автоматично отримають доступ до багів цього проєкту.</p>
+          <p className="text-[13px] text-[#9a9a9a] mb-[16px] leading-relaxed">Поділіться цим посиланням з іншими розробниками. Вони автоматично отримають доступ до репортів цього проєкту.</p>
           {inviteUrl ? (
             <div className="flex flex-col gap-[16px]">
               <div className="flex items-center gap-[10px] bg-[#f4f4f5] rounded-[10px] px-[16px] py-[12px]">
@@ -835,7 +835,7 @@ function TelegramSection({ project, onUpdate }: { project: Project, onUpdate: (p
           <ol className="list-decimal pl-[16px] space-y-[6px]">
             <li>Створіть бота через <a href="https://t.me/botfather" target="_blank" rel="noreferrer" className="text-[#1f1f1f] font-bold hover:underline">@BotFather</a> у Telegram та скопіюйте сюди його <b>Token</b>.</li>
             <li>Напишіть боту <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer" className="text-[#1f1f1f] font-bold hover:underline">@userinfobot</a>, щоб дізнатись свій особистий <b>Chat ID</b>.</li>
-            <li className="text-[11px] text-[#9a9a9a]/80"><i>Щоб отримувати баги в групу — додайте бота в групу і дізнайтесь її ID через @raw_data_bot.</i></li>
+            <li className="text-[11px] text-[#9a9a9a]/80"><i>Щоб отримувати репорти в групу — додайте бота в групу і дізнайтесь її ID через @raw_data_bot.</i></li>
           </ol>
         </div>
         <div className="flex items-center gap-[12px] shrink-0 pb-[2px]">
@@ -851,7 +851,7 @@ function TelegramSection({ project, onUpdate }: { project: Project, onUpdate: (p
   return (
     <div className="flex flex-col">
       <h2 className="text-[16px] font-bold text-[#1f1f1f] mb-[6px]">Інтеграція з Telegram</h2>
-      <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Підключіть Telegram бота, щоб миттєво отримувати сповіщення про нові баги.</p>
+      <p className="text-[13px] text-[#9a9a9a] mb-[24px] leading-relaxed">Підключіть Telegram бота, щоб миттєво отримувати сповіщення про нові репорти.</p>
 
       {isConnected && (
         <div className="flex items-center justify-between gap-[16px] bg-[#ffffff] border border-[#e9e9e9] rounded-[10px] p-[20px] mb-[24px]">
@@ -1008,7 +1008,7 @@ function ActivityTimeline({ logs }: { logs: ActivityLog[] }) {
   const getLogDetails = (log: ActivityLog) => {
     switch (log.action) {
       case 'widget_connected': return { icon: <CheckCircle2 size={16} className="text-emerald-500" />, text: 'Віджет підключено', desc: `Домен: ${log.details?.domain || 'Невідомо'}` };
-      case 'bug_received': return { icon: <Circle size={16} className="text-[#9a9a9a]" />, text: 'Отримано новий баг', desc: `ID: ${log.details?.bug_id?.split('-')[0]}` };
+      case 'bug_received': return { icon: <Circle size={16} className="text-[#9a9a9a]" />, text: 'Отримано новий репорт', desc: `ID: ${log.details?.bug_id?.split('-')[0]}` };
       case 'widget_disabled': return { icon: <Circle size={16} className="text-orange-500" />, text: 'Віджет вимкнено з порталу' };
       case 'widget_enabled': return { icon: <CheckCircle2 size={16} className="text-emerald-500" />, text: 'Віджет знову увімкнено' };
       default: return { icon: <Circle size={16} className="text-[#9a9a9a]" />, text: log.action };
@@ -1095,7 +1095,7 @@ export default function IntegrationPage() {
       case 'integration': return 'Налаштування віджета та статус';
       case 'general': return 'Назва проєкту та видалення';
       case 'team': return 'Управління доступом та учасники';
-      case 'telegram': return 'Сповіщення про нові баги';
+      case 'telegram': return 'Сповіщення про нові репорти';
       case 'github': return 'Інтеграція репозиторію та токени';
       case 'youtrack': return 'Інтеграція з YouTrack';
       case 'quickteam': return 'Інтеграція з QuickTeam';

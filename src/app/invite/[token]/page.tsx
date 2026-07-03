@@ -115,7 +115,7 @@ export default function InvitePage() {
               <div className="text-center mb-4">
                 <h2 className="text-xl font-bold text-white mb-2">{projectName}</h2>
                 <p className="text-sm text-white/70 leading-relaxed px-2">
-                  Вас запрошено долучитися до проєкту як член команди. Ви матимете доступ до всіх багів та налаштувань.
+                  Вас запрошено долучитися до проєкту як член команди. Ви матимете доступ до всіх репортів та налаштувань.
                 </p>
               </div>
 

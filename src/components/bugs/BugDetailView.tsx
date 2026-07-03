@@ -680,7 +680,7 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
                 {kebabOpen && (
                   <div className="absolute top-[calc(100%+4px)] left-0 z-50 min-w-[160px] bg-white border border-[#e9e9e9] rounded-[8px] shadow-lg py-[4px]">
                     <button onClick={() => { setDeleteBugModalOpen(true); setKebabOpen(false); }} className="w-full text-left px-[12px] py-[8px] text-[13px] font-medium text-[#ef4444] hover:bg-[#fee2e2] flex items-center gap-[8px]">
-                      <Trash2 size={14} /> Видалити баг
+                      <Trash2 size={14} /> Видалити репорт
                     </button>
                   </div>
                 )}
@@ -1278,12 +1278,12 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
       <Dialog
         isOpen={deleteBugModalOpen}
         onClose={() => setDeleteBugModalOpen(false)}
-        title="Підтвердження видалення багу"
+        title="Підтвердження видалення репорту"
         size="sm"
       >
         <div className="flex flex-col gap-4">
           <p className="text-[14px] text-[#5d5d5d]">
-            Ви впевнені, що хочете видалити цей баг? Цю дію неможливо скасувати.
+            Ви впевнені, що хочете видалити цей репорт? Цю дію неможливо скасувати.
           </p>
           <div className="flex justify-end gap-[8px] mt-2">
             <button
