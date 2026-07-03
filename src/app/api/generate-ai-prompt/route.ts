@@ -147,11 +147,7 @@ export async function POST(req: NextRequest) {
     const sections = body.bugs.map((bug, i) => buildBugSection(bug, i));
 
     const prompt = [
-<<<<<<< Updated upstream
-      'You are a senior software engineer reviewing reports / issues captured by the BuggyBag widget.',
-=======
-      'You are a senior software engineer reviewing reports captured by the BuggyBag widget.',  
->>>>>>> Stashed changes
+      'You are a senior software engineer reviewing reports captured by the BuggyBag widget.',
       'Each report contains: screenshot URL, DOM element context (CSS selector, React component, file path),',
       'network errors (with request/response bodies), console errors, user interaction steps, and state changes.',
       '',
