@@ -54,7 +54,7 @@ export function formatBugMarkdown(bug: Bug): string {
 
   const hasAnnotations = annotatedEntries.length > 0;
 
-  const lines: string[] = ['## Bug Report', ''];
+  const lines: string[] = ['## Report', ''];
 
 
 

@@ -62,7 +62,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // Generate Markdown
     const md = formatBugMarkdown(bug);
-    const summary = `[BuggyBag] ${bug.description ? bug.description.substring(0, 60) : 'New Bug Report'}`;
+    const summary = `[BuggyBag] ${bug.description ? bug.description.substring(0, 60) : 'New Report'}`;
 
     const decryptedToken = decrypt(project.quickteam_token);
     const rawUrl = process.env.QUICKTEAM_API_URL || process.env.NEXT_PUBLIC_QUICKTEAM_URL || 'https://qt-workspace.vercel.app';

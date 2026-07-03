@@ -5,7 +5,7 @@ import { Bug, BugStatus, BugSeverity, DrawShape, PinElementContext, Project, Ann
 import BugScreenshot, { isMobileShaped } from './BugScreenshot';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
-import { ChevronDown, ChevronUp, Copy, Check, Maximize2, X, ArrowLeft, Monitor, Globe, Calendar, Terminal, Code2, ExternalLink, Plus, Link as LinkIcon, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, Check, Maximize2, X, ArrowLeft, Monitor, Globe, Calendar, Terminal, Code2, ExternalLink, Plus, Link as LinkIcon, MoreVertical, Edit2, Trash2, Smartphone, Paintbrush, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { STATUS_CFG, SEVERITY_CFG } from '@/lib/constants';
@@ -242,6 +242,41 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
   const [kebabOpen, setKebabOpen] = useState(false);
   const kebabRef = useRef<HTMLDivElement>(null);
 
+  // ── Mode switching with annotation-conflict warning ────────────────────────
+  type AppMode = 'adaptive' | 'live-edit';
+  const [activeMode, setActiveMode] = useState<AppMode | null>(null);
+  const [pendingMode, setPendingMode] = useState<AppMode | null>(null);
+  const [warningModalOpen, setWarningModalOpen] = useState(false);
+
+  const handleModeSwitch = (mode: AppMode) => {
+    // If same mode clicked — toggle off
+    if (activeMode === mode) { setActiveMode(null); return; }
+    // If there are active annotations — show warning
+    if (annotations.length > 0) {
+      setPendingMode(mode);
+      setWarningModalOpen(true);
+    } else {
+      setActiveMode(mode);
+    }
+  };
+
+  const confirmModeSwitch = () => {
+    if (pendingMode) setActiveMode(pendingMode);
+    setPendingMode(null);
+    setWarningModalOpen(false);
+  };
+
+  const cancelModeSwitch = () => {
+    setPendingMode(null);
+    setWarningModalOpen(false);
+  };
+
+  const MODE_LABELS: Record<AppMode, string> = {
+    'adaptive': 'Адаптив',
+    'live-edit': 'Живе редагування',
+  };
+
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (kebabRef.current && !kebabRef.current.contains(event.target as Node)) {
@@ -470,6 +505,48 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
               </div>
             </div>
           )}
+        </Dialog>,
+        document.body
+      )}
+
+      {/* ── Warning Modal: Mode switch while annotations exist ── */}
+      {typeof document !== 'undefined' && createPortal(
+        <Dialog isOpen={warningModalOpen} onClose={cancelModeSwitch} title="" showCloseButton={false} size="sm">
+          <div className="flex flex-col items-center text-center gap-[16px] py-[8px]">
+            {/* Icon */}
+            <div className="w-[52px] h-[52px] rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
+              <AlertTriangle size={24} className="text-amber-500" />
+            </div>
+
+            {/* Text */}
+            <div className="flex flex-col gap-[6px]">
+              <h3 className="text-[16px] font-bold text-[#1f1f1f]">
+                Активні мітки можуть змінити позицію
+              </h3>
+              <p className="text-[13px] text-[#71717a] leading-[1.6] max-w-[340px]">
+                На скріншоті є <strong className="text-[#1f1f1f]">{annotations.length} {annotations.length === 1 ? 'мітка' : annotations.length < 5 ? 'мітки' : 'міток'}</strong>. Перемикання на режим <strong className="text-[#1f1f1f]">&laquo;{pendingMode ? MODE_LABELS[pendingMode] : ''}&raquo;</strong> може змістити DOM і мітки втратять прив'язку до елементів.
+              </p>
+              <p className="text-[12px] text-[#9a9a9a] mt-[4px]">
+                Збережіть або надішліть поточний репорт перед перемиканням режиму.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-[10px] w-full mt-[4px]">
+              <button
+                onClick={cancelModeSwitch}
+                className="flex-1 px-[16px] py-[10px] text-[13px] font-semibold text-[#1f1f1f] bg-[#f4f4f5] hover:bg-[#e9e9e9] rounded-[10px] transition-colors"
+              >
+                Скасувати
+              </button>
+              <button
+                onClick={confirmModeSwitch}
+                className="flex-1 px-[16px] py-[10px] text-[13px] font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-[10px] transition-colors"
+              >
+                Все одно продовжити
+              </button>
+            </div>
+          </div>
         </Dialog>,
         document.body
       )}
@@ -732,6 +809,36 @@ export default function BugDetailView({ bug, project, allBugs = [], onStatusChan
               {copied ? <Check size={16} /> : <Copy size={16} />}
               <span>{copied ? 'Скопійовано' : 'Копіювати MD'}</span>
             </button>
+
+            {/* ── Mode switch buttons ── */}
+            <div className="flex items-center gap-[4px] bg-[#f4f4f5] rounded-[10px] p-[3px]">
+              <button
+                id="btn-mode-adaptive"
+                onClick={() => handleModeSwitch('adaptive')}
+                title="Адаптив — перевірка на різних розмірах екрана"
+                className={`flex items-center gap-[6px] px-[10px] h-[30px] rounded-[8px] text-[12px] font-semibold transition-all ${
+                  activeMode === 'adaptive'
+                    ? 'bg-white text-[#1f1f1f] shadow-sm'
+                    : 'text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-white/60'
+                }`}
+              >
+                <Smartphone size={14} />
+                <span className="hidden lg:inline">Адаптив</span>
+              </button>
+              <button
+                id="btn-mode-live-edit"
+                onClick={() => handleModeSwitch('live-edit')}
+                title="Живе редагування — правка стилів прямо на сторінці"
+                className={`flex items-center gap-[6px] px-[10px] h-[30px] rounded-[8px] text-[12px] font-semibold transition-all ${
+                  activeMode === 'live-edit'
+                    ? 'bg-white text-[#1f1f1f] shadow-sm'
+                    : 'text-[#9a9a9a] hover:text-[#1f1f1f] hover:bg-white/60'
+                }`}
+              >
+                <Paintbrush size={14} />
+                <span className="hidden lg:inline">Живе редагування</span>
+              </button>
+            </div>
           </div>
         </div>
 

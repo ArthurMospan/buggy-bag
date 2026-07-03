@@ -330,7 +330,7 @@ export default function ProjectSidebar() {
         ) : filteredBugs.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center p-[24px] text-center">
             <span className="text-[13px] font-medium text-[#1f1f1f]">
-              {debouncedSearch ? 'Нічого не знайдено' : 'Багів не знайдено'}
+              {debouncedSearch ? 'Нічого не знайдено' : 'Репортів не знайдено'}
             </span>
             {debouncedSearch && (
               <span className="text-[12px] text-[#9a9a9a] mt-[4px]">

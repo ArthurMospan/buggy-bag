@@ -22,12 +22,12 @@ export async function generateProjectZip(project: Project, bugs: Bug[]): Promise
     summaryMd += `Домен: ${project.connected_domain}\n`;
   }
   summaryMd += `\n## Статистика\n`;
-  summaryMd += `- Всього багів: ${bugs.length}\n`;
+  summaryMd += `- Всього репортів: ${bugs.length}\n`;
   Object.entries(statusStats).forEach(([status, count]) => {
     summaryMd += `- ${status}: ${count}\n`;
   });
 
-  summaryMd += `\n## Список багів\n\n`;
+  summaryMd += `\n## Список репортів\n\n`;
   bugs.forEach((b, i) => {
     summaryMd += `### ${i + 1}. [${b.status}] ${b.description?.slice(0, 50) || 'Без опису'}...\n`;
     summaryMd += `- ID: ${b.id}\n`;

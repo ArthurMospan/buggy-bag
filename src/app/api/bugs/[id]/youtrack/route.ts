@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Generate Markdown
     const md = formatBugMarkdown(bug);
 
-    const summary = `[BuggyBag] ${bug.description ? bug.description.substring(0, 60) : 'New Bug Report'}`;
+    const summary = `[BuggyBag] ${bug.description ? bug.description.substring(0, 60) : 'New Report'}`;
 
     const decryptedToken = decrypt(project.youtrack_token);
     const ytUrl = project.youtrack_url.replace(/\/$/, ''); // Remove trailing slash if any

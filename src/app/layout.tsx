@@ -8,7 +8,7 @@ const geist = Geist({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'BuggyBag Portal',
-  description: 'Bug reports admin dashboard',
+  description: 'Reports dashboard',
   icons: {
     icon: '/favicon.ico',
   },

@@ -17,7 +17,7 @@ function buildBugSection(bug: Bug, index: number): string {
   const tc: TechContext | null = bug.tech_context ?? null;
   const lines: string[] = [];
 
-  lines.push(`=== Bug #${index + 1} [${(bug.severity ?? 'low').toUpperCase()}] ===`);
+  lines.push(`=== Issue #${index + 1} [${(bug.severity ?? 'low').toUpperCase()}] ===`);
   if (bug.description) lines.push(`Description: ${bug.description}`);
   lines.push(`Status: ${bug.status}`);
   lines.push(`Reported: ${new Date(bug.created_at).toLocaleString('uk-UA')}`);
@@ -117,7 +117,7 @@ function buildBugSection(bug: Bug, index: number): string {
   // Store diff (Task 6)
   if (tc.storeDiff && Object.keys(tc.storeDiff).length > 0) {
     lines.push('');
-    lines.push('State changes (page load → bug):');
+    lines.push('State changes (page load → report):');
     Object.entries(tc.storeDiff).forEach(([key, { before, after }]) => {
       lines.push(`  ${key}:`);
       lines.push(`    before: ${JSON.stringify(before)}`);
@@ -141,13 +141,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json() as { bugs?: Bug[] };
 
     if (!body.bugs || !Array.isArray(body.bugs) || body.bugs.length === 0) {
-      return NextResponse.json({ error: 'No bugs provided' }, { status: 400, headers: CORS });
+      return NextResponse.json({ error: 'No reports provided' }, { status: 400, headers: CORS });
     }
 
     const sections = body.bugs.map((bug, i) => buildBugSection(bug, i));
 
     const prompt = [
-      'You are a senior software engineer reviewing bug reports captured by the BuggyBag widget.',
+      'You are a senior software engineer reviewing reports / issues captured by the BuggyBag widget.',
       'Each report contains: screenshot URL, DOM element context (CSS selector, React component, file path),',
       'network errors (with request/response bodies), console errors, user interaction steps, and state changes.',
       '',

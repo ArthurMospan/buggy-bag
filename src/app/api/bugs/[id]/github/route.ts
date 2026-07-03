@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Generate Markdown
     const md = formatBugMarkdown(bug);
 
-    const title = `[BuggyBag] ${bug.description ? bug.description.substring(0, 60) : 'New Bug Report'}`;
+    const title = `[BuggyBag] ${bug.description ? bug.description.substring(0, 60) : 'New Report'}`;
 
     const decryptedToken = decrypt(project.github_token);
 
