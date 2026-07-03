@@ -141,17 +141,21 @@ export async function POST(req: NextRequest) {
     const body = await req.json() as { bugs?: Bug[] };
 
     if (!body.bugs || !Array.isArray(body.bugs) || body.bugs.length === 0) {
-      return NextResponse.json({ error: 'No bugs provided' }, { status: 400, headers: CORS });
+      return NextResponse.json({ error: 'No reports provided' }, { status: 400, headers: CORS });
     }
 
     const sections = body.bugs.map((bug, i) => buildBugSection(bug, i));
 
     const prompt = [
+<<<<<<< Updated upstream
+      'You are a senior software engineer reviewing reports / issues captured by the BuggyBag widget.',
+=======
       'You are a senior software engineer reviewing reports captured by the BuggyBag widget.',  
+>>>>>>> Stashed changes
       'Each report contains: screenshot URL, DOM element context (CSS selector, React component, file path),',
       'network errors (with request/response bodies), console errors, user interaction steps, and state changes.',
       '',
-      'For each issue provide:',
+      'For each report provide:',
       '1. A clear, concise title',
       '2. Root cause analysis based on the technical evidence',
       '3. Exact file(s) and line(s) to fix (use the component filePath and selector info)',
