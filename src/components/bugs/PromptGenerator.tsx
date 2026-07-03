@@ -163,7 +163,7 @@ function formatGitHub(bugs: Bug[]): string {
     const hasAnnotations = annotatedEntries.length > 0;
 
     const lines: string[] = [
-      `## Bug "${bug.human_id || bug.id.split('-')[0]}" (${tc?.route || 'No route'})`,
+      `## Issue "${bug.human_id || bug.id.split('-')[0]}" (${tc?.route || 'No route'})`,
       '',
     ];
 
@@ -255,18 +255,18 @@ function formatGitHub(bugs: Bug[]): string {
 function formatAntigravity(bugs: Bug[]): string {
   const sorted = sortBySev(bugs);
   const lines = [
-    '# Bug Fix Request — Antigravity Agent', '',
+    '# Issue Fix Request — Antigravity Agent', '',
     '## Workflow (follow in order)',
-    '1. Open the Screenshot URL for EACH bug — examine it before reading anything else',
+    '1. Open the Screenshot URL for EACH issue — examine it before reading anything else',
     '2. Match each Pin # on the screenshot to its description in "Pinned issues" below',
-    '3. Write a brief action plan (one step per bug/pin) before touching any code',
+    '3. Write a brief action plan (one step per issue/pin) before touching any code',
     '4. Ask clarifying questions if anything remains ambiguous after examining the screenshot',
-    '5. Fix ONE bug at a time — do not jump ahead', '',
+    '5. Fix ONE issue at a time — do not jump ahead', '',
     '## Rules',
-    '- Fix bugs in listed order (highest severity first)',
+    '- Fix issues in listed order (highest severity first)',
     '- After each fix: show exact file path and lines changed',
     '- Provide your action plan and final report ONLY in Ukrainian language',
-    '- Report format MUST start with: Bug "{ID}" (/route)',
+    '- Report format MUST start with: Issue "{ID}" (/route)',
     '- Final report MUST be a table with emojis:',
     '  | 🐛 Що було | 🛠️ Що виправлено |',
     '  | --- | --- |',
@@ -274,12 +274,12 @@ function formatAntigravity(bugs: Bug[]): string {
     '- Do NOT refactor unrelated code',
     '- If unsure about visual details — re-examine the screenshot, then ask',
     '- Do NOT start coding before you have a clear plan', '',
-    `## Bugs (${sorted.length})`, '',
+    `## Issues (${sorted.length})`, '',
   ];
   sorted.forEach((bug, i) => {
     const tc = bug.tech_context;
     const sev = getUnifiedSeverityLabel(bug.severity);
-    lines.push(`### Bug "${bug.human_id || bug.id.split('-')[0]}" (${tc?.route || 'No route'}) [Severity: ${sev}]`);
+    lines.push(`### Issue "${bug.human_id || bug.id.split('-')[0]}" (${tc?.route || 'No route'}) [Severity: ${sev}]`);
 
 
     // Route + Viewport — Component intentionally omitted at bug level; shown per-pin below
@@ -342,10 +342,10 @@ function formatAntigravity(bugs: Bug[]): string {
 function formatCursor(bugs: Bug[]): string {
   const sorted = sortBySev(bugs);
   const lines = [
-    `Fix ${sorted.length} bug${sorted.length > 1 ? 's' : ''} one at a time.`,
-    'Workflow: (1) Open screenshot URL and examine it. (2) Match each Pin # to its description. (3) Write a plan before coding. (4) Fix one bug, show changed lines, proceed.',
+    `Fix ${sorted.length} issue${sorted.length > 1 ? 's' : ''} one at a time.`,
+    'Workflow: (1) Open screenshot URL and examine it. (2) Match each Pin # to its description. (3) Write a plan before coding. (4) Fix one issue, show changed lines, proceed.',
     'IMPORTANT: Provide your action plan and final report ONLY in Ukrainian language.',
-    'Report format after fix MUST include: Bug "{ID}" (/route)',
+    'Report format after fix MUST include: Issue "{ID}" (/route)',
     'And MUST include a neat table with emojis:',
     '| 🐛 Що було | 🛠️ Що виправлено |',
     '| --- | --- |',
@@ -354,7 +354,7 @@ function formatCursor(bugs: Bug[]): string {
   ];
   sorted.forEach((bug, i) => {
     const tc = bug.tech_context;
-    lines.push(`--- Bug "${bug.human_id || bug.id.split('-')[0]}" (${tc?.route || 'No route'}) [Severity: ${getUnifiedSeverityLabel(bug.severity)}] ---`);
+    lines.push(`--- Issue "${bug.human_id || bug.id.split('-')[0]}" (${tc?.route || 'No route'}) [Severity: ${getUnifiedSeverityLabel(bug.severity)}] ---`);
 
 
     if (tc?.route) lines.push(`Route: ${tc.route}`);
@@ -402,19 +402,19 @@ function formatCursor(bugs: Bug[]): string {
 function formatClaude(bugs: Bug[]): string {
   const sorted = sortBySev(bugs);
   const lines = [
-    '<task>', `Fix ${sorted.length} bug${sorted.length > 1 ? 's' : ''} in listed order.`, '</task>', '',
+    '<task>', `Fix ${sorted.length} issue${sorted.length > 1 ? 's' : ''} in listed order.`, '</task>', '',
     '<workflow>',
-    '  1. Open the Screenshot URL for each bug — examine it before reading anything else',
+    '  1. Open the Screenshot URL for each issue — examine it before reading anything else',
     '  2. Match each pin number on the screenshot to its annotation below',
     '  3. Write a numbered action plan before touching any code',
     '  4. Ask clarifying questions if anything is still ambiguous after examining the screenshot',
-    '  5. Fix ONE bug at a time — confirm what changed, then proceed to next',
+    '  5. Fix ONE issue at a time — confirm what changed, then proceed to next',
     '</workflow>', '',
     '<rules>',
-    '  - Fix bugs in listed order (highest severity first)',
+    '  - Fix issues in listed order (highest severity first)',
     '  - After each fix: show exact file path and lines changed',
     '  - Provide your action plan and final report ONLY in Ukrainian language',
-    '  - Report format MUST start with: Bug "{ID}" (/route)',
+    '  - Report format MUST start with: Issue "{ID}" (/route)',
     '  - Final report MUST be a table with emojis:',
     '    | 🐛 Що було | 🛠️ Що виправлено |',
     '    | --- | --- |',
@@ -423,11 +423,11 @@ function formatClaude(bugs: Bug[]): string {
     '  - Do NOT start coding before you have a clear plan',
     '  - If unsure about visual details — re-examine the screenshot, then ask',
     '</rules>', '',
-    '<bugs>',
+    '<issues>',
   ];
   sorted.forEach((bug, i) => {
     const tc = bug.tech_context;
-    lines.push(`<bug id="${bug.human_id || bug.id.split('-')[0]}" route="${tc?.route || ''}" index="${i + 1}" severity="${getUnifiedSeverityLabel(bug.severity)}">`);
+    lines.push(`<issue id="${bug.human_id || bug.id.split('-')[0]}" route="${tc?.route || ''}" index="${i + 1}" severity="${getUnifiedSeverityLabel(bug.severity)}">`);
 
 
     const claudeEntries = (bug.json_shapes ?? [])
@@ -502,9 +502,9 @@ function formatClaude(bugs: Bug[]): string {
 
 
     if (bug.image_url) lines.push(`  <screenshot>${bug.image_url}</screenshot>`);
-    lines.push('</bug>', '');
+    lines.push('</issue>', '');
   });
-  lines.push('</bugs>');
+  lines.push('</issues>');
   return lines.join('\n');
 }
 
@@ -742,7 +742,7 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
                   {(() => {
                     let inIntro = true;
                     return prompt.split('\n').map((line, i) => {
-                      if (line.match(/^## Bugs/i) || line.match(/^<bugs>/i) || line.match(/^(###|##|---) Bug "/i) || line.match(/^<bug /i)) {
+                      if (line.match(/^## Issues/i) || line.match(/^<issues>/i) || line.match(/^(###|##|---) Issue "/i) || line.match(/^<issue /i) || line.match(/^Fix \d+ issue/i)) {
                         inIntro = false;
                       }
 
@@ -758,7 +758,7 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
                         className = "text-[#fef08a] font-black text-[14px] bg-[#eab308]/20 px-[6px] py-[2px] rounded inline-block mt-1 mb-1 shadow-sm"; 
                       }
                       else if (line.match(/^#{1,3}\s/)) className = "text-white font-bold text-[14px] mt-2";
-                      else if (line.match(/Bug "/i) || line.match(/^<bug /i) || line.match(/^<\/bug>/i)) className = "text-[#f87171] font-bold text-[14px] mt-2";
+                      else if (line.match(/Issue "/i) || line.match(/^<issue /i) || line.match(/^<\/issue>/i) || line.match(/--- Issue "/i)) className = "text-[#f87171] font-bold text-[14px] mt-2";
                       else if (line.match(/(Severity:|\[Severity:)/i)) className = "text-[#fb923c] font-bold";
                       else if (line.match(/(Route:|Viewport:|<route>|<viewport>)/i)) className = "text-[#60a5fa]";
                       else if (line.match(/(Error|Console errors:|<error)/i)) className = "text-[#ef4444]";
