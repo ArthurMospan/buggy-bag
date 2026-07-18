@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Copy, Check, Code2, Terminal, Play, Link as LinkIcon } from 'lucide-react';
 
 function CodeBlock({ code, label }: { code: string; label?: string }) {
@@ -33,6 +33,14 @@ export default function SetupGuide({ apiKey, widgetPassword }: { apiKey: string,
   const bookmarkletCode = `javascript:(function(){localStorage.setItem('BUGGY_BAG_ACCESS','active');location.href=location.pathname+'?bb=${encodeURIComponent(param)}';})();`;
 
   const [copiedUrl, setCopiedUrl] = useState(false);
+
+  const bookmarkletRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    if (bookmarkletRef.current) {
+      bookmarkletRef.current.href = bookmarkletCode;
+    }
+  }, [bookmarkletCode]);
 
   return (
     <div className="flex flex-col gap-[32px] bg-[#f9f9fa] border border-[#e9e9e9] p-[32px] rounded-[16px]">
@@ -99,7 +107,7 @@ export default function SetupGuide({ apiKey, widgetPassword }: { apiKey: string,
               <div className="w-[28px] h-[28px] rounded-full bg-[#f4f4f5] flex items-center justify-center text-[12px] font-bold text-[#1f1f1f] shrink-0">2</div>
               <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-[12px]">
                 <p className="text-[13px] font-medium text-[#1f1f1f]">Перетягніть цю кнопку на панель закладок і натискайте її</p>
-                <a href={bookmarkletCode} className="inline-flex items-center justify-center gap-[8px] px-[16px] py-[8px] bg-[#1f1f1f] hover:bg-[#303030] text-[#ffffff] text-[12px] font-bold rounded-[8px] transition-colors cursor-grab shrink-0">
+                <a ref={bookmarkletRef} className="inline-flex items-center justify-center gap-[8px] px-[16px] py-[8px] bg-[#1f1f1f] hover:bg-[#303030] text-[#ffffff] text-[12px] font-bold rounded-[8px] transition-colors cursor-grab shrink-0">
                   <LinkIcon size={14} /> BuggyBag Widget
                 </a>
               </div>

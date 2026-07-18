@@ -207,6 +207,8 @@ interface BugDetailModalProps {
   hasNext?: boolean;
 }
 
+const isSafeHref = (h?: string) => !!h && /^(https?:|mailto:|tel:|\/|#)/i.test(h);
+
 export default function BugDetailModal({ bug, project, onClose, onStatusChange, onSeverityChange, onPrev, onNext, hasPrev, hasNext }: BugDetailModalProps) {
   const [status,   setStatus]   = useState<BugStatus>('open');
   const [severity, setSeverity] = useState<BugSeverity>('low');

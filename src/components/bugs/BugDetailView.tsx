@@ -213,6 +213,8 @@ interface BugDetailViewProps {
   onUpdate?: (id: string, updates: Partial<Bug>) => Promise<void>;
 }
 
+const isSafeHref = (h?: string) => !!h && /^(https?:|mailto:|tel:|\/|#)/i.test(h);
+
 export default function BugDetailView({ bug, project, allBugs = [], onStatusChange, onSeverityChange, onDelete, onUpdate }: BugDetailViewProps) {
   const router = useRouter();
   const [status,    setStatus]   = useState<BugStatus>('open');
