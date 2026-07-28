@@ -17,12 +17,14 @@ interface PromptGeneratorProps {
 
 const GithubLogo = ({ color = 'currentColor' }: {color?: string}) => <svg width="14" height="14" viewBox="0 0 24 24" fill={color}><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>;
 
-type TemplateId = 'antigravity' | 'claude' | 'cursor' | 'github';
+type TemplateId = 'antigravity' | 'claude' | 'cursor' | 'codex' | 'windsurf' | 'github';
 
 const TEMPLATES: { id: TemplateId; label: string; icon: (selected: boolean) => React.ReactNode }[] = [
-  { id: 'antigravity', label: 'Antigravity',  icon: (s) => <img src="/icons/antigravity-color.svg" alt="Antigravity" width={16} height={16} className={`transition-opacity ${s ? 'opacity-100' : 'opacity-60 grayscale'}`} /> },
   { id: 'claude',      label: 'Claude Code',  icon: (s) => <img src="/icons/claude-color.svg" alt="Claude" width={16} height={16} className={`transition-opacity ${s ? 'opacity-100' : 'opacity-60 grayscale'}`} /> },
+  { id: 'codex',       label: 'Codex',        icon: (s) => <img src="/icons/codex-color.svg" alt="Codex" width={16} height={16} className={`transition-opacity ${s ? 'opacity-100' : 'opacity-60 grayscale'}`} /> },
+  { id: 'antigravity', label: 'Antigravity',  icon: (s) => <img src="/icons/antigravity-color.svg" alt="Antigravity" width={16} height={16} className={`transition-opacity ${s ? 'opacity-100' : 'opacity-60 grayscale'}`} /> },
   { id: 'cursor',      label: 'Cursor',       icon: (s) => <img src="/icons/cursor-color.svg" alt="Cursor" width={16} height={16} className={`transition-opacity ${s ? 'opacity-100' : 'opacity-60 grayscale'}`} /> },
+  { id: 'windsurf',    label: 'Windsurf',     icon: (s) => <img src="/icons/windsurf-color.svg" alt="Windsurf" width={16} height={16} className={`transition-opacity ${s ? 'opacity-100' : 'opacity-60 grayscale'}`} /> },
   { id: 'github',      label: 'GitHub Issue', icon: (s) => <GithubLogo color={s ? '#1f1f1f' : 'currentColor'} /> },
 ];
 
@@ -508,16 +510,158 @@ function formatClaude(bugs: Bug[]): string {
   return lines.join('\n');
 }
 
+function formatCodex(bugs: Bug[]): string {
+  const sorted = sortBySev(bugs);
+  const lines = [
+    `# Fix ${sorted.length} Bug${sorted.length > 1 ? 's' : ''}`, '',
+    '## Workflow',
+    '1. Open the Screenshot URL for EACH issue — examine it before reading anything else',
+    '2. Match each Pin # on the screenshot to its description in "Pinned issues" below',
+    '3. Write a brief action plan (one step per issue/pin) before touching any code',
+    '4. Ask clarifying questions if anything remains ambiguous after examining the screenshot',
+    '5. Fix ONE issue at a time — do not jump ahead', '',
+    '## Rules',
+    '- Fix issues in listed order (highest severity first)',
+    '- After each fix: show exact file path and lines changed',
+    '- Provide your action plan and final report ONLY in Ukrainian language',
+    '- Report format MUST start with: Issue "{ID}" (/route)',
+    '- Final report MUST be a table with emojis:',
+    '  | 🐛 Що було | 🛠️ Що виправлено |',
+    '  | --- | --- |',
+    '  | (Короткий опис) | (Короткий опис) |',
+    '- Do NOT refactor unrelated code',
+    '- If unsure about visual details — re-examine the screenshot, then ask',
+    '- Do NOT start coding before you have a clear plan', '',
+    `## Issues (${sorted.length})`, '',
+  ];
+  sorted.forEach((bug, i) => {
+    const tc = bug.tech_context;
+    const sev = getUnifiedSeverityLabel(bug.severity);
+    lines.push(`### Issue "${bug.human_id || bug.id.split('-')[0]}" (${tc?.route || 'No route'}) [Severity: ${sev}]`);
+
+    if (tc?.route) lines.push(`Route: ${tc.route}`);
+    if (tc?.viewport) lines.push(`Viewport: ${tc.viewport}`);
+
+    const consoleErr = tc?.consoleErrors?.filter(e => e.level === 'error') ?? [];
+    if (consoleErr.length) {
+      lines.push('Console errors:');
+      consoleErr.forEach(e => lines.push(`  ${e.message}${e.source ? ` [${e.source}]` : ''}`));
+    }
+
+    const netErr = tc?.networkRequests?.filter(r => r.isError) ?? [];
+    if (netErr.length) {
+      lines.push('Network errors:');
+      netErr.forEach(r => {
+        lines.push(`  ${r.method} ${r.url} → ${r.status || 'ERR'}`);
+        if (r.requestBody) lines.push(`    Request body: ${r.requestBody}`);
+        if (r.responseBody) lines.push(`    Response: ${r.responseBody}`);
+      });
+    }
+
+    const codexActions = getRecentActions(tc?.eventLog);
+    if (codexActions.length) {
+      lines.push('Recent user actions (context only — not a reproduction recipe; use only if needed to understand UI state):');
+      codexActions.forEach((e, j) => {
+        let relStr = '';
+        if (e.relativeMs != null) {
+          const totalSec = Math.round(e.relativeMs / 1000);
+          if (totalSec < 60) relStr = ` [${totalSec}s before report]`;
+          else {
+            const m = Math.floor(totalSec / 60);
+            const s = totalSec % 60;
+            relStr = ` [${m}m${s > 0 ? ` ${s}s` : ''} before report]`;
+          }
+        }
+        lines.push(`  ${j + 1}. ${e.description}${relStr}`);
+      });
+    }
+
+    if (tc?.storeDiff && Object.keys(tc.storeDiff).length > 0) {
+      lines.push('State changes:');
+      Object.entries(tc.storeDiff).forEach(([key, { before, after }]) => {
+        lines.push(`  ${key}: ${JSON.stringify(before)} → ${JSON.stringify(after)}`);
+      });
+    }
+
+    const pinCtx = pinnedIssuesSummary(bug.json_shapes ?? null, bug.json_annotations);
+    if (pinCtx) lines.push(pinCtx);
+
+    if (bug.image_url) lines.push(`Screenshot: ${bug.image_url}`);
+    lines.push(`Verify: confirm issue is gone at ${tc?.route ?? 'reported route'}`);
+    lines.push('');
+  });
+  return lines.join('\n');
+}
+
+function formatWindsurf(bugs: Bug[]): string {
+  const sorted = sortBySev(bugs);
+  const lines = [
+    `Fix ${sorted.length} issue${sorted.length > 1 ? 's' : ''} one at a time.`,
+    'Workflow: (1) Open screenshot URL and examine it. (2) Match each Pin # to its description. (3) Write a plan before coding. (4) Fix one issue, show changed lines, proceed.',
+    'IMPORTANT: Provide your action plan and final report ONLY in Ukrainian language.',
+    'Report format after fix MUST include: Issue "{ID}" (/route)',
+    'And MUST include a neat table with emojis:',
+    '| 🐛 Що було | 🛠️ Що виправлено |',
+    '| --- | --- |',
+    '| (Короткий опис) | (Короткий опис) |',
+    ''
+  ];
+  sorted.forEach((bug, i) => {
+    const tc = bug.tech_context;
+    lines.push(`--- Issue "${bug.human_id || bug.id.split('-')[0]}" (${tc?.route || 'No route'}) [Severity: ${getUnifiedSeverityLabel(bug.severity)}] ---`);
+
+    if (tc?.route) lines.push(`Route: ${tc.route}`);
+    if (tc?.viewport) lines.push(`Viewport: ${tc.viewport}`);
+
+    // Source file hint — from first pin that has it
+    const shapes = (bug.json_shapes ?? []).filter(s => s.type !== 'eraser' && s.elementContext);
+    const pinWithSource = shapes.find(p => p.elementContext?.sourceFile);
+    if (pinWithSource) {
+      const ctx = pinWithSource.elementContext!;
+      lines.push(`File: ${ctx.sourceFile}`);
+      if (ctx.sourceLine) lines.push(`Line: ${ctx.sourceLine}`);
+    }
+
+    tc?.networkRequests?.filter(r => r.isError).forEach(r => {
+      lines.push(`Network: ${r.method} ${r.url} → ${r.status}`);
+      if (r.requestBody) lines.push(`  Body: ${r.requestBody}`);
+    });
+    tc?.consoleErrors?.filter(e => e.level === 'error').forEach(e =>
+      lines.push(`Error: ${e.message}${e.source ? ` [${e.source}]` : ''}`)
+    );
+    if (tc?.storeDiff && Object.keys(tc.storeDiff).length > 0) {
+      lines.push('State:');
+      Object.entries(tc.storeDiff).forEach(([k, { before, after }]) =>
+        lines.push(`  ${k}: ${JSON.stringify(before)} → ${JSON.stringify(after)}`)
+      );
+    }
+    const wsActions = getRecentActions(tc?.eventLog);
+    if (wsActions.length) {
+      lines.push('Recent user actions (context only — not a reproduction recipe):');
+      wsActions.forEach((e, j) => lines.push(`  ${j + 1}. ${e.description}`));
+    }
+    const pinCtx = pinnedIssuesSummary(bug.json_shapes ?? null, bug.json_annotations);
+    if (pinCtx) lines.push(pinCtx);
+
+    if (bug.image_url) lines.push(`Screenshot: ${bug.image_url}`);
+    lines.push('');
+  });
+  lines.push('After each fix confirm what changed, then proceed to next.');
+  return lines.join('\n');
+}
+
 const FORMATTERS: Record<TemplateId, (bugs: Bug[]) => string> = {
-  antigravity: formatAntigravity, claude: formatClaude, cursor: formatCursor, github: formatGitHub,
+  antigravity: formatAntigravity, claude: formatClaude, cursor: formatCursor, codex: formatCodex, windsurf: formatWindsurf, github: formatGitHub,
 };
 
 // ── UI helpers ───────────────────────────────────────────────────────────────
 
 const TOOL_OPTIONS: { id: TemplateId; label: string; desc: string }[] = [
-  { id: 'antigravity', label: 'Antigravity',   desc: 'Агент виправляє репорти по черзі' },
   { id: 'claude',      label: 'Claude Code',   desc: 'Claude у терміналі' },
+  { id: 'codex',       label: 'Codex',         desc: 'OpenAI CLI-агент у терміналі' },
+  { id: 'antigravity', label: 'Antigravity',   desc: 'Агент виправляє репорти по черзі' },
   { id: 'cursor',      label: 'Cursor',        desc: 'AI-редактор з chat-режимом' },
+  { id: 'windsurf',    label: 'Windsurf',      desc: 'AI-редактор з Cascade-режимом' },
   { id: 'github',      label: 'GitHub Issue',  desc: 'Структурований звіт для GitHub/Jira' },
 ];
 
@@ -628,7 +772,7 @@ function BulkActionDropdown({
 
 export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: PromptGeneratorProps) {
   const [copied, setCopied]         = useState(false);
-  const [template, setTemplate]     = useState<TemplateId>('antigravity');
+  const [template, setTemplate]     = useState<TemplateId>('claude');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { clearSelectedBugs } = useProjectContext();
   const { id } = useParams<{ id: string }>();
