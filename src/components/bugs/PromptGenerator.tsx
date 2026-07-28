@@ -511,21 +511,17 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
                     <span className="hidden md:inline">Видалити</span>
                   </button>
                 </div>
-              </div>
-            )}
 
-            {/* Copy prompt button */}
-            {selected.length > 0 && (
-              <div className="hidden md:flex items-center px-[16px] md:px-[32px] py-[10px] bg-[#ffffff] shrink-0 relative z-20 border-b-0">
                 <button 
                   onClick={handleCopy} 
-                  className="flex items-center gap-[6px] text-[13px] font-bold bg-[#1f1f1f] text-white hover:bg-[#2a2a2a] transition-colors cursor-pointer px-[16px] py-[8px] rounded-[10px]"
+                  className="hidden md:flex items-center gap-[6px] text-[13px] font-bold bg-[#1f1f1f] text-white hover:bg-[#2a2a2a] transition-colors cursor-pointer px-[16px] py-[8px] rounded-[10px] shrink-0 ml-auto"
                 >
                   {copied ? <Check size={16} /> : <Copy size={16} />}
                   {copied ? 'Скопійовано' : 'Копіювати промпт'}
                 </button>
               </div>
             )}
+
 
             {/* Prompt textarea / Viewer */}
             <div className="flex-1 overflow-hidden relative bg-[#2a2a2a] md:rounded-br-[24px] md:clip-rounded border-t border-[#3f3f46]">
@@ -550,16 +546,20 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
 
                       let className = "text-[#d4d4d8]"; // Default light gray
                       
-                      // Pin block: highlight the Pin #N line AND all its indented continuation lines
-                      // (Element:, Component:, Data sources:, Text content:, aria-label:, Position:)
-                      if (line.match(/^\s*(-\s\*\*)?Pin #\d+(:|\*\*:)/i) || line.match(/^\s{4,}(Element:|Component:|Data sources:|Text content:|Position:|aria-label:)/i)) {
+                      // Pin annotation text (user's own words) — yellow highlight
+                      if (line.match(/^\s*(-\s\*\*)?Pin #\d+(:|\*\*:)/i)) {
                         className = "text-[#fef08a] font-black text-[14px] bg-[#eab308]/20 px-[6px] py-[2px] rounded inline-block mt-1 mb-1 shadow-sm"; 
                       }
                       else if (line.match(/^Pinned issues/i)) className = "text-[#fef08a] font-bold text-[14px] mt-2";
+                      // Pin sub-info — structured context, not user text
+                      else if (line.match(/^\s{4,}(Component:|Element:)/i)) className = "text-[#86efac] font-mono"; // green
+                      else if (line.match(/^\s{4,}(Data sources:|Text content:|Position:|aria-label:)/i)) className = "text-[#a3e635]"; // lime green
+                      // Issue headers & metadata
                       else if (line.match(/^#{1,3}\s/)) className = "text-white font-bold text-[14px] mt-2";
                       else if (line.match(/Issue "/i) || line.match(/--- Issue "/i)) className = "text-[#f87171] font-bold text-[14px] mt-2";
                       else if (line.match(/(Severity:|\[Severity:)/i)) className = "text-[#fb923c] font-bold";
                       else if (line.match(/(Route:|Viewport:)/i)) className = "text-[#60a5fa]";
+                      // Errors & network
                       else if (line.match(/(Error|Console errors:)/i)) className = "text-[#ef4444]";
                       else if (line.match(/(Network|→)/i)) className = "text-[#38bdf8]";
                       else if (line.match(/(State changes:)/i)) className = "text-[#a78bfa]";
