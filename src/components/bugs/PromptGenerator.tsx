@@ -533,6 +533,7 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
                 <div className="w-full h-full font-mono text-[13px] leading-relaxed bg-[#2a2a2a] p-[16px] pb-[80px] md:pb-[32px] md:p-[32px] text-white/90 overflow-y-auto custom-scrollbar whitespace-pre-wrap select-text rounded-br-[24px]">
                   {(() => {
                     let inIntro = true;
+                    let inPinText = false;
                     return prompt.split('\n').map((line, i) => {
                       if (line.match(/^## Issues/i) || line.match(/^<issues>/i) || line.match(/^(###|##|---) Issue "/i) || line.match(/^<issue /i) || line.match(/^Fix \d+ issue/i)) {
                         inIntro = false;
@@ -546,27 +547,39 @@ export default function PromptGenerator({ bugs, selectedIds, onBulkAction }: Pro
 
                       let className = "text-[#d4d4d8]"; // Default light gray
                       
-                      // Pin annotation text (user's own words) — yellow highlight
-                      if (line.match(/^\s*(-\s\*\*)?Pin #\d+(:|\*\*:)/i)) {
-                        className = "text-[#fef08a] font-black text-[14px] bg-[#eab308]/20 px-[6px] py-[2px] rounded inline-block mt-1 mb-1 shadow-sm"; 
+                      // Identify ends of pin text
+                      if (line.match(/^\s{4,}(Component:|Element:|Data sources:|Text content:|Position:|aria-label:)/i) || 
+                          line.match(/^(Screenshot:|Verify:|#{1,3}\s|Route:|Viewport:|Error|Console errors:|Network|State changes:)/i) ||
+                          line.match(/Issue "/i) || line.match(/--- Issue "/i) || line.match(/(Severity:|\[Severity:)/i)) {
+                        inPinText = false;
                       }
-                      else if (line.match(/^Pinned issues/i)) className = "text-[#fef08a] font-bold text-[14px] mt-2";
-                      // Pin sub-info — structured context, not user text
-                      else if (line.match(/^\s{4,}(Component:|Element:)/i)) className = "text-[#86efac] font-mono"; // green
-                      else if (line.match(/^\s{4,}(Data sources:|Text content:|Position:|aria-label:)/i)) className = "text-[#a3e635]"; // lime green
-                      // Issue headers & metadata
-                      else if (line.match(/^#{1,3}\s/)) className = "text-white font-bold text-[14px] mt-2";
-                      else if (line.match(/Issue "/i) || line.match(/--- Issue "/i)) className = "text-[#f87171] font-bold text-[14px] mt-2";
-                      else if (line.match(/(Severity:|\[Severity:)/i)) className = "text-[#fb923c] font-bold";
-                      else if (line.match(/(Route:|Viewport:)/i)) className = "text-[#60a5fa]";
-                      // Errors & network
-                      else if (line.match(/(Error|Console errors:)/i)) className = "text-[#ef4444]";
-                      else if (line.match(/(Network|→)/i)) className = "text-[#38bdf8]";
-                      else if (line.match(/(State changes:)/i)) className = "text-[#a78bfa]";
-                      else if (line.match(/(Request body:|Response:)/i)) className = "text-[#f472b6]";
-                      else if (line.match(/(Screenshot:)/i)) className = "text-[#c084fc]";
-                      else if (line.includes('`')) className = "text-[#93c5fd]";
-                      else if (line.match(/^\|.*\|$/)) className = "text-[#94a3b8] font-mono";
+
+                      // Start of pin text
+                      if (line.match(/^\s*(-\s\*\*)?Pin #\d+(:|\*\*:)/i)) {
+                        inPinText = true;
+                      }
+
+                      if (inPinText) {
+                         // Yellow highlight for user annotations
+                         className = "text-[#fef08a] font-black text-[14px] bg-[#eab308]/20 px-[6px] py-[2px] rounded inline-block shadow-sm mb-[2px]";
+                         // If line is empty, just render a tiny space to keep visual connection between paragraphs
+                         if (!line.trim()) className = "h-[8px]"; 
+                      } else {
+                         if (line.match(/^Pinned issues/i)) className = "text-[#fef08a] font-bold text-[14px] mt-2";
+                         else if (line.match(/^\s{4,}(Component:|Element:)/i)) className = "text-[#86efac] font-mono"; // green
+                         else if (line.match(/^\s{4,}(Data sources:|Text content:|Position:|aria-label:)/i)) className = "text-[#a3e635]"; // lime green
+                         else if (line.match(/^#{1,3}\s/)) className = "text-white font-bold text-[14px] mt-2";
+                         else if (line.match(/Issue "/i) || line.match(/--- Issue "/i)) className = "text-[#f87171] font-bold text-[14px] mt-2";
+                         else if (line.match(/(Severity:|\[Severity:)/i)) className = "text-[#fb923c] font-bold";
+                         else if (line.match(/(Route:|Viewport:)/i)) className = "text-[#60a5fa]";
+                         else if (line.match(/(Error|Console errors:)/i)) className = "text-[#ef4444]";
+                         else if (line.match(/(Network|→)/i)) className = "text-[#38bdf8]";
+                         else if (line.match(/(State changes:)/i)) className = "text-[#a78bfa]";
+                         else if (line.match(/(Request body:|Response:)/i)) className = "text-[#f472b6]";
+                         else if (line.match(/(Screenshot:)/i)) className = "text-[#c084fc]";
+                         else if (line.includes('`')) className = "text-[#93c5fd]";
+                         else if (line.match(/^\|.*\|$/)) className = "text-[#94a3b8] font-mono";
+                      }
 
                       return <div key={i} className={className}>{line || ' '}</div>;
                     });
