@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function proxy(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Handle CORS preflight for /api/bugs/submit (called from any origin by the widget)
