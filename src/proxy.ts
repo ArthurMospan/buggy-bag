@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Handle CORS preflight for /api/bugs/submit (called from any origin by the widget)
@@ -25,21 +25,6 @@ export async function middleware(req: NextRequest) {
     return res;
   }
 
-  // Skip auth check for public routes
-  if (
-    pathname.startsWith('/login') ||
-    pathname.startsWith('/register') ||
-    pathname.startsWith('/auth/') ||
-    pathname.startsWith('/oauth2/') ||
-    pathname.startsWith('/invite/') ||
-    pathname.startsWith('/api/') ||
-    pathname.startsWith('/_next/') ||
-    pathname === '/favicon.ico' ||
-    pathname === '/buggy-bag-standalone.js'
-  ) {
-    return NextResponse.next();
-  }
-
   let res = NextResponse.next({ request: req });
 
   const supabase = createServerClient(
@@ -61,7 +46,19 @@ export async function middleware(req: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
+  // Public routes that don't require authentication
+  const isPublicRoute = 
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/register') ||
+    pathname.startsWith('/auth/') ||
+    pathname.startsWith('/oauth2/') ||
+    pathname.startsWith('/invite/') ||
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/') ||
+    pathname === '/favicon.ico' ||
+    pathname === '/buggy-bag-standalone.js';
+
+  if (!user && !isPublicRoute) {
     const loginUrl = req.nextUrl.clone();
     loginUrl.pathname = '/login';
     return NextResponse.redirect(loginUrl);
