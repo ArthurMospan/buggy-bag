@@ -109,6 +109,30 @@ export async function DELETE(req: NextRequest) {
     const { id } = await req.json() as { id: string };
     if (!id) return NextResponse.json({ error: 'Project id is required' }, { status: 400 });
 
+    const service = createServiceClient();
+    // Clean up project storage files from bug-screenshots bucket
+    try {
+      const { data: rootFiles } = await service.storage.from('bug-screenshots').list(id);
+      if (rootFiles && rootFiles.length > 0) {
+        const filesToDelete: string[] = [];
+        for (const file of rootFiles) {
+          if (file.id === null || file.name === 'attachments') {
+            const { data: attFiles } = await service.storage.from('bug-screenshots').list(`${id}/attachments`);
+            if (attFiles) {
+              for (const af of attFiles) filesToDelete.push(`${id}/attachments/${af.name}`);
+            }
+          } else {
+            filesToDelete.push(`${id}/${file.name}`);
+          }
+        }
+        if (filesToDelete.length > 0) {
+          await service.storage.from('bug-screenshots').remove(filesToDelete);
+        }
+      }
+    } catch (stErr) {
+      console.error('[buggy-bag] Storage cleanup error during project deletion:', stErr);
+    }
+
     const { error } = await supabase
       .from('projects')
       .delete()
