@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
 
           const { data: upload, error: uploadErr } = await supabase.storage
             .from('bug-screenshots')
-            .upload(fileName, bytes, { contentType: mimeType, upsert: false });
+            .upload(fileName, bytes, { contentType: mimeType, upsert: false, cacheControl: '31536000' });
 
           if (!uploadErr && upload) {
             const { data: { publicUrl } } = supabase.storage
@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
 
       const { data: upload, error: uploadErr } = await supabase.storage
         .from('bug-screenshots')
-        .upload(fileName, bytes, { contentType: mimeType, upsert: false });
+        .upload(fileName, bytes, { contentType: mimeType, upsert: false, cacheControl: '31536000' });
 
       if (uploadErr) {
         console.error('[buggy-bag] screenshot upload failed, saving bug without image:', uploadErr.message);
