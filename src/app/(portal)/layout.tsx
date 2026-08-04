@@ -4,11 +4,19 @@ import AppShell from '@/components/layout/AppShell';
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createAuthClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-  
-  const userName = user.user_metadata?.display_name || user.user_metadata?.full_name || user.user_metadata?.name || '';
-  const userAvatar = user.user_metadata?.custom_avatar_url || user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
+  const { data, error } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (error || !claims?.sub) redirect('/login');
 
-  return <AppShell userEmail={user.email ?? ''} userName={userName} userAvatar={userAvatar}>{children}</AppShell>;
+  const metadata = claims.user_metadata && typeof claims.user_metadata === 'object'
+    ? claims.user_metadata as Record<string, unknown>
+    : {};
+  const firstString = (...values: unknown[]) =>
+    values.find((value): value is string => typeof value === 'string') ?? '';
+
+  const userName = firstString(metadata.display_name, metadata.full_name, metadata.name);
+  const userAvatar = firstString(metadata.custom_avatar_url, metadata.avatar_url, metadata.picture);
+  const userEmail = typeof claims.email === 'string' ? claims.email : '';
+
+  return <AppShell userEmail={userEmail} userName={userName} userAvatar={userAvatar}>{children}</AppShell>;
 }

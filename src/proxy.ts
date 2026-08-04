@@ -25,7 +25,9 @@ export async function proxy(req: NextRequest) {
     return res;
   }
 
-  let res = NextResponse.next({ request: req });
+  let res = NextResponse.next({
+    request: { headers: req.headers },
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,7 +35,7 @@ export async function proxy(req: NextRequest) {
     {
       cookies: {
         getAll() { return req.cookies.getAll(); },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet, headersToSet) {
           cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
           res = NextResponse.next({
             request: { headers: req.headers },
@@ -41,12 +43,19 @@ export async function proxy(req: NextRequest) {
           cookiesToSet.forEach(({ name, value, options }) =>
             res.cookies.set(name, value, options)
           );
+          Object.entries(headersToSet).forEach(([name, value]) =>
+            res.headers.set(name, value)
+          );
         },
       },
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // getClaims validates the JWT and refreshes it when necessary without the
+  // extra Auth-server user lookup performed by getUser(). The refreshed
+  // cookies are forwarded to both the route and the browser by setAll above.
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+  const isAuthenticated = Boolean(claimsData?.claims?.sub) && !claimsError;
 
   // Public routes that don't require authentication
   const isPublicRoute = 
@@ -60,10 +69,24 @@ export async function proxy(req: NextRequest) {
     pathname === '/favicon.ico' ||
     pathname === '/buggy-bag-standalone.js';
 
-  if (!user && !isPublicRoute) {
+  if (!isAuthenticated && !isPublicRoute) {
+    console.warn('[Auth Proxy] Session validation failed', {
+      pathname,
+      error: claimsError?.message ?? 'missing claims',
+    });
     const loginUrl = req.nextUrl.clone();
+    const redirectTarget = `${pathname}${req.nextUrl.search}`;
     loginUrl.pathname = '/login';
-    return NextResponse.redirect(loginUrl);
+    loginUrl.search = '';
+    loginUrl.searchParams.set('redirect', redirectTarget);
+
+    const redirectResponse = NextResponse.redirect(loginUrl);
+    res.cookies.getAll().forEach(cookie => redirectResponse.cookies.set(cookie));
+    ['cache-control', 'expires', 'pragma'].forEach(name => {
+      const value = res.headers.get(name);
+      if (value) redirectResponse.headers.set(name, value);
+    });
+    return redirectResponse;
   }
 
   return res;
