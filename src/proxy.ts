@@ -4,8 +4,12 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Handle CORS preflight for /api/bugs/submit (called from any origin by the widget)
-  if (pathname.startsWith('/api/bugs/submit') || pathname.startsWith('/api/ping')) {
+  // Handle CORS preflight for endpoints the widget calls from any origin
+  if (
+    pathname.startsWith('/api/bugs/submit') ||
+    pathname.startsWith('/api/ping') ||
+    pathname.startsWith('/api/image-proxy')
+  ) {
     if (req.method === 'OPTIONS') {
       return new NextResponse(null, {
         status: 204,
