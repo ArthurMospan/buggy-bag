@@ -52,7 +52,7 @@ export default function BugScreenshot({ bug, variant, onClick, className, childr
       src={bug.image_url}
       alt="Screenshot"
       crossOrigin="anonymous"
-      className={variant === 'page' ? 'w-full h-auto object-cover block' : 'w-full object-contain max-h-[340px] cursor-zoom-in'}
+      className={variant === 'page' ? 'w-full h-auto block' : 'w-full object-contain max-h-[340px] cursor-zoom-in'}
       onClick={onClick}
     />
   );
